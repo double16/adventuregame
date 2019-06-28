@@ -1,0 +1,67 @@
+name: Trailer Park
+description: A testing environment
+author: double16
+
+personas:
+  warrior:
+    health: 900
+    wealth: 50
+  thief:
+    health: 600
+    wealth: 100
+  thug:
+    health: 400
+    wealth: 20
+
+# Names from https://www.fantasynamegenerators.com
+players:
+  - persona: warrior
+    nickname: Shadowblow
+    fullname: Shadowblow the Hammer
+    room: entrance
+  - persona: thief
+    nickname: Victor
+    fullname: Victor the Spider
+    room: entrance
+  - persona: thug
+    room: dump
+    quantity: 0-10
+
+extras:
+  - persona: thug
+    fullname: Thug
+    quantity: 3
+    room: dump
+    goals: []
+
+challenges: []
+
+rooms:
+  entrance:
+    description: Entrance
+    neighbors:
+      - direction: north
+        room: trailer_2
+    challenges: []
+  trailer_1:
+    description: Trailer 1
+  trailer_2:
+    description: Trailer 2
+    neighbors:
+      - direction: west
+        room: trailer_1
+      - direction: east
+        room: trailer_3
+  trailer_3:
+    description: Trailer 3
+    neighbors:
+      - direction: east
+        room: trailer_4
+  trailer_4:
+    description: Trailer 4
+    neighbors:
+      - direction: north
+        back: down
+        room: dump
+  dump:
+    description: Trash Dump
