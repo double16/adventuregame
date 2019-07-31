@@ -7,4 +7,9 @@ package org.patdouble.adventuregame.state
  */
 class Chronos {
     long current = 0
+
+    Chronos next() {
+        current++
+        this
+    }
 }

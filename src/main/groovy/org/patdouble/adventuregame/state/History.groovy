@@ -4,15 +4,13 @@ import org.patdouble.adventuregame.model.World
 
 class History {
     World world
-    List<Player> cast
-    List<String> events = new ArrayList<>()
+    List<Event> events = []
 
-    History(World world, List<Player> cast) {
+    History(World world) {
         this.world = world
-        this.cast = cast
     }
 
-    void addStoryLine(String s) {
-        events.add(s)
+    void addEvent(Event e) {
+        events << e
     }
 }

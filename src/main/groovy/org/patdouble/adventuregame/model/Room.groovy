@@ -6,6 +6,7 @@ import javax.validation.constraints.NotNull
  * A place of non-deterministic size that can hold objects and players.
  */
 class Room {
+    String id
     String name
     String description
 
@@ -13,7 +14,7 @@ class Room {
     Map<String, Room> neighbors = new HashMap<>()
 
     Map<String, Room> getNeighbors() {
-        return Collections.unmodifiableMap(neighbors)
+        Collections.unmodifiableMap(neighbors)
     }
 
     void addNeighbor(@NotNull String direction, @NotNull Room room) {
@@ -21,7 +22,7 @@ class Room {
         assert room != null
         direction = direction.toLowerCase()
         if (neighbors.containsKey(direction)) {
-            throw new IllegalArgumentException("Neighbor in direction "+direction+" already present: "+neighbors.get(direction))
+            throw new IllegalArgumentException("Neighbor in direction ${direction} already present: ${neighbors.get(direction)}")
         }
         neighbors.put(direction, room)
     }

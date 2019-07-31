@@ -30,15 +30,21 @@ players:
 extras:
   - persona: thug
     fullname: Thug
-    quantity: 3
+    quantity: 5
     room: dump
+    goals: []
+  - persona: thug
+    fullname: Thug
+    quantity: 3
+    room: entrance
     goals: []
 
 challenges: []
 
 rooms:
   entrance:
-    description: Entrance
+    name: Entrance
+    description: The entrance to the trailer park has a broken gate and a cluster of mail boxes.
     neighbors:
       - direction: north
         room: trailer_2
@@ -65,3 +71,6 @@ rooms:
         room: dump
   dump:
     description: Trash Dump
+    neighbors:
+      - direction: dive
+        room: trailer_3

@@ -26,7 +26,7 @@ class World {
 
     final List<Challenge> challenges = []
 
-    Optional<Room> findRoomByName(String name) {
-        getRooms().stream().filter { it.name == name }.findFirst()
+    Optional<Room> findRoomById(String id) {
+        getRooms().stream().filter { it.id == id }.findFirst()
     }
 }

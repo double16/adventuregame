@@ -13,7 +13,7 @@ import groovy.transform.Canonical
 @Canonical
 @AutoClone
 class Persona {
-    final String name
+    String name
     /** 0-1000, 0 is dead. */
     int health
     BigDecimal wealth
@@ -29,10 +29,6 @@ class Persona {
     int agility
     /** 0-1000. */
     int speed
-
-    Persona(String name) {
-        this.name = name
-    }
 
     void setHealth(int health) {
         this.health = health

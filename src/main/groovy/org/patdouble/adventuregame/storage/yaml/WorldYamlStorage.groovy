@@ -11,6 +11,7 @@ import org.yaml.snakeyaml.Yaml
 
 class WorldYamlStorage {
     World load(InputStream is) throws IOException {
+        Objects.requireNonNull(is)
         Map<String, Object> yaml
         try {
             Yaml parser = new Yaml()
@@ -83,7 +84,7 @@ class WorldYamlStorage {
             T player = template.newInstance(persona: persona.get(), nickName: data.get("nickname"), fullName: data.get("fullname"))
             String roomName = data.get("room") as String
             if (roomName) {
-                player.setRoom(world.findRoomByName(roomName).orElseThrow{new IllegalArgumentException("Cannot find room $roomName for player ${player.fullName}")})
+                player.setRoom(world.findRoomById(roomName).orElseThrow{new IllegalArgumentException("Cannot find room $roomName for player ${player.fullName}")})
             }
             if (customizer) {
                 customizer.call(player, data)
@@ -120,11 +121,15 @@ class WorldYamlStorage {
 
         // first pass, create the rooms
         for(Map.Entry<String, Object> roomMap : rooms.entrySet()) {
-            String name = roomMap.getKey()
+            String roomId = roomMap.getKey()
             Map<String, Object> data = (Map<String, Object>) roomMap.getValue()
             Room room = new Room()
-            room.name = name
-            room.description = data.get("description") as String
+            room.id = roomId
+            room.name = data.get('name') as String
+            room.description = data.get('description') as String
+            if (room.name == null) {
+                room.name = room.id.replaceAll(/[_-]+/, ' ').replaceAll(/\b([a-z])/, { it[1].toUpperCase() })
+            }
             world.getRooms().add(room)
         }
 
@@ -132,14 +137,14 @@ class WorldYamlStorage {
         for(Map.Entry<String, Object> roomMap : rooms.entrySet()) {
             String name = roomMap.getKey()
             Map<String, Object> data = (Map<String, Object>) roomMap.getValue()
-            Room room = world.findRoomByName(name).orElseThrow{new IllegalArgumentException("Cannot find room ${name}")}
+            Room room = world.findRoomById(name).orElseThrow{new IllegalArgumentException("Cannot find room ${name}")}
             List<Map<String, Object>> neighbors = (List<Map<String, Object>>) data.getOrDefault("neighbors", Collections.emptyList())
             for(Map<String, Object> neighbor : neighbors) {
                 String direction = neighbor.get('direction') as String
                 if (!direction) {
                     throw new IllegalArgumentException("Direction is required for neighbor to room ${room.name}")
                 }
-                Room neighborRoom = world.findRoomByName(neighbor.get('room') as String)
+                Room neighborRoom = world.findRoomById(neighbor.get('room') as String)
                         .orElseThrow{new IllegalArgumentException("Cannot find room ${neighbor.get('room')}")}
                 room.addNeighbor(direction, neighborRoom)
 
