@@ -1,10 +1,10 @@
 package org.patdouble.adventuregame
 
+import org.patdouble.adventuregame.engine.Engine
 import org.patdouble.adventuregame.flow.StoryMessage
 import org.patdouble.adventuregame.model.World
 import org.patdouble.adventuregame.state.Story
 import org.patdouble.adventuregame.storage.yaml.WorldYamlStorage
-import org.patdouble.adventuregame.ui.headless.StoryMessageOutput
 import spock.lang.Specification
 
 import java.util.concurrent.Executor

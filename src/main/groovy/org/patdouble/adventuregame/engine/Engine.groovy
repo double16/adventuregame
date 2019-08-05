@@ -1,4 +1,4 @@
-package org.patdouble.adventuregame
+package org.patdouble.adventuregame.engine
 
 import org.patdouble.adventuregame.flow.ChronosChanged
 import org.patdouble.adventuregame.flow.GameOver
@@ -7,6 +7,8 @@ import org.patdouble.adventuregame.flow.PlayerNotification
 import org.patdouble.adventuregame.flow.RequestCreated
 import org.patdouble.adventuregame.flow.RequestSatisfied
 import org.patdouble.adventuregame.flow.StoryMessage
+import org.patdouble.adventuregame.i18n.ActionStatement
+import org.patdouble.adventuregame.i18n.ActionStatementParser
 import org.patdouble.adventuregame.i18n.Bundles
 import org.patdouble.adventuregame.model.Action
 import org.patdouble.adventuregame.model.ExtrasTemplate

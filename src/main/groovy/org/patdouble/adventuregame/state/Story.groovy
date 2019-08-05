@@ -10,7 +10,7 @@ import org.patdouble.adventuregame.state.request.Request
 /**
  * The current state of a story. The world, characters, positions, history, ...
  *
- * This is the top-level state object. It is initialized and maintained by an {@link org.patdouble.adventuregame.Engine}.
+ * This is the top-level state object. It is initialized and maintained by an {@link org.patdouble.adventuregame.engine.Engine}.
  */
 class Story {
     /** The world from which this stage was set. */
@@ -36,7 +36,7 @@ class Story {
         Collection<Player> players = getPlayers(room) - [player]
         Map<Persona, List<Player>> extras = getExtras(room)
         String occupants = null
-        if (!players.empty || extras.empty) {
+        if (!players.empty || !extras.isEmpty()) {
             occupants = bundles.roomsummaryTextTemplate.make([players: players, extras: extras]).toString()
         }
         StringBuilder description = new StringBuilder(room.description)

@@ -44,6 +44,20 @@ class HumanPlayerTest extends EngineTest {
         }
     }
 
+    def "initial extras placement"() {
+        when:
+        engine.start()
+
+        then:
+        story.cast.findAll { it.persona.name == 'thug' && it.room.id == 'entrance' }.size() == 3
+        story.cast.findAll { it.persona.name == 'thug' && it.room.id == 'dump' }.size() == 5
+
+        and:
+        story.roomSummary(story.world.rooms.find { it.id == 'entrance' }, warrior, engine.bundles).occupants == 'Victor the thief and 3 thugs are here with you.'
+        story.roomSummary(story.world.rooms.find { it.id == 'dump' }, warrior, engine.bundles).occupants == '5 thugs are here with you.'
+        !story.roomSummary(story.world.rooms.find { it.id == 'trailer_1' }, warrior, engine.bundles).occupants
+    }
+
     def "valid go action"() {
         given:
         engine.start()

@@ -1,4 +1,4 @@
-package org.patdouble.adventuregame
+package org.patdouble.adventuregame.i18n
 
 import groovy.transform.Immutable
 import org.patdouble.adventuregame.model.Action

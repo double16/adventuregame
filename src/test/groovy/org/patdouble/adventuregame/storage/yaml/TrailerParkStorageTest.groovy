@@ -82,7 +82,7 @@ class TrailerParkStorageTest extends Specification {
         and: 'room entrance'
         Room rEntrance = world.rooms.find { it.id == 'entrance' }
         rEntrance.id == 'entrance'
-        rEntrance.description == 'Entrance'
+        rEntrance.description == 'The entrance to the trailer park has a broken gate and a cluster of mail boxes.'
         rEntrance.getNeighbors().size() == 1
         Room rEntranceNorth = rEntrance.getNeighbors().get(Direction.NORTH.name().toLowerCase())
         rEntranceNorth.id == 'trailer_2'

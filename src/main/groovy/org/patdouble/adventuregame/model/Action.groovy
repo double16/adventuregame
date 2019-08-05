@@ -7,7 +7,6 @@ enum Action {
     GO,
     PAY,
     FIGHT,
-    FLEE,
     LOOK,
     SAY,
     TAKE,

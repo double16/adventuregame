@@ -1,5 +1,7 @@
 package org.patdouble.adventuregame
 
+import org.patdouble.adventuregame.i18n.ActionStatement
+import org.patdouble.adventuregame.i18n.ActionStatementParser
 import org.patdouble.adventuregame.model.Action
 import spock.lang.Specification
 import spock.lang.Unroll

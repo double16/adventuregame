@@ -1,7 +1,6 @@
-package org.patdouble.adventuregame
+package org.patdouble.adventuregame.i18n
 
 import groovy.util.logging.Slf4j
-import org.patdouble.adventuregame.i18n.Bundles
 import org.patdouble.adventuregame.model.Action
 
 import javax.validation.constraints.NotNull

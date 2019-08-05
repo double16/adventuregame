@@ -3,7 +3,7 @@ package org.patdouble.adventuregame.ui.console
 import org.fusesource.jansi.Ansi
 import org.jline.reader.EndOfFileException
 import org.jline.reader.UserInterruptException
-import org.patdouble.adventuregame.Engine
+import org.patdouble.adventuregame.engine.Engine
 import org.patdouble.adventuregame.flow.PlayerNotification
 import org.patdouble.adventuregame.flow.RequestCreated
 import org.patdouble.adventuregame.flow.StoryMessage
@@ -89,24 +89,28 @@ class ConsoleRequestHandler implements Flow.Subscriber<StoryMessage>, AutoClosea
             return
         }
 
-        console.println {
-                a('Player ')
-                .bold().a(playerRequest.template.nickName).boldOff()
-                .a(' the ').bold().a(playerRequest.template.persona.name).boldOff()
-        }
-        String includePlayer = console.readLine('Do you want to be this player (y/n) ? ').trim().toLowerCase()
-
-        if (!includePlayer.startsWith('y')) {
-            skippedPlayerTemplates.add(playerRequest.template)
-            if (!playerRequest.optional) {
-                engine.addToCast(playerRequest.template.createPlayer(Motivator.AI))
-            } else {
-                engine.ignore(playerRequest)
-            }
-            return
-        }
-
         try {
+            console.println {
+                newline()
+                .a('Player ')
+                if (playerRequest.template.nickName) {
+                    bold().a(playerRequest.template.nickName).boldOff()
+                            .a(' the ')
+                }
+                bold().a(playerRequest.template.persona.name).boldOff()
+            }
+            String includePlayer = console.readLine('Do you want to be this player (y/n) ? ').trim().toLowerCase()
+
+            if (!includePlayer.startsWith('y')) {
+                skippedPlayerTemplates.add(playerRequest.template)
+                if (!playerRequest.optional) {
+                    engine.addToCast(playerRequest.template.createPlayer(Motivator.AI))
+                } else {
+                    engine.ignore(playerRequest)
+                }
+                return
+            }
+
             String full = console.readLine('Full Name? ', playerRequest.template.fullName)
             String nick = console.readLine('Nick Name? ', playerRequest.template.nickName)
             Player player = playerRequest.template.createPlayer(Motivator.HUMAN)
