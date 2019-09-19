@@ -2,8 +2,9 @@ package org.patdouble.adventuregame.ui.console
 
 import org.fusesource.jansi.Ansi
 import org.patdouble.adventuregame.engine.Engine
-import org.patdouble.adventuregame.model.UniverseRegistry
+import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
 import org.patdouble.adventuregame.model.World
+import org.patdouble.adventuregame.model.UniverseRegistry
 import org.patdouble.adventuregame.state.Story
 
 class Main {
@@ -13,8 +14,8 @@ class Main {
     static void main(String[] args) {
         final Console console = new Console()
 
-        UniverseRegistry registry = new UniverseRegistry()
-        World world = registry.getWorlds().find { it.name == 'Trailer Park' }
+        UniverseRegistry registry = new YamlUniverseRegistry()
+        World world = registry.getWorlds().find { it.name == YamlUniverseRegistry.TRAILER_PARK }
 
         console.println {
             newline()

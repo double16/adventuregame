@@ -1,19 +1,10 @@
-package org.patdouble.adventuregame
+package org.patdouble.adventuregame.engine
 
 import org.patdouble.adventuregame.flow.RequestCreated
 import org.patdouble.adventuregame.flow.RequestSatisfied
-import org.patdouble.adventuregame.flow.StoryMessage
-import org.patdouble.adventuregame.model.World
 import org.patdouble.adventuregame.state.Motivator
 import org.patdouble.adventuregame.state.Player
-import org.patdouble.adventuregame.state.Story
 import org.patdouble.adventuregame.state.request.PlayerRequest
-import org.patdouble.adventuregame.storage.yaml.WorldYamlStorage
-import org.patdouble.adventuregame.ui.headless.StoryMessageOutput
-import spock.lang.Specification
-
-import java.util.concurrent.Executor
-import java.util.concurrent.Flow
 
 class EngineInitTest extends EngineTest {
     def "Init"() {

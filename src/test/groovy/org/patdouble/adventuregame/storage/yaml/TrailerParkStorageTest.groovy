@@ -17,7 +17,7 @@ class TrailerParkStorageTest extends Specification {
         World world = new WorldYamlStorage().load(is)
 
         then: 'World meta-data is present'
-        world.name == 'Trailer Park'
+        world.name == YamlUniverseRegistry.TRAILER_PARK
         world.author == 'double16'
         world.description == 'A testing environment'
 

@@ -1,20 +1,34 @@
 package org.patdouble.adventuregame.state
 
 import groovy.transform.AutoClone
+import groovy.transform.EqualsAndHashCode
 import org.patdouble.adventuregame.model.Persona
 import org.patdouble.adventuregame.model.Room
+
+import javax.persistence.Entity
+import javax.persistence.GeneratedValue
+import javax.persistence.GenerationType
+import javax.persistence.Id
+import javax.persistence.ManyToOne
 
 /**
  * Models the player's attributes and current state.
  */
-@AutoClone
+@AutoClone(excludes = ['id'])
+@Entity
+@EqualsAndHashCode(excludes = ['id'])
 class Player {
+    @Id @GeneratedValue(strategy = GenerationType.AUTO)
+    long id
+
     Motivator motivator
     @Delegate(excludes = [ 'clone' ])
+    @ManyToOne
     Persona persona
     String nickName
     String fullName
     /** The location of the player. */
+    @ManyToOne
     Room room
 
     Player(Motivator motivator, Persona persona, String nickName = null) {
@@ -42,7 +56,7 @@ class Player {
 
     @Override
     boolean equals(Object obj) {
-        if (!obj instanceof Player) {
+        if (!(obj instanceof Player)) {
             return false
         }
         Player other = obj as Player

@@ -1,10 +1,9 @@
-package org.patdouble.adventuregame
+package org.patdouble.adventuregame.engine
 
-import org.patdouble.adventuregame.engine.Engine
 import org.patdouble.adventuregame.flow.StoryMessage
 import org.patdouble.adventuregame.model.World
 import org.patdouble.adventuregame.state.Story
-import org.patdouble.adventuregame.storage.yaml.WorldYamlStorage
+import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
 import spock.lang.Specification
 
 import java.util.concurrent.Executor
@@ -17,7 +16,7 @@ abstract class EngineTest extends Specification {
     Engine engine
 
     def setup() {
-        World world = new WorldYamlStorage().load(getClass().getResourceAsStream('/worlds/trailer-park.yml'))
+        World world = new YamlUniverseRegistry().worlds.find { it.name == YamlUniverseRegistry.TRAILER_PARK }
         story = new Story(world)
 
         storySubscriber = Mock()

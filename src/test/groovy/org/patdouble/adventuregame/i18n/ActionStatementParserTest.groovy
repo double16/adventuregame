@@ -1,4 +1,4 @@
-package org.patdouble.adventuregame
+package org.patdouble.adventuregame.i18n
 
 import org.patdouble.adventuregame.i18n.ActionStatement
 import org.patdouble.adventuregame.i18n.ActionStatementParser

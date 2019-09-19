@@ -1,5 +1,5 @@
 name: Middle Earth
-description: The imaginary world of J.R.R. Tolkien
+description: The world of J.R.R. Tolkien
 author: double16
 
 personas:
@@ -23,17 +23,19 @@ players:
   - nickname: Bilbo
     fullname: Bilbo Baggins
     persona: hobbit
+    room: bag_end
   - nickname: Gandalf
     fullname: Gandalf the Grey
     persona: wizard
+    room: bag_end
 
-characters:
-  - fullname: Orc
-    persona: orc
-    quantity: 50
-    rooms:
-      - blackgate
-    goals: []
+#extras:
+#  - fullname: Orc
+#    persona: orc
+#    quantity: 50
+#    rooms:
+#      - blackgate
+#    goals: []
 
 challenges:
   orc:

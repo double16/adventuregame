@@ -1,4 +1,4 @@
-package org.patdouble.adventuregame
+package org.patdouble.adventuregame.engine
 
 import org.patdouble.adventuregame.flow.PlayerChanged
 import org.patdouble.adventuregame.flow.PlayerNotification

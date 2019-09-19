@@ -7,17 +7,24 @@ import org.patdouble.adventuregame.state.Player
 import spock.lang.Specification
 
 class WorldYamlStorageTest extends Specification {
+    YamlUniverseRegistry registry = new YamlUniverseRegistry()
+
+    private World loadMiddleEarth() {
+        registry.worlds.find { it.name == YamlUniverseRegistry.MIDDLE_EARTH }
+    }
+
+    private World loadTrailerPark() {
+        registry.worlds.find { it.name == YamlUniverseRegistry.TRAILER_PARK }
+    }
 
     def "load"() {
         when: 'Middle Earth is loaded'
-        InputStream is = getClass().getResourceAsStream('/worlds/middle-earth.yml')
-        assert is
-        World world = new WorldYamlStorage().load(is)
+        World world = loadMiddleEarth()
 
         then: 'World meta-data is present'
-        world.name == 'Middle Earth'
+        world.name == YamlUniverseRegistry.MIDDLE_EARTH
         world.author == 'double16'
-        world.description == 'The imaginary world of J.R.R. Tolkien'
+        world.description == 'The world of J.R.R. Tolkien'
 
         and: 'personas are loaded'
         world.personas.size() == 5
@@ -36,5 +43,17 @@ class WorldYamlStorageTest extends Specification {
         bilbo.nickName == 'Bilbo'
         bilbo.fullName == 'Bilbo Baggins'
         bilbo.persona.name == 'hobbit'
+    }
+
+    def "hash code"() {
+        expect:
+        loadMiddleEarth().hashCode() == loadMiddleEarth().hashCode()
+        loadMiddleEarth().hashCode() != loadTrailerPark().hashCode()
+    }
+
+    def "equals"() {
+        expect:
+        loadMiddleEarth() == loadMiddleEarth()
+        loadMiddleEarth() != loadTrailerPark()
     }
 }
