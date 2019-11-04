@@ -31,6 +31,8 @@ import java.util.concurrent.SubmissionPublisher
 /**
  * Runs the story by advancing the {@link Chronos}, declaring necessary inputs from humans, meeting goals for AI players, etc.
  * Responsible for updating the history.
+ *
+ * The entire state is stored in the {@link Story} object.
  */
 class Engine implements Closeable {
     final Story story
@@ -159,6 +161,7 @@ class Engine implements Closeable {
 
     @Override
     void close() throws IOException {
+        story.requests.clear()
         publisher.submit(new GameOver())
         publisher.close()
     }
