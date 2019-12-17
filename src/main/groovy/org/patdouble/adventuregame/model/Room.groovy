@@ -15,7 +15,7 @@ import javax.validation.constraints.NotNull
  * A place of non-deterministic size that can hold objects and players.
  */
 @Entity
-@ToString(excludes = ['dbId'])
+@ToString(excludes = ['dbId', 'neighbors'])
 class Room {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
     long dbId

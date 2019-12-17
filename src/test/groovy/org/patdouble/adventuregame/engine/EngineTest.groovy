@@ -24,6 +24,8 @@ abstract class EngineTest extends Specification {
         executor = { it.run() } as Executor
 
         engine = new Engine(story, executor)
+        engine.chronosLimit = 100
+        engine.kContainer = new DroolsConfiguration().kieContainer()
         engine.subscribe(storySubscriber)
 //        engine.subscribe(new StoryMessageOutput())
     }

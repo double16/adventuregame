@@ -1,27 +1,14 @@
 package org.patdouble.adventuregame.engine
 
-import org.patdouble.adventuregame.flow.PlayerChanged
 import org.patdouble.adventuregame.flow.PlayerNotification
-import org.patdouble.adventuregame.flow.RequestCreated
-import org.patdouble.adventuregame.flow.RequestSatisfied
 import org.patdouble.adventuregame.flow.RoomSummary
 import org.patdouble.adventuregame.state.Motivator
-import org.patdouble.adventuregame.state.Player
 import org.patdouble.adventuregame.state.request.ActionRequest
-import org.patdouble.adventuregame.state.request.PlayerRequest
 
-class HumanPlayerTest extends EngineTest {
-    Player warrior
-    Player thief
-
-    def setup() {
-        engine.init()
-        PlayerRequest warriorRequest = story.requests.find { it.template.persona.name == 'warrior' } as PlayerRequest
-        PlayerRequest thiefRequest = story.requests.find { it.template.persona.name == 'thief' } as PlayerRequest
-        warrior = warriorRequest.template.createPlayer(Motivator.HUMAN)
-        thief = thiefRequest.template.createPlayer(Motivator.HUMAN)
-        engine.addToCast(warrior)
-        engine.addToCast(thief)
+class HumanPlayerTest extends AbstractPlayerTest {
+    @Override
+    Motivator getDefaultMotivator() {
+        Motivator.HUMAN
     }
 
     def "initial actions"() {
@@ -58,122 +45,13 @@ class HumanPlayerTest extends EngineTest {
         !story.roomSummary(story.world.rooms.find { it.id == 'trailer_1' }, warrior, engine.bundles).occupants
     }
 
-    def "valid go action"() {
-        given:
-        engine.start()
-
-        when:
-        boolean success = engine.action(warrior, 'go north')
-
-        then:
-        success
-        warrior.room.id == 'trailer_2'
-        !story.requests.find { it instanceof ActionRequest && it.player == warrior }
-        and:
-        1 * storySubscriber.onNext(new PlayerChanged(warrior, 1))
-        1 * storySubscriber.onNext{ it instanceof RequestSatisfied && it.request.player == warrior }
-    }
-
-    def "valid go action - abbreviated"() {
-        given:
-        engine.start()
-
-        when:
-        boolean success = engine.action(warrior, 'go n')
-
-        then:
-        success
-        warrior.room.id == 'trailer_2'
-        !story.requests.find { it instanceof ActionRequest && it.player == warrior }
-        and:
-        1 * storySubscriber.onNext(new PlayerChanged(warrior, 1))
-        1 * storySubscriber.onNext{ it instanceof RequestSatisfied && it.request.player == warrior }
-    }
-
-    def "multiple go directions - abbreviated"() {
-        given:
-        engine.start()
-        warrior.room = story.world.rooms.find { it.id == 'dump' }
-
-        when:
-        boolean success = engine.action(warrior, 'go d')
-
-        then:
-        !success
-        warrior.room.id == 'dump'
-        story.requests.find { it instanceof ActionRequest && it.player == warrior }
-        and:
-        0 * storySubscriber.onNext(new PlayerChanged(warrior, 1))
-        1 * storySubscriber.onNext({ it instanceof PlayerNotification && it.player == warrior })
-        1 * storySubscriber.onNext{ it instanceof RequestCreated && it.request.player == warrior }
-    }
-
-    def "invalid go action"() {
-        given:
-        engine.start()
-
-        when: 'no direction'
-        boolean success = engine.action(warrior, 'go')
-        then:
-        !success
-        warrior.room.id == 'entrance'
-        story.requests.find { it instanceof ActionRequest && it.player == warrior }
-        and:
-        0 * storySubscriber.onNext(new PlayerChanged(warrior, 1))
-        1 * storySubscriber.onNext({ it instanceof PlayerNotification && it.player == warrior })
-        1 * storySubscriber.onNext{ it instanceof RequestCreated && it.request.player == warrior }
-
-        when: 'known but invalid direction'
-        success = engine.action(warrior, 'go south')
-        then:
-        !success
-        warrior.room.id == 'entrance'
-        story.requests.find { it instanceof ActionRequest && it.player == warrior }
-        and:
-        0 * storySubscriber.onNext(new PlayerChanged(warrior, 1))
-        1 * storySubscriber.onNext({ it instanceof PlayerNotification && it.player == warrior })
-        1 * storySubscriber.onNext{ it instanceof RequestCreated && it.request.player == warrior }
-
-        when: 'unknown direction'
-        success = engine.action(warrior, 'go northwest')
-        then:
-        !success
-        warrior.room.id == 'entrance'
-        story.requests.find { it instanceof ActionRequest && it.player == warrior }
-        and:
-        0 * storySubscriber.onNext(new PlayerChanged(warrior, 1))
-        1 * storySubscriber.onNext({ it instanceof PlayerNotification && it.player == warrior })
-        1 * storySubscriber.onNext{ it instanceof RequestCreated && it.request.player == warrior }
-    }
-
-    def "valid go actions trigger next"() {
-        given:
-        engine.start()
-
-        when:
-        engine.action(warrior, 'go north')
-        engine.action(thief, 'go north')
-
-        then:
-        warrior.room.id == 'trailer_2'
-        thief.room.id == 'trailer_2'
-        !story.requests.find { it instanceof ActionRequest && it.chronos == 1 }
-        story.requests.findAll { it instanceof ActionRequest && it.chronos == 2 }.size() == 2
-        with(story.requests.find { it instanceof ActionRequest && it.player == warrior }) {
-            roomSummary.description == 'Trailer 2. Paths go east, south or west.'
-            roomSummary.occupants == 'Victor the thief is here with you.'
-            actions == engine.actionStatementParser.availableActions
-            directions == [ 'east', 'south', 'west' ]
-        }
-    }
-
     def "roomSummary human players no extras"() {
         given:
         story.world.extras.clear()
         engine.start()
 
         when:
-        RoomSummary roomSummary = ((ActionRequest) story.requests.find { it instanceof ActionRequest }).roomSummary
+        RoomSummary roomSummary = ((ActionRequest) story.requests.find { it instanceof ActionRequest && it.player == warrior }).roomSummary
 
         then:
         roomSummary.name == 'Entrance'
@@ -187,7 +65,7 @@ class HumanPlayerTest extends EngineTest {
         engine.start()
 
         when:
-        RoomSummary roomSummary = ((ActionRequest) story.requests.find { it instanceof ActionRequest }).roomSummary
+        RoomSummary roomSummary = ((ActionRequest) story.requests.find { it instanceof ActionRequest && it.player == warrior }).roomSummary
 
         then:
         roomSummary.name == 'Entrance'
@@ -216,7 +94,38 @@ class HumanPlayerTest extends EngineTest {
         }
     }
 
-    def "look actions"() {
+    def "action without request"() {
+        given:
+        engine.start()
+
+        when:
+        engine.action(warrior, 'wait')
+        boolean success = engine.action(warrior, 'wait')
+
+        then:
+        !success
+        !story.requests.find { it instanceof ActionRequest && it.player == warrior }
+        and:
+        1 * storySubscriber.onNext(new PlayerNotification(warrior,
+                'Not yet your turn',
+                'You tried to do something but it\'s not your turn. This is usually a logic error in the application.'))
+
+    }
+
+    def "custom action not implemented"() {
+        given:
+        engine.start()
+
+        when:
+        boolean success = engine.action(warrior, 'wait4')
+
+        then:
+        !success
+        story.requests.find { it instanceof ActionRequest && it.player == warrior }
+        and:
+        1 * storySubscriber.onNext(new PlayerNotification(warrior,
+                'I don\'t understand what you want to do',
+                'Things you can do: attack, buy, drop, escape, exit, fight, flee, go, leave, look, move, nap, pay, pick up, put down, rest, run, say, see, sleep, speak, stay, swim, take, talk, wait, wake'))
 
     }
 }

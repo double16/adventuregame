@@ -42,6 +42,10 @@ class World {
     @OneToMany(cascade = CascadeType.ALL)
     final List<Room> rooms = []
 
+    // FIXME: Parse, unit tests
+    @OneToMany(cascade = CascadeType.ALL)
+    final List<Goal> goals = []
+
 //    final List<Challenge> challenges = []
 
     Optional<Room> findRoomById(String id) {

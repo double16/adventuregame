@@ -1,0 +1,17 @@
+package org.patdouble.adventuregame.state
+
+global org.slf4j.Logger log;
+
+expander default.dsl
+
+dialect "mvel"
+
+rule "log player has a turn"
+  salience 10000
+  when
+    Chronos
+    There is a player
+    - has a turn
+  then
+    log "Player has a turn: "+$player.fullName
+end

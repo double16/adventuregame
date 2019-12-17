@@ -17,7 +17,7 @@ import javax.persistence.ManyToOne
 @AutoClone(excludes = ['id'])
 @Entity
 @EqualsAndHashCode(excludes = ['id'])
-class Player {
+class Player implements Temporal {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
     long id
 

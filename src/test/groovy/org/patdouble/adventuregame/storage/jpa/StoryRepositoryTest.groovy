@@ -1,5 +1,6 @@
 package org.patdouble.adventuregame.storage.jpa
 
+import org.patdouble.adventuregame.engine.DroolsConfiguration
 import org.patdouble.adventuregame.engine.Engine
 import org.patdouble.adventuregame.state.Motivator
 import org.patdouble.adventuregame.state.Story
@@ -28,6 +29,7 @@ class StoryRepositoryTest extends Specification {
     private Story newStory(String worldName, boolean start = false) {
         Story story = new Story(worldRepository.findByName(worldName).first())
         Engine engine = new Engine(story)
+        engine.kContainer = new DroolsConfiguration().kieContainer()
         engine.init()
         if (start) {
             story.requests.clone().each { PlayerRequest req -> engine.addToCast(req.template.createPlayer(Motivator.HUMAN)) }
