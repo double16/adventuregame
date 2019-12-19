@@ -5,7 +5,7 @@ global org.slf4j.Logger log;
 dialect "mvel"
 
 rule "log chronos"
-  salience 1000
+  salience 10000
   when
     $c : Chronos()
   then
@@ -13,6 +13,7 @@ rule "log chronos"
 end
 
 rule "log only ai"
+  salience 10000
   when
     not (exists (Player(motivator == Motivator.HUMAN)))
   then
@@ -20,10 +21,10 @@ rule "log only ai"
 end
 
 rule "log unfulfilled required goals"
+  salience 1000
   when
-    forall( $emp : Employee( type == "fulltime")
-                   Employee( this == $emp, badgeColor = "red" ) )
-    not (exists (GoalStatus(getFulfilled() == false, goal.required == true)))
+    Chronos(getCurrent() > 0)
+    not (exists (GoalStatus(goal.required == true, getFulfilled() == false)))
   then
     log.info("No required goals left");
 end

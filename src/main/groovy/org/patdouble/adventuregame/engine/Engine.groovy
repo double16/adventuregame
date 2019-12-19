@@ -105,6 +105,7 @@ class Engine implements Closeable {
                 @Override
                 void run() {
                     kieSession.fireUntilHalt()
+                    //kieSession.dispose()
                 }
             }
             kieThread.daemon = true
@@ -232,7 +233,7 @@ class Engine implements Closeable {
         publisher.close()
         if (kieSession != null) {
             kieSession.halt()
-            kieSession.dispose()
+            //FIXME: kieSession.dispose()
         }
     }
 

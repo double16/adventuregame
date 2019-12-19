@@ -7,9 +7,9 @@ import org.patdouble.adventuregame.state.Player
  * Exposes a subset of methods from {@link Engine} to the rules engine.
  */
 class EngineFacade {
-    private final Engine delegate
+    protected final Engine engine
     EngineFacade(Engine engine) {
-        this.delegate = engine
+        this.engine = engine
     }
 
     /**
@@ -17,7 +17,7 @@ class EngineFacade {
      */
     @SuppressWarnings("Unused")
     void createActionRequest(Player player) {
-        delegate.createActionRequest(player)
+        engine.createActionRequest(player)
     }
 
     /**
@@ -25,7 +25,7 @@ class EngineFacade {
      */
     @SuppressWarnings("Unused")
     void incrementChronos() {
-        delegate.incrementChronos()
+        engine.incrementChronos()
     }
 
     /**
@@ -33,7 +33,7 @@ class EngineFacade {
      */
     @SuppressWarnings("Unused")
     void action(Player player, String verb, String directObject, String indirectObject) {
-        delegate.action(player, new ActionStatement(verb: verb, directObject: directObject, indirectObject: indirectObject))
+        engine.action(player, new ActionStatement(verb: verb, directObject: directObject, indirectObject: indirectObject))
     }
 
     /**
@@ -41,6 +41,7 @@ class EngineFacade {
      */
     @SuppressWarnings("Unused")
     void close() {
-        delegate.close()
+        // The KIE session can't complete disposing when called from a rule, so we run this in a separate thread
+        new Thread({ engine.close() }).start()
     }
 }

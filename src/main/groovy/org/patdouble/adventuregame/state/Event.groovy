@@ -20,9 +20,9 @@ class Event {
     long id
 
     /** Tied to the {@link Chronos} value. */
-    final long when
+    long when
     @OneToMany(cascade = CascadeType.ALL)
-    final Collection<Player> cast
+    Collection<Player> cast
 
     Event(Collection<Player> players, Chronos chronos) {
         when = chronos.current

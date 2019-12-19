@@ -31,7 +31,7 @@ class Story {
 
     /** The world from which this stage was set. */
     @ManyToOne
-    final World world
+    World world
     @OneToMany(cascade = CascadeType.ALL)
     Collection<Player> cast = []
     // FIXME: unit tests

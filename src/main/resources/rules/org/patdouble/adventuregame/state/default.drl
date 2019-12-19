@@ -8,6 +8,7 @@ global org.slf4j.Logger log;
 global org.patdouble.adventuregame.engine.EngineFacade engine;
 
 rule "next chronos"
+  salience 1000
   when
     $c : Chronos()
     exists Player()
@@ -17,6 +18,7 @@ rule "next chronos"
 end
 
 rule "the end"
+  salience 2001
   when
     GoalStatus(getFulfilled() == true, goal.theEnd == true)
   then
@@ -25,9 +27,11 @@ rule "the end"
 end
 
 rule "complete"
+  salience 2000
   when
+    Chronos(getCurrent() > 0)
+    not (exists (GoalStatus(goal.required == true, getFulfilled() == false)))
     not (exists (Player(motivator == Motivator.HUMAN)))
-    not (exists (GoalStatus(getFulfilled() == false, goal.required == true)))
   then
     log.info("No required goals left for AI players, ending the story")
     engine.close();
@@ -45,7 +49,6 @@ end
 
 rule "ai player turn"
   salience 200
-
   when
     $c : Chronos()
     $player : Player(motivator == Motivator.AI, chronos < $c.getCurrent())

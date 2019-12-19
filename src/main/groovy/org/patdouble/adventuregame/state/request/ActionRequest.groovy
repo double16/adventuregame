@@ -20,12 +20,12 @@ import javax.persistence.OneToMany
 @Entity
 class ActionRequest extends Request {
     @ManyToOne
-    final Player player
+    Player player
     /** The chronos value that will be fulfilled by the action. */
     @Column(insertable = false, updatable = false)
-    final long chronos
+    long chronos
     @Embedded
-    final RoomSummary roomSummary
+    RoomSummary roomSummary
     /** The valid actions, may be a subset of the total. */
     @ElementCollection
     List<String> actions = []

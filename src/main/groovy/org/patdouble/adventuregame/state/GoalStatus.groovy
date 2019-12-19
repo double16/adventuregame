@@ -8,7 +8,7 @@ import javax.persistence.Entity
 import javax.persistence.GeneratedValue
 import javax.persistence.GenerationType
 import javax.persistence.Id
-import javax.persistence.OneToMany
+import javax.persistence.ManyToOne
 
 /**
  * Tracks fulfillment of a {@link Goal}.
@@ -19,7 +19,7 @@ import javax.persistence.OneToMany
 class GoalStatus {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
     long id
-    @OneToMany
+    @ManyToOne
     Goal goal
     boolean fulfilled
 }

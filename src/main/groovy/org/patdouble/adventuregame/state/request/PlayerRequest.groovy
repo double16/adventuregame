@@ -13,8 +13,8 @@ import javax.persistence.ManyToOne
 @Entity
 class PlayerRequest extends Request {
     @ManyToOne
-    final PlayerTemplate template
-    final boolean optional = false
+    PlayerTemplate template
+    boolean optional = false
 
     @Override
     String toString() {

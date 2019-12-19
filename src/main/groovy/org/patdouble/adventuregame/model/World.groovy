@@ -25,28 +25,28 @@ class World {
     String description
 
     @OneToMany(cascade = CascadeType.ALL)
-    final List<Persona> personas = []
+    List<Persona> personas = []
 
     /**
      * List of available players.
      */
     @OneToMany(cascade = CascadeType.ALL)
-    final List<PlayerTemplate> players = []
+    List<PlayerTemplate> players = []
 
     /**
      * List of extras, which are like players but are only controlled by AI.
      */
     @OneToMany(cascade = CascadeType.ALL)
-    final List<ExtrasTemplate> extras = []
+    List<ExtrasTemplate> extras = []
 
     @OneToMany(cascade = CascadeType.ALL)
-    final List<Room> rooms = []
+    List<Room> rooms = []
 
     // FIXME: Parse, unit tests
     @OneToMany(cascade = CascadeType.ALL)
-    final List<Goal> goals = []
+    List<Goal> goals = []
 
-//    final List<Challenge> challenges = []
+//    List<Challenge> challenges = []
 
     Optional<Room> findRoomById(String id) {
         getRooms().stream().filter { it.id == id }.findFirst()
