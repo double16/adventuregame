@@ -1,5 +1,6 @@
 package org.patdouble.adventuregame.engine
 
+import org.kie.api.runtime.rule.RuleRuntime
 import org.patdouble.adventuregame.i18n.ActionStatement
 import org.patdouble.adventuregame.state.Player
 
@@ -37,11 +38,10 @@ class EngineFacade {
     }
 
     /**
-     * {@link Engine#close()}
+     * {@link Engine#close(org.kie.api.runtime.rule.RuleRuntime)}
      */
     @SuppressWarnings("Unused")
-    void close() {
-        // The KIE session can't complete disposing when called from a rule, so we run this in a separate thread
-        new Thread({ engine.close() }).start()
+    void close(RuleRuntime ruleRuntime) {
+        engine.close(ruleRuntime)
     }
 }

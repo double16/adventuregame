@@ -6,6 +6,7 @@ import org.kie.api.runtime.KieContainer
 import org.kie.api.runtime.KieSession
 import org.kie.api.runtime.KieSessionConfiguration
 import org.kie.api.runtime.rule.FactHandle
+import org.kie.api.runtime.rule.RuleRuntime
 import org.kie.internal.runtime.conf.ForceEagerActivationOption
 import org.patdouble.adventuregame.flow.ChronosChanged
 import org.patdouble.adventuregame.flow.GameOver
@@ -105,7 +106,7 @@ class Engine implements Closeable {
                 @Override
                 void run() {
                     kieSession.fireUntilHalt()
-                    //kieSession.dispose()
+                    kieSession.dispose()
                 }
             }
             kieThread.daemon = true
@@ -214,27 +215,38 @@ class Engine implements Closeable {
 
     void next() {
         kieSession.fireAllRules()
-/* FIXME:
-        while (createActionRequests() == 0 && !isStable()) {
-            moveAIPlayers()
-            incrementChronos()
-        }
-
-        if (autoLifecycle && story.requests.empty && isStable()) {
-            close()
-        }
-*/
     }
 
     @Override
     void close() throws IOException {
+        close(kieSession)
+    }
+
+    void close(RuleRuntime ruleRuntime) throws IOException {
         story.requests.clear()
-        publisher.submit(new GameOver())
-        publisher.close()
-        if (kieSession != null) {
-            kieSession.halt()
-            //FIXME: kieSession.dispose()
+        if (!publisher.isClosed()) {
+            publisher.submit(new GameOver())
+            publisher.close()
         }
+        if (ruleRuntime != null) {
+            ruleRuntime.halt()
+            if (ruleRuntime.is(kieSession)) {
+                kieSession.dispose()
+            }
+        }
+    }
+
+    /**
+     * Check if this engine is closed, i.e. it is no longer running a story. This does not indicate the story has
+     * ended.
+     */
+    boolean isClosed() {
+        publisher.isClosed()
+    }
+
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        return super.clone()
     }
 
     protected void incrementChronos() {
@@ -246,20 +258,6 @@ class Engine implements Closeable {
         story.chronos++
         kieSession.update(chronosHandle, story.chronos)
         publisher.submit(new ChronosChanged(story.chronos.current))
-    }
-
-    /**
-     * Creates necessary move requests for human players. This method will not create duplicate requests in the
-     * {@link Story#requests} list.
-     * @return the number of new requests created
-     */
-    private int createActionRequests() {
-        int count = 0
-        story.cast.findAll { it.motivator == Motivator.HUMAN }.each { Player player ->
-            createActionRequest(player)
-            count++
-        }
-        count
     }
 
     protected createActionRequest(Player player) {
@@ -275,23 +273,6 @@ class Engine implements Closeable {
     }
 
     /**
-     * Move {@link org.patdouble.adventuregame.state.Motivator#AI} players according to their goals. Only the players
-     * whose chronos is behind the current chronos will be moved.
-     * @return the number of players changed.
-     */
-    private int moveAIPlayers() {
-        0
-    }
-
-    /**
-     * Check if the story is stable, i.e. no changes are expected to be made because the AI players has reached all
-     * goals or otherwise have no motivation to change their state.
-     */
-    boolean isStable() {
-        story.cast.every { it.motivator == Motivator.AI }
-    }
-
-    /**
      * Create a new event in history.
      * @return the new event
      */
@@ -304,7 +285,7 @@ class Engine implements Closeable {
      * @return true if the action was successful, false otherwise. Any error message will be sent via flow.
      */
     boolean action(Player player, String statement) {
-        action(player, actionStatementParser.parse(statement))
+        action(player, (ActionStatement) actionStatementParser.parse(statement))
     }
 
     /**
