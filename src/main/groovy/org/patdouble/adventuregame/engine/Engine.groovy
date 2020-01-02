@@ -97,6 +97,9 @@ class Engine implements Closeable {
             }
         }
 
+        // create goals
+        createGoalStatus()
+
         KieSessionConfiguration ksConfig = KieServices.Factory.get().newKieSessionConfiguration()
         ksConfig.setOption(ForceEagerActivationOption.YES)
         kieSession = kContainer.newKieSession(ksConfig)
@@ -124,6 +127,7 @@ class Engine implements Closeable {
         story.world.rooms.each { kieSession.insert(it) }
         story.cast.each { kieSession.insert(it) }
         story.requests.each { kieSession.insert(it) }
+        story.goals.each { kieSession.insert(it) }
     }
 
     /**
@@ -209,7 +213,6 @@ class Engine implements Closeable {
         story.world.goals.each { Goal goal ->
             GoalStatus status = new GoalStatus(goal: goal, fulfilled: false)
             story.goals << status
-            kieSession.insert(status)
         }
     }
 

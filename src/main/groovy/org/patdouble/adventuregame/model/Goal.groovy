@@ -16,6 +16,7 @@ class Goal {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
     long id
 
+    String name
     /** A required goal must be fulfilled before the story is over. */
     boolean required
     /** If this goal is met, end the story regardless of other goals. */

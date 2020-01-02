@@ -137,5 +137,20 @@ class TrailerParkStorageTest extends Specification {
         rTrailer4FromDump.id == 'trailer_4'
         Room rTrailer3FromDump = rDump.getNeighbors().get('dive')
         rTrailer3FromDump.id == 'trailer_3'
+
+        and: 'Goals are present'
+        world.goals.size() == 3
+        with(world.goals.find { it.name == 'one' }) {
+            !required
+            !theEnd
+        }
+        with(world.goals.find { it.name == 'two' }) {
+            !required
+            theEnd
+        }
+        with(world.goals.find { it.name == 'three' }) {
+            required
+            !theEnd
+        }
     }
 }

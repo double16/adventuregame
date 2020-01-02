@@ -11,7 +11,7 @@ class EngineInitTest extends EngineTest {
         when:
         engine.init()
 
-        then:
+        then: 'player requests'
         story.requests.size() == 12
         with(story.requests[0] as PlayerRequest) {
             template.persona.name == 'warrior'
@@ -24,15 +24,22 @@ class EngineInitTest extends EngineTest {
         story.requests[2..11].collect { it.template.persona.name } == ['thug']*10
         story.requests[2..11].collect { it.optional } == [true]*10
 
-        and:
+        and: 'initial chronos'
         story.chronos.current == 0
 
-        and:
+        and: 'empty history'
         story.history
         story.history.world == story.world
         story.history.events.empty
 
-        and:
+        and :'goal status'
+        story.goals.size() == 3
+        !story.goals.find { it.fulfilled }
+        story.goals.find { it.goal.name == 'one' }
+        story.goals.find { it.goal.name == 'two' }
+        story.goals.find { it.goal.name == 'three' }
+
+        and: 'notifications'
         12 * storySubscriber.onNext({ it instanceof RequestCreated })
     }
 

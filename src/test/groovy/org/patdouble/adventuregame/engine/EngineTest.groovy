@@ -15,8 +15,13 @@ abstract class EngineTest extends Specification {
     Executor executor
     Engine engine
 
+    void modify(World world) {
+        // modify the world for the test case
+    }
+
     def setup() {
         World world = new YamlUniverseRegistry().worlds.find { it.name == YamlUniverseRegistry.TRAILER_PARK }
+        modify(world)
         story = new Story(world)
 
         storySubscriber = Mock()

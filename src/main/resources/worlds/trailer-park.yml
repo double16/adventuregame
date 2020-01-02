@@ -39,6 +39,17 @@ extras:
     room: entrance
     goals: []
 
+goals:
+  one:
+    required: false
+    the-end: false
+  two:
+    required: false
+    the-end: true
+  three:
+    required: true
+    the-end: false
+
 challenges: []
 
 rooms:

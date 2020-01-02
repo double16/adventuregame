@@ -1,6 +1,7 @@
 package org.patdouble.adventuregame.engine
 
 import org.patdouble.adventuregame.flow.RoomSummary
+import org.patdouble.adventuregame.model.World
 import org.patdouble.adventuregame.state.Motivator
 import org.patdouble.adventuregame.state.request.ActionRequest
 
@@ -8,6 +9,11 @@ class AIPlayerTest extends AbstractPlayerTest {
     @Override
     Motivator getDefaultMotivator() {
         Motivator.AI
+    }
+
+    @Override
+    void modify(World world) {
+        world.goals.each { it.required = false }
     }
 
     def setup() {

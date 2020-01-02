@@ -34,7 +34,6 @@ class Story {
     World world
     @OneToMany(cascade = CascadeType.ALL)
     Collection<Player> cast = []
-    // FIXME: unit tests
     @OneToMany(cascade = CascadeType.ALL)
     Collection<GoalStatus> goals = []
     @Embedded

@@ -3,6 +3,7 @@ package org.patdouble.adventuregame.storage.yaml
 import org.patdouble.adventuregame.model.CharacterTrait
 import org.patdouble.adventuregame.model.Direction
 import org.patdouble.adventuregame.model.ExtrasTemplate
+import org.patdouble.adventuregame.model.Goal
 import org.patdouble.adventuregame.model.Persona
 import org.patdouble.adventuregame.model.PlayerTemplate
 import org.patdouble.adventuregame.model.Room
@@ -29,13 +30,14 @@ class WorldYamlStorage {
         readPersonas(yaml, world)
         readPlayers(yaml, world)
         readExtras(yaml, world)
+        readGoals(yaml, world)
 
         return world
     }
 
     private void readPersonas(Map<String, Object> yaml, World world) {
         Map<String, Object> personas = (Map<String, Object>) yaml.get('personas')
-        if (personas == null || personas.isEmpty()) {
+        if (!personas) {
             throw new IllegalArgumentException('At least one persona is required')
         }
         for(Map.Entry<String, Object> personaMap : personas.entrySet()) {
@@ -155,6 +157,17 @@ class WorldYamlStorage {
                     opposite.ifPresent{ neighborRoom.addNeighbor(it.name().toLowerCase(), room) }
                 }
             }
+        }
+    }
+
+    private void readGoals(Map<String, Object> yaml, World world) {
+        Map<String, Object> goals = (Map<String, Object>) yaml.get('goals') ?: [:]
+        for(Map.Entry<String, Object> goalMap : goals.entrySet()) {
+            Map<String, Object> data = (Map<String, Object>) goalMap.getValue()
+            Goal g = new Goal(goalMap.getKey())
+            g.required = data.getOrDefault('required', false) as Boolean
+            g.theEnd = data.getOrDefault('the-end', false) as Boolean
+            world.goals << g
         }
     }
 }

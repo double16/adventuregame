@@ -42,7 +42,6 @@ class World {
     @OneToMany(cascade = CascadeType.ALL)
     List<Room> rooms = []
 
-    // FIXME: Parse, unit tests
     @OneToMany(cascade = CascadeType.ALL)
     List<Goal> goals = []
 
