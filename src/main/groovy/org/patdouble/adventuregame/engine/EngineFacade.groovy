@@ -1,5 +1,6 @@
 package org.patdouble.adventuregame.engine
 
+import groovy.transform.CompileStatic
 import org.kie.api.runtime.rule.RuleRuntime
 import org.patdouble.adventuregame.i18n.ActionStatement
 import org.patdouble.adventuregame.state.Player
@@ -7,6 +8,7 @@ import org.patdouble.adventuregame.state.Player
 /**
  * Exposes a subset of methods from {@link Engine} to the rules engine.
  */
+@CompileStatic
 class EngineFacade {
     protected final Engine engine
     EngineFacade(Engine engine) {
@@ -16,7 +18,7 @@ class EngineFacade {
     /**
      * {@link Engine#createActionRequest(org.patdouble.adventuregame.state.Player)}
      */
-    @SuppressWarnings("Unused")
+    @SuppressWarnings(['Unused', 'BuilderMethodWithSideEffects'])
     void createActionRequest(Player player) {
         engine.createActionRequest(player)
     }
@@ -24,7 +26,7 @@ class EngineFacade {
     /**
      * {@link Engine#incrementChronos()}
      */
-    @SuppressWarnings("Unused")
+    @SuppressWarnings('Unused')
     void incrementChronos() {
         engine.incrementChronos()
     }
@@ -32,15 +34,19 @@ class EngineFacade {
     /**
      * {@link Engine#action(org.patdouble.adventuregame.state.Player, org.patdouble.adventuregame.i18n.ActionStatement)}
      */
-    @SuppressWarnings("Unused")
+    @SuppressWarnings('Unused')
     void action(Player player, String verb, String directObject, String indirectObject) {
-        engine.action(player, new ActionStatement(verb: verb, directObject: directObject, indirectObject: indirectObject))
+        ActionStatement stmt = new ActionStatement(
+                verb: verb,
+                directObject: directObject,
+                indirectObject: indirectObject)
+        engine.action(player, stmt)
     }
 
     /**
      * {@link Engine#close(org.kie.api.runtime.rule.RuleRuntime)}
      */
-    @SuppressWarnings("Unused")
+    @SuppressWarnings('Unused')
     void close(RuleRuntime ruleRuntime) {
         engine.close(ruleRuntime)
     }

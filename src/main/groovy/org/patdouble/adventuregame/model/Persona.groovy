@@ -2,6 +2,7 @@ package org.patdouble.adventuregame.model
 
 import groovy.transform.AutoClone
 import groovy.transform.Canonical
+import groovy.transform.CompileDynamic
 
 import javax.persistence.Entity
 import javax.persistence.GeneratedValue
@@ -13,12 +14,13 @@ import javax.validation.constraints.NotNull
  * Improvements:
  *
  * Personas could have different results for actions. For example, a thief could be better at fleeing than a warrior.
- * A warrior would take less damage during fighting. The thief could find more wealth on enemies after they are defeated.
- *
+ * A warrior would take less damage during fighting. The thief could find more wealth on enemies after they are
+ * defeated.
  */
 @Canonical(excludes = ['id'])
 @AutoClone
 @Entity
+@CompileDynamic
 class Persona {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
     long id
@@ -44,14 +46,14 @@ class Persona {
     void setHealth(int health) {
         this.health = health
         if (health <= 0) {
-            throw new IllegalStateException(toString()+" is dead :X")
+            throw new IllegalStateException(toString() + ' is dead :X')
         }
     }
 
     void setWealth(BigDecimal wealth) {
         this.wealth = wealth
         if (wealth <= BigDecimal.ZERO) {
-            throw new IllegalStateException(toString()+' is broke :$')
+            throw new IllegalStateException(toString() + ' is broke :$')
         }
     }
 

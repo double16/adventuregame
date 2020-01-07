@@ -1,5 +1,6 @@
 package org.patdouble.adventuregame.state
 
+import groovy.transform.CompileDynamic
 import groovy.transform.EqualsAndHashCode
 import org.patdouble.adventuregame.model.World
 
@@ -11,8 +12,12 @@ import javax.persistence.Id
 import javax.persistence.ManyToOne
 import javax.persistence.OneToMany
 
+/**
+ * Records the history of the story. Used for manuscript generation.
+ */
 @Entity
 @EqualsAndHashCode(excludes = ['id'])
+@CompileDynamic
 class History {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
     long id
@@ -21,6 +26,8 @@ class History {
     World world
     @OneToMany(cascade = CascadeType.ALL)
     List<Event> events = []
+
+    History() { }
 
     History(World world) {
         this.world = world

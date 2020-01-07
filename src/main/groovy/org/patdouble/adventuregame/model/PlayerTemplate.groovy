@@ -1,6 +1,7 @@
 package org.patdouble.adventuregame.model
 
 import groovy.transform.Canonical
+import groovy.transform.CompileDynamic
 import org.hibernate.annotations.Columns
 import org.hibernate.annotations.Type
 import org.patdouble.adventuregame.state.Motivator
@@ -18,6 +19,7 @@ import javax.validation.constraints.NotNull
  */
 @Canonical(excludes = ['id'])
 @Entity
+@CompileDynamic
 class PlayerTemplate implements CharacterTrait {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
     long id
@@ -34,6 +36,7 @@ class PlayerTemplate implements CharacterTrait {
 
     @Override
     String toString() {
-        "PlayerTemplate: ${persona.toString()}, nick ${nickName}, full ${fullName}, room ${room?.id}, qty ${quantity.toString()}"
+        "PlayerTemplate: ${persona.toString()}, nick ${nickName}, " +
+                "full ${fullName}, room ${room?.id}, qty ${quantity.toString()}"
     }
 }

@@ -1,6 +1,7 @@
 package org.patdouble.adventuregame.model
 
 import groovy.transform.Canonical
+import groovy.transform.CompileDynamic
 import org.patdouble.adventuregame.state.Motivator
 import org.patdouble.adventuregame.state.Player
 
@@ -15,6 +16,7 @@ import javax.persistence.Id
  */
 @Canonical(excludes = ['id'])
 @Entity
+@CompileDynamic
 class ExtrasTemplate implements CharacterTrait {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
     long id

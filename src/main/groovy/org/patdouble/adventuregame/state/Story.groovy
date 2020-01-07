@@ -1,5 +1,6 @@
 package org.patdouble.adventuregame.state
 
+import groovy.transform.CompileDynamic
 import groovy.transform.EqualsAndHashCode
 import org.patdouble.adventuregame.flow.RoomSummary
 import org.patdouble.adventuregame.i18n.Bundles
@@ -21,11 +22,15 @@ import javax.persistence.OneToOne
 /**
  * The current state of a story. The world, characters, positions, history, ...
  *
- * This is the top-level state object. It is initialized and maintained by an {@link org.patdouble.adventuregame.engine.Engine}.
+ * This is the top-level state object. It is initialized and maintained by an
+ * {@link org.patdouble.adventuregame.engine.Engine}.
  */
 @Entity
 @EqualsAndHashCode(excludes = ['id'])
+@CompileDynamic
 class Story {
+    public static final String FULL_STOP = '.'
+    public static final String SPACE = ' '
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
     long id
 
@@ -43,6 +48,8 @@ class Story {
     @OneToMany(cascade = CascadeType.ALL)
     Collection<Request> requests = []
 
+    Story() { }
+
     Story(World world) {
         this.world = world
     }
@@ -59,19 +66,22 @@ class Story {
         Collection<Player> players = getPlayers(room) - [player]
         Map<Persona, List<Player>> extras = getExtras(room)
         String occupants = null
-        if (!players.empty || !extras.isEmpty()) {
+        // DO NOT use property version, it doesn't work for Map.isEmpty()
+        if (!players.isEmpty() || !extras.isEmpty()) {
             occupants = bundles.roomsummaryTextTemplate.make([players: players, extras: extras]).toString()
         }
         StringBuilder description = new StringBuilder(room.description)
         List<String> directions = room.neighbors.keySet().sort()
         if (directions) {
-            if (!description.endsWithAny('.')) {
+            if (!description.endsWithAny(FULL_STOP)) {
                 description.append('. ')
             }
-            else if (!description.endsWithAny(' ')) {
-                description.append(' ')
+            else if (!description.endsWithAny(SPACE)) {
+                description.append(SPACE)
             }
-            description.append(bundles.roomsummaryDirectionsTemplate.make([directions: directions]).toString()).append('.')
+            description
+                    .append(bundles.roomsummaryDirectionsTemplate.make([directions: directions]).toString())
+                    .append(FULL_STOP)
         }
         new RoomSummary(chronos.current, room.name, description as String, occupants)
     }

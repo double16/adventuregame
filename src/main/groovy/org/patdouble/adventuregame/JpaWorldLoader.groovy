@@ -1,5 +1,6 @@
 package org.patdouble.adventuregame
 
+import groovy.transform.CompileDynamic
 import groovy.util.logging.Slf4j
 import org.patdouble.adventuregame.model.World
 import org.patdouble.adventuregame.storage.jpa.WorldRepository
@@ -9,8 +10,12 @@ import org.springframework.boot.CommandLineRunner
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
+/**
+ * Populates the WorldRepository using JPA.
+ */
 @Configuration
 @Slf4j
+@CompileDynamic
 class JpaWorldLoader {
     @Autowired
     WorldRepository worldRepository
