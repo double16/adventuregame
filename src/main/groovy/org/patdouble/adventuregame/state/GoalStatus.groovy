@@ -1,6 +1,7 @@
 package org.patdouble.adventuregame.state
 
 import groovy.transform.Canonical
+import groovy.transform.CompileDynamic
 import org.kie.api.definition.type.PropertyReactive
 import org.patdouble.adventuregame.model.Goal
 
@@ -16,6 +17,7 @@ import javax.persistence.ManyToOne
 @Canonical(excludes = ['id'])
 @Entity
 @PropertyReactive
+@CompileDynamic
 class GoalStatus {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
     long id

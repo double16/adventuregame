@@ -1,10 +1,15 @@
 package org.patdouble.adventuregame.ui.headless
 
+import groovy.transform.CompileDynamic
 import org.patdouble.adventuregame.flow.StoryMessage
 
 import java.util.concurrent.Flow
 import java.util.concurrent.Flow.Subscription
 
+/**
+ * Prints out StoryMessage content to the console.
+ */
+@CompileDynamic
 class StoryMessageOutput implements Flow.Subscriber<StoryMessage>, AutoCloseable {
     final PrintStream printer
     private Subscription subscription

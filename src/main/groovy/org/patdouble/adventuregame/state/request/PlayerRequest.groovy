@@ -1,6 +1,7 @@
 package org.patdouble.adventuregame.state.request
 
 import groovy.transform.Canonical
+import groovy.transform.CompileDynamic
 import org.patdouble.adventuregame.model.PlayerTemplate
 
 import javax.persistence.Entity
@@ -11,6 +12,7 @@ import javax.persistence.ManyToOne
  */
 @Canonical
 @Entity
+@CompileDynamic
 class PlayerRequest extends Request {
     @ManyToOne
     PlayerTemplate template

@@ -1,5 +1,6 @@
 package org.patdouble.adventuregame.ui.console
 
+import groovy.transform.CompileDynamic
 import org.fusesource.jansi.Ansi
 import org.patdouble.adventuregame.engine.Engine
 import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
@@ -7,17 +8,21 @@ import org.patdouble.adventuregame.model.World
 import org.patdouble.adventuregame.model.UniverseRegistry
 import org.patdouble.adventuregame.state.Story
 
+/**
+ * Console UI for story engine.
+ */
+@CompileDynamic
 class Main {
     /** Used to stop the main thread because this is a reactive application. */
     private static final Object WAIT_LOCK = new Object()
 
     static void main(String[] args) {
-        final Console console = new Console()
+        final Console CONSOLE = new Console()
 
         UniverseRegistry registry = new YamlUniverseRegistry()
-        World world = registry.getWorlds().find { it.name == YamlUniverseRegistry.TRAILER_PARK }
+        World world = registry.worlds.find { it.name == YamlUniverseRegistry.TRAILER_PARK }
 
-        console.println {
+        CONSOLE.println {
             newline()
             .a(Ansi.Attribute.NEGATIVE_ON).a("Welcome to ${world.name}").a(Ansi.Attribute.NEGATIVE_OFF)
             .newline()
@@ -26,12 +31,14 @@ class Main {
         Story story = new Story(world)
         Engine engine = new Engine(story)
         engine.autoLifecycle = true
-        engine.subscribe(new ConsoleRequestHandler(console, engine))
+        engine.subscribe(new ConsoleRequestHandler(CONSOLE, engine))
 //        engine.subscribe(new StoryMessageOutput())
         engine.init()
 
-        synchronized (WAIT_LOCK) {
-            WAIT_LOCK.wait()
+        while (!engine.closed) {
+            synchronized (WAIT_LOCK) {
+                WAIT_LOCK.wait()
+            }
         }
     }
 }

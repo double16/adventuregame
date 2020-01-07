@@ -1,5 +1,6 @@
 package org.patdouble.adventuregame.ui.console
 
+import groovy.transform.CompileDynamic
 import org.fusesource.jansi.Ansi
 import org.fusesource.jansi.AnsiConsole
 import org.jline.reader.LineReader
@@ -10,6 +11,7 @@ import org.jline.terminal.TerminalBuilder
 /**
  * Replacement for @{link java.io.Console} but less restrictive, i.e. can be used with redirected I/O.
  */
+@CompileDynamic
 class Console implements AutoCloseable, Flushable {
     private final PrintStream output
     private final PrintStream error

@@ -1,5 +1,6 @@
 package org.patdouble.adventuregame.model
 
+import groovy.transform.CompileDynamic
 import groovy.transform.EqualsAndHashCode
 
 import javax.persistence.CascadeType
@@ -16,6 +17,7 @@ import javax.persistence.OneToMany
  */
 @Entity
 @EqualsAndHashCode(excludes = ['id'])
+@CompileDynamic
 class World {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
     long id
@@ -44,8 +46,6 @@ class World {
 
     @OneToMany(cascade = CascadeType.ALL)
     List<Goal> goals = []
-
-//    List<Challenge> challenges = []
 
     Optional<Room> findRoomById(String id) {
         getRooms().stream().filter { it.id == id }.findFirst()

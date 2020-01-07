@@ -1,5 +1,6 @@
 package org.patdouble.adventuregame.i18n
 
+import groovy.transform.CompileDynamic
 import groovy.util.logging.Slf4j
 import org.patdouble.adventuregame.model.Action
 
@@ -13,40 +14,43 @@ import java.util.regex.Pattern
  * https://www.butte.edu/departments/cas/tipsheets/grammar/parts_of_speech.html
  */
 @Slf4j
+@CompileDynamic
 class ActionStatementParser {
-    private Locale locale
-    private Bundles bundles
-    private Pattern pattern
-    private Map<String, Action> actions = [:]
+    private static final String RE_OR = '|'
+    private static final String PROP_VALUE_SEP = /,+/
+    private final Locale locale
+    private final Bundles bundles
+    private final Pattern pattern
+    private final Map<String, Action> actions = [:]
 
     ActionStatementParser(Locale locale = Locale.ENGLISH) {
         this.locale = locale
         bundles = Bundles.get(locale)
 
         Action.values().each { action ->
-            bundles.actions.getString("action.${action.name().toLowerCase()}").split(/,+/).each {
+            bundles.actions.getString("action.${action.name().toLowerCase()}").split(PROP_VALUE_SEP).each {
                 actions.put(it.trim().toLowerCase(), action)
             }
         }
 
-        List<String> articles = bundles.actions.getString('articles').split(/,+/)*.trim()
-        List<String> prepositions = bundles.actions.getString('prepositions').split(/,+/)*.trim()
+        List<String> articles = bundles.actions.getString('articles').split(PROP_VALUE_SEP)*.trim()
+        List<String> prepositions = bundles.actions.getString('prepositions').split(PROP_VALUE_SEP)*.trim()
 
         pattern = Pattern.compile(
 
 /\s*
 # action
-(${actions.keySet().join('|').replaceAll(~/\s+/, /\\\s+/)})
+(${actions.keySet().join(RE_OR).replaceAll(~/\s+/, /\\\s+/)})
 
 # direct object
 (?:
-(?:\s+(?:${articles.join('|')}))?
+(?:\s+(?:${articles.join(RE_OR)}))?
 \s+(\w(?:[\w\s]+?\w)?)
 
 # prepositions - ... with ...
 (?:
-(?:\s+(?:${prepositions.join('|')}))
-(?:\s+(?:${articles.join('|')}))?
+(?:\s+(?:${prepositions.join(RE_OR)}))
+(?:\s+(?:${articles.join(RE_OR)}))?
 \s+(\w[\w\s]+?\w)
 )?
 )?

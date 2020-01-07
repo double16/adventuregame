@@ -1,5 +1,6 @@
 package org.patdouble.adventuregame.engine
 
+import groovy.transform.CompileDynamic
 import groovy.util.logging.Slf4j
 import org.kie.api.KieServices
 import org.kie.api.runtime.KieContainer
@@ -40,13 +41,16 @@ import java.util.concurrent.ForkJoinPool
 import java.util.concurrent.SubmissionPublisher
 
 /**
- * Runs the story by advancing the {@link Chronos}, declaring necessary inputs from humans, meeting goals for AI players, etc.
+ * Runs the story by advancing the {@link Chronos}, declaring necessary inputs from humans, meeting goals for AI
+ * players, etc.
  * Responsible for updating the history.
  *
  * The entire state is stored in the {@link Story} object.
  */
 @Slf4j
+@CompileDynamic
 class Engine implements Closeable {
+    @SuppressWarnings('ThreadGroup')
     final static ThreadGroup KIE_THREAD_GROUP = new ThreadGroup('kie-sessions')
 
     final Story story
@@ -58,7 +62,7 @@ class Engine implements Closeable {
     /** Stops the engine if the chronos reaches this value, prevents run away execution. */
     Integer chronosLimit
 
-    private Executor executor
+    private final Executor executor
     @Delegate(includeTypes = [Flow.Publisher])
     final private SubmissionPublisher<StoryMessage> publisher
 
@@ -134,12 +138,13 @@ class Engine implements Closeable {
      * Adds a player to satisfy a {@link PlayerRequest}.
      * @throw IllegalArgumentException if a matching PlayerRequest isn't found.
      */
+    @SuppressWarnings('Instanceof')
     void addToCast(Player player) {
         boolean removed = false
         Iterator<Request> iter = story.requests.iterator()
         while (iter.hasNext()) {
             Request r = iter.next()
-            if (!r instanceof PlayerRequest) {
+            if (!(r instanceof PlayerRequest)) {
                 continue
             }
             PlayerRequest pr = r as PlayerRequest
@@ -184,8 +189,10 @@ class Engine implements Closeable {
      * removed from the story by this method.
      * @throew IllegalStateException if there are required players not yet cast
      */
+    @SuppressWarnings('Instanceof')
     void start() {
-        Collection<PlayerRequest> pendingPlayers = story.requests.findAll { it instanceof PlayerRequest && !it.optional }
+        Collection<PlayerRequest> pendingPlayers = story.requests
+                .findAll { it instanceof PlayerRequest && !it.optional }
         if (!pendingPlayers.empty) {
             throw new IllegalStateException("Required players: ${pendingPlayers*.template*.fullName}")
         }
@@ -209,6 +216,7 @@ class Engine implements Closeable {
         }
     }
 
+    @SuppressWarnings('BuilderMethodWithSideEffects')
     private void createGoalStatus() {
         story.world.goals.each { Goal goal ->
             GoalStatus status = new GoalStatus(goal: goal, fulfilled: false)
@@ -253,7 +261,7 @@ class Engine implements Closeable {
     }
 
     protected void incrementChronos() {
-        log.info("Incrementing chronos")
+        log.info('Incrementing chronos')
         if (chronosLimit && story.chronos.current >= chronosLimit) {
             throw new IllegalStateException("Chronos exceeded limit of ${chronosLimit}")
         }
@@ -263,10 +271,14 @@ class Engine implements Closeable {
         publisher.submit(new ChronosChanged(story.chronos.current))
     }
 
-    protected createActionRequest(Player player) {
-        ActionRequest request = new ActionRequest(player, story.chronos.current, story.roomSummary(player.room, player, bundles))
+    @SuppressWarnings('BuilderMethodWithSideEffects')
+    protected void createActionRequest(Player player) {
+        ActionRequest request = new ActionRequest(
+                player,
+                story.chronos.current,
+                story.roomSummary(player.room, player, bundles))
         if (!story.requests.contains(request)) {
-            log.info("Creating action request {}", request)
+            log.info('Creating action request {}', request)
             request.actions = actionStatementParser.availableActions.asImmutable()
             request.directions = player.room.neighbors.keySet().sort().asImmutable()
             story.requests.add(request)
@@ -295,6 +307,7 @@ class Engine implements Closeable {
      * Request the player performs an action.
      * @return true if the action was successful, false otherwise. Any error message will be sent via flow.
      */
+    @SuppressWarnings('Instanceof')
     boolean action(Player player, ActionStatement action) {
         log.info('action for player {} - {}', player, action)
         ActionRequest actionRequest = story.requests.find { it instanceof ActionRequest && it.player == player }
@@ -320,7 +333,7 @@ class Engine implements Closeable {
                     break
                 case Action.WAIT:
                     validAction = true
-                    success = actionWait(player, action)
+                    success = actionWait()
                     break
             }
         } else if (action?.verb) {
@@ -331,7 +344,8 @@ class Engine implements Closeable {
         if (!validAction) {
             publisher.submit(new PlayerNotification(player,
                     bundles.text.getString('action.invalid.subject'),
-                    bundles.actionInvalidTextTemplate.make([ actions: actionStatementParser.availableActions ]).toString()))
+                    bundles.actionInvalidTextTemplate.make([ actions: actionStatementParser.availableActions ])
+                            .toString()))
             if (actionRequest) {
                 publisher.submit(new RequestCreated(actionRequest))
             }
@@ -381,7 +395,7 @@ class Engine implements Closeable {
         true
     }
 
-    private boolean actionWait(Player player, ActionStatement action) {
+    private boolean actionWait() {
         true
     }
 }

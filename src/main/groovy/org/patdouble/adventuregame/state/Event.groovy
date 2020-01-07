@@ -1,5 +1,6 @@
 package org.patdouble.adventuregame.state
 
+import groovy.transform.CompileDynamic
 import groovy.transform.EqualsAndHashCode
 
 import javax.persistence.CascadeType
@@ -7,7 +8,6 @@ import javax.persistence.Entity
 import javax.persistence.GeneratedValue
 import javax.persistence.GenerationType
 import javax.persistence.Id
-import javax.persistence.ManyToOne
 import javax.persistence.OneToMany
 
 /**
@@ -15,6 +15,7 @@ import javax.persistence.OneToMany
  */
 @Entity
 @EqualsAndHashCode(excludes = ['id'])
+@CompileDynamic
 class Event {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
     long id
@@ -23,6 +24,8 @@ class Event {
     long when
     @OneToMany(cascade = CascadeType.ALL)
     Collection<Player> cast
+
+    Event() { }
 
     Event(Collection<Player> players, Chronos chronos) {
         when = chronos.current

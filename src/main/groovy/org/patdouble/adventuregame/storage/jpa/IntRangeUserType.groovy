@@ -14,7 +14,13 @@ import java.sql.Types
  * Hibernate user type for storing a range of integers.
  */
 @CompileStatic
+@SuppressWarnings(['JdbcResultSetReference', 'JdbcStatementReference'])
 class IntRangeUserType implements UserType {
+
+    private static final int OFFSET_FROM = 0
+    private static final int OFFSET_TO = 1
+    private static final int OFFSET_INCLUSIVE = 2
+
     @Override
     int[] sqlTypes() {
         [ Types.INTEGER, Types.INTEGER, Types.BOOLEAN ] as int[]
@@ -26,6 +32,7 @@ class IntRangeUserType implements UserType {
     }
 
     @Override
+    @SuppressWarnings('EqualsOverloaded')
     boolean equals(Object x, Object y) throws HibernateException {
         x == y
     }
@@ -36,14 +43,18 @@ class IntRangeUserType implements UserType {
     }
 
     @Override
-    Object nullSafeGet(ResultSet rs, String[] names, SharedSessionContractImplementor session, Object owner) throws HibernateException, SQLException {
+    Object nullSafeGet(
+            ResultSet rs,
+            String[] names,
+            SharedSessionContractImplementor session,
+            Object owner) throws HibernateException, SQLException {
         if (rs.wasNull()) {
             return null
         }
 
-        int from = rs.getInt(names[0])
-        int to = rs.getInt(names[1])
-        Boolean inclusive = rs.getBoolean(names[2])
+        int from = rs.getInt(names[OFFSET_FROM])
+        int to = rs.getInt(names[OFFSET_TO])
+        Boolean inclusive = rs.getBoolean(names[OFFSET_INCLUSIVE])
         if (inclusive) {
             return new IntRange(true, from, to)
         }
@@ -51,16 +62,20 @@ class IntRangeUserType implements UserType {
     }
 
     @Override
-    void nullSafeSet(PreparedStatement st, Object value, int index, SharedSessionContractImplementor session) throws HibernateException, SQLException {
+    void nullSafeSet(
+            PreparedStatement st,
+            Object value,
+            int index,
+            SharedSessionContractImplementor session) throws HibernateException, SQLException {
         if (value == null) {
-            st.setNull(index, Types.INTEGER)
-            st.setNull(index+1, Types.INTEGER)
-            st.setNull(index+2, Types.BOOLEAN)
+            st.setNull(index + OFFSET_FROM, Types.INTEGER)
+            st.setNull(index + OFFSET_TO, Types.INTEGER)
+            st.setNull(index + OFFSET_INCLUSIVE, Types.BOOLEAN)
         } else {
             IntRange range = value as IntRange
-            st.setInt(index, range.from)
-            st.setInt(index+1, range.to)
-            st.setBoolean(index+2, range.inclusive)
+            st.setInt(index + OFFSET_FROM, range.from)
+            st.setInt(index + OFFSET_TO, range.to)
+            st.setBoolean(index + OFFSET_INCLUSIVE, range.inclusive)
         }
     }
 
@@ -75,6 +90,7 @@ class IntRangeUserType implements UserType {
     }
 
     @Override
+    @SuppressWarnings('Instanceof')
     Serializable disassemble(Object value) throws HibernateException {
         Object deepCopy = deepCopy(value)
         if (!(deepCopy instanceof Serializable)) {

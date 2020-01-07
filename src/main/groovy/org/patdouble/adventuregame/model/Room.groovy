@@ -1,7 +1,7 @@
 package org.patdouble.adventuregame.model
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import groovy.transform.EqualsAndHashCode
+import groovy.transform.CompileDynamic
 import groovy.transform.ToString
 
 import javax.persistence.Entity
@@ -16,6 +16,7 @@ import javax.validation.constraints.NotNull
  */
 @Entity
 @ToString(excludes = ['dbId', 'neighbors'])
+@CompileDynamic
 class Room {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
     long dbId
@@ -27,7 +28,7 @@ class Room {
     /** Maps a direction to a room. */
     @ManyToMany
     @JsonIgnore
-    Map<String, Room> neighbors = new HashMap<>()
+    Map<String, Room> neighbors = [:]
 
     Map<String, Room> getNeighbors() {
         Collections.unmodifiableMap(neighbors)
@@ -38,7 +39,8 @@ class Room {
         assert room != null
         direction = direction.toLowerCase()
         if (neighbors.containsKey(direction)) {
-            throw new IllegalArgumentException("Neighbor in direction ${direction} already present: ${neighbors.get(direction)}")
+            throw new IllegalArgumentException(
+                    "Neighbor in direction ${direction} already present: ${neighbors.get(direction)}")
         }
         neighbors.put(direction, room)
     }
@@ -49,6 +51,7 @@ class Room {
     }
 
     @Override
+    @SuppressWarnings('Instanceof')
     boolean equals(Object obj) {
         if (!(obj instanceof Room)) {
             return false
@@ -66,6 +69,6 @@ class Room {
         if (neighbors.keySet() != r2.neighbors.keySet()) {
             return false
         }
-        return !neighbors.any { k,v -> v.id != r2.neighbors.get(k).id }
+        return !neighbors.any { k, v -> v.id != r2.neighbors.get(k).id }
     }
 }

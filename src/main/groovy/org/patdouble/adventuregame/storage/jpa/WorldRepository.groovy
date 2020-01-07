@@ -5,6 +5,9 @@ import org.springframework.data.repository.PagingAndSortingRepository
 import org.springframework.data.repository.query.Param
 import org.springframework.data.rest.core.annotation.RepositoryRestResource
 
+/**
+ * Store World using JPA.
+ */
 @RepositoryRestResource
 interface WorldRepository extends PagingAndSortingRepository<World, Long> {
     List<World> findByName(@Param('name') String name)

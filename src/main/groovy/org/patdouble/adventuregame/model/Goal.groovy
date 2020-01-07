@@ -1,6 +1,7 @@
 package org.patdouble.adventuregame.model
 
 import groovy.transform.Canonical
+import groovy.transform.CompileDynamic
 
 import javax.persistence.Entity
 import javax.persistence.GeneratedValue
@@ -12,6 +13,7 @@ import javax.persistence.Id
  */
 @Canonical(excludes = ['id'])
 @Entity
+@CompileDynamic
 class Goal {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
     long id

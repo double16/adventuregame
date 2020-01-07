@@ -1,7 +1,7 @@
 package org.patdouble.adventuregame.state
 
 import groovy.transform.AutoClone
-import groovy.transform.EqualsAndHashCode
+import groovy.transform.CompileDynamic
 import org.patdouble.adventuregame.model.Persona
 import org.patdouble.adventuregame.model.Room
 
@@ -16,7 +16,7 @@ import javax.persistence.ManyToOne
  */
 @AutoClone(excludes = ['id'])
 @Entity
-@EqualsAndHashCode(excludes = ['id'])
+@CompileDynamic
 class Player implements Temporal {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
     long id
@@ -31,6 +31,8 @@ class Player implements Temporal {
     @ManyToOne
     Room room
 
+    Player() { }
+
     Player(Motivator motivator, Persona persona, String nickName = null) {
         this.motivator = motivator
         this.nickName = nickName
@@ -39,9 +41,9 @@ class Player implements Temporal {
 
     String getTitle() {
         if (nickName) {
-            "${nickName} the ${persona.getName().toLowerCase()}"
+            "${nickName} the ${persona.name.toLowerCase()}"
         } else {
-            persona.getName().toLowerCase()
+            persona.name.toLowerCase()
         }
     }
 
@@ -51,10 +53,11 @@ class Player implements Temporal {
     }
 
     String getStatus() {
-        "${toString()} is at ${persona.getHealth()}% health and has \$${persona.getWealth()}"
+        "${toString()} is at ${persona.health}% health and has \$${persona.wealth}"
     }
 
     @Override
+    @SuppressWarnings('Instanceof')
     boolean equals(Object obj) {
         if (!(obj instanceof Player)) {
             return false
@@ -63,5 +66,10 @@ class Player implements Temporal {
         return persona.name == other.persona.name &&
                 nickName == other.nickName &&
                 motivator == other.motivator
+    }
+
+    @Override
+    int hashCode() {
+        Objects.hash(persona.name, nickName, motivator)
     }
 }
