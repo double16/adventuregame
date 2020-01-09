@@ -14,7 +14,7 @@ import javax.persistence.Id
 @CompileDynamic
 class Request {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
-    long id
+    UUID id
 
     protected Request() { }
 }

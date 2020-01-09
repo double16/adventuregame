@@ -17,7 +17,7 @@ import javax.persistence.Id
 @CompileDynamic
 class Goal {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
-    long id
+    UUID id
 
     String name
     /** A required goal must be fulfilled before the story is over. */

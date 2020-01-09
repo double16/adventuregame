@@ -9,14 +9,14 @@ import org.patdouble.adventuregame.model.World
  */
 @CompileDynamic
 class WorldRuleGenerator {
-    private static final String PROLOGUE = """
+    private static final String PROLOGUE = '''
 package org.patdouble.adventuregame.state
 
 dialect "mvel"
 
 global org.slf4j.Logger log;
 global org.patdouble.adventuregame.engine.EngineFacade engine;
-"""
+'''
 
     private final World world
 

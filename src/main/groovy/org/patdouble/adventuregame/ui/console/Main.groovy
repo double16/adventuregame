@@ -5,6 +5,7 @@ import ch.qos.logback.classic.Logger
 import groovy.transform.CompileDynamic
 import org.fusesource.jansi.Ansi
 import org.patdouble.adventuregame.engine.Engine
+import org.patdouble.adventuregame.flow.EngineCloseOnStoryEnd
 import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
 import org.patdouble.adventuregame.model.World
 import org.patdouble.adventuregame.model.UniverseRegistry
@@ -49,6 +50,7 @@ class Main {
         Engine engine = new Engine(story)
         engine.autoLifecycle = true
         engine.subscribe(new ConsoleRequestHandler(CONSOLE, engine))
+        engine.subscribe(new EngineCloseOnStoryEnd(engine))
 //        engine.subscribe(new StoryMessageOutput())
         engine.init()
 

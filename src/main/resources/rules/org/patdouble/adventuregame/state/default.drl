@@ -25,7 +25,7 @@ rule "the end"
     GoalStatus(getFulfilled() == true, goal.theEnd == true)
   then
     log.info("Goal fulfilled that ends the story");
-    engine.close(kcontext.getKieRuntime());
+    engine.end();
 end
 
 rule "complete"
@@ -38,7 +38,7 @@ rule "complete"
     forall( Player(chronos >= $c.getCurrent()) )
   then
     log.info("No required goals left for AI players, ending the story");
-    engine.close(kcontext.getKieRuntime());
+    engine.end();
 end
 
 rule "human player action request"

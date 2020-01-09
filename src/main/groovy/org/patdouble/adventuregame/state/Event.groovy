@@ -18,7 +18,7 @@ import javax.persistence.OneToMany
 @CompileDynamic
 class Event {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
-    long id
+    UUID id
 
     /** Tied to the {@link Chronos} value. */
     long when

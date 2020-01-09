@@ -19,8 +19,4 @@ abstract class AbstractPlayerTest extends EngineTest {
         engine.addToCast(warrior)
         engine.addToCast(thief)
     }
-
-    def cleanup() {
-        engine.close()
-    }
 }

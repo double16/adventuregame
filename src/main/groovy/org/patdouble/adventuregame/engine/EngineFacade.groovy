@@ -1,7 +1,6 @@
 package org.patdouble.adventuregame.engine
 
 import groovy.transform.CompileStatic
-import org.kie.api.runtime.rule.RuleRuntime
 import org.patdouble.adventuregame.i18n.ActionStatement
 import org.patdouble.adventuregame.state.Player
 
@@ -44,10 +43,10 @@ class EngineFacade {
     }
 
     /**
-     * {@link Engine#close(org.kie.api.runtime.rule.RuleRuntime)}
+     * {@link Engine#end()}
      */
     @SuppressWarnings('Unused')
-    void close(RuleRuntime ruleRuntime) {
-        engine.close(ruleRuntime)
+    void end() {
+        engine.end()
     }
 }

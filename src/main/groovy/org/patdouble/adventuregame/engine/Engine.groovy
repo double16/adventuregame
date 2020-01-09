@@ -7,7 +7,6 @@ import org.kie.api.runtime.KieContainer
 import org.kie.api.runtime.KieSession
 import org.kie.api.runtime.KieSessionConfiguration
 import org.kie.api.runtime.rule.FactHandle
-import org.kie.api.runtime.rule.RuleRuntime
 import org.kie.internal.runtime.conf.ForceEagerActivationOption
 import org.patdouble.adventuregame.flow.ChronosChanged
 import org.patdouble.adventuregame.flow.StoryEnded
@@ -238,23 +237,28 @@ class Engine implements Closeable {
         kieSession.fireAllRules()
     }
 
-    @Override
-    void close() throws IOException {
-        close(kieSession)
+    /**
+     * End the story.
+     */
+    void end() {
+        story.ended = true
+        story.requests.each {
+            kieSession.delete(kieSession.getFactHandle(it))
+        }
+        story.requests.clear()
+        publisher.submit(new StoryEnded())
     }
 
-    void close(RuleRuntime ruleRuntime) throws IOException {
-        story.requests.clear()
+    /**
+     * Close and cleanup the engine. This does not end the story.
+     */
+    @Override
+    void close() throws IOException {
         if (!publisher.isClosed()) {
-            publisher.submit(new StoryEnded())
             publisher.close()
         }
-        if (ruleRuntime != null) {
-            ruleRuntime.halt()
-            if (ruleRuntime.is(kieSession)) {
-                kieSession.dispose()
-            }
-        }
+        kieSession.halt()
+        kieSession.dispose()
     }
 
     /**

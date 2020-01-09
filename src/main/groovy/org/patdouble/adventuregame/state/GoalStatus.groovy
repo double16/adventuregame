@@ -20,7 +20,7 @@ import javax.persistence.ManyToOne
 @CompileDynamic
 class GoalStatus {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
-    long id
+    UUID id
     @ManyToOne
     Goal goal
     boolean fulfilled

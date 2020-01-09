@@ -32,7 +32,7 @@ class Story {
     public static final String FULL_STOP = '.'
     public static final String SPACE = ' '
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
-    long id
+    UUID id
 
     /** The world from which this stage was set. */
     @ManyToOne
@@ -43,6 +43,8 @@ class Story {
     Collection<GoalStatus> goals = []
     @Embedded
     Chronos chronos
+    /** True if the story has ended. */
+    boolean ended
     @OneToOne(cascade = CascadeType.ALL)
     History history
     @OneToMany(cascade = CascadeType.ALL)

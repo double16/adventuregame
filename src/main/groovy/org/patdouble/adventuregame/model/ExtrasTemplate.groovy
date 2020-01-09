@@ -19,7 +19,7 @@ import javax.persistence.Id
 @CompileDynamic
 class ExtrasTemplate implements CharacterTrait {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
-    long id
+    UUID id
 
     /** The number of extras. */
     int quantity = 1

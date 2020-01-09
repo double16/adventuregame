@@ -20,7 +20,7 @@ import javax.persistence.OneToMany
 @CompileDynamic
 class History {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
-    long id
+    UUID id
 
     @ManyToOne
     World world

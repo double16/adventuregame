@@ -22,7 +22,7 @@ import javax.validation.constraints.NotNull
 @CompileDynamic
 class PlayerTemplate implements CharacterTrait {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
-    long id
+    UUID id
 
     /** The allowed quantity of this type of player. */
     @Type(type = 'org.patdouble.adventuregame.storage.jpa.IntRangeUserType')

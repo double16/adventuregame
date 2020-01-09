@@ -19,7 +19,7 @@ import javax.persistence.ManyToOne
 @CompileDynamic
 class Player implements Temporal {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
-    long id
+    UUID id
 
     Motivator motivator
     @Delegate(excludes = [ 'clone' ])

@@ -23,7 +23,7 @@ import javax.validation.constraints.NotNull
 @CompileDynamic
 class Persona {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
-    long id
+    UUID id
 
     @NotNull
     String name

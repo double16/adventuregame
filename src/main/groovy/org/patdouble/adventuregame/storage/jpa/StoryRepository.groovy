@@ -8,4 +8,4 @@ import org.springframework.data.rest.core.annotation.RepositoryRestResource
  * Store World using JPA.
  */
 @RepositoryRestResource
-interface StoryRepository extends PagingAndSortingRepository<Story, Long> { }
+interface StoryRepository extends PagingAndSortingRepository<Story, UUID> { }

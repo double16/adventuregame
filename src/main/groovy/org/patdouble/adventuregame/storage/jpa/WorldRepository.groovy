@@ -9,6 +9,6 @@ import org.springframework.data.rest.core.annotation.RepositoryRestResource
  * Store World using JPA.
  */
 @RepositoryRestResource
-interface WorldRepository extends PagingAndSortingRepository<World, Long> {
+interface WorldRepository extends PagingAndSortingRepository<World, UUID> {
     List<World> findByName(@Param('name') String name)
 }

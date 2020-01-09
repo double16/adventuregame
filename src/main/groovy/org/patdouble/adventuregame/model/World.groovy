@@ -8,6 +8,7 @@ import javax.persistence.Entity
 import javax.persistence.GeneratedValue
 import javax.persistence.GenerationType
 import javax.persistence.Id
+import javax.persistence.Lob
 import javax.persistence.OneToMany
 
 /**
@@ -20,10 +21,11 @@ import javax.persistence.OneToMany
 @CompileDynamic
 class World {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
-    long id
+    UUID id
 
     String name
     String author
+    @Lob
     String description
 
     @OneToMany(cascade = CascadeType.ALL)

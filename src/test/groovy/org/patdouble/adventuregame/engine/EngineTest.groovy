@@ -34,4 +34,8 @@ abstract class EngineTest extends Specification {
         engine.subscribe(storySubscriber)
 //        engine.subscribe(new StoryMessageOutput())
     }
+
+    def cleanup() {
+        engine.close()
+    }
 }
