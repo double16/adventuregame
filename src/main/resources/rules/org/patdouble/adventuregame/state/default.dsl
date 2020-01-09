@@ -6,3 +6,7 @@
 [when]- has a turn=chronos < $c.getCurrent()
 
 [then]log {message}=log.info({message});
+
+[when]Story Goal "{name}"=$goal : GoalStatus(goal.name == "{name}", getFulfilled() == false)
+[when]player enters room "{room_id}"=Player(room.id == "{room_id}")
+[then]goal is fulfilled=modify($goal) { setFulfilled(true) }

@@ -42,6 +42,8 @@ class Persona {
     int agility
     /** 0-1000. */
     int speed
+    /** 0-1000. */
+    int memory
 
     void setHealth(int health) {
         this.health = health

@@ -25,5 +25,22 @@ jobs:
         key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('**/*.gradle') }}
         restore-keys: |
           ${{ runner.os }}-gradle-wrapper-
+    - uses: actions/cache@v1
+      with:
+        path: ~/.gradle/dependency-check-data
+        key: ${{ runner.os }}-gradle-dependency-check-data-${{ hashFiles('**/*.gradle') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-dependency-check-data-
+    - uses: actions/cache@v1
+      with:
+        path: ~/.gradle/zap
+        key: ${{ runner.os }}-gradle-zap-${{ hashFiles('**/*.gradle') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-zap-
     - name: check
       run: ./gradlew check --warning-mode all
+    - name: Archvie check reports
+      uses: actions/upload-artifact@v1
+      with:
+        name: check-reports
+        path: build/reports

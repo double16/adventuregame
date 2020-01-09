@@ -13,5 +13,5 @@ rule "log player has a turn"
     There is a player
     - has a turn
   then
-    log "Player has a turn: "+$player.fullName
+    log "Player has a turn: "+$player.title
 end

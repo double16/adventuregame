@@ -10,5 +10,5 @@ import groovy.transform.ToString
 @Immutable
 @ToString(includePackage = false)
 @CompileStatic
-class GameOver extends StoryMessage {
+class StoryEnded extends StoryMessage {
 }
