@@ -47,7 +47,7 @@ rule "human player action request"
     $c : Chronos()
     $player : Player(motivator == Motivator.HUMAN, chronos < $c.getCurrent())
   then
-    log.info("human player "+$player.getFullName()+" action needed");
+    log.info("human player "+$player.getTitle()+" action needed");
     engine.createActionRequest($player);
 end
 
@@ -57,6 +57,6 @@ rule "ai player turn"
     $c : Chronos()
     $player : Player(motivator == Motivator.AI, chronos < $c.getCurrent())
   then
-    log.info("AI player "+$player.getFullName()+" waits");
+    log.info("AI player "+$player.getTitle()+" waits");
     engine.action($player, "wait", null, null);
 end

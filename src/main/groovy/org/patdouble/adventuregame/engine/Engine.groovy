@@ -10,7 +10,7 @@ import org.kie.api.runtime.rule.FactHandle
 import org.kie.api.runtime.rule.RuleRuntime
 import org.kie.internal.runtime.conf.ForceEagerActivationOption
 import org.patdouble.adventuregame.flow.ChronosChanged
-import org.patdouble.adventuregame.flow.GameOver
+import org.patdouble.adventuregame.flow.StoryEnded
 import org.patdouble.adventuregame.flow.PlayerChanged
 import org.patdouble.adventuregame.flow.PlayerNotification
 import org.patdouble.adventuregame.flow.RequestCreated
@@ -33,7 +33,6 @@ import org.patdouble.adventuregame.state.Story
 import org.patdouble.adventuregame.state.request.ActionRequest
 import org.patdouble.adventuregame.state.request.PlayerRequest
 import org.patdouble.adventuregame.state.request.Request
-import org.springframework.beans.factory.annotation.Autowired
 
 import java.util.concurrent.Executor
 import java.util.concurrent.Flow
@@ -66,7 +65,7 @@ class Engine implements Closeable {
     @Delegate(includeTypes = [Flow.Publisher])
     final private SubmissionPublisher<StoryMessage> publisher
 
-    @Autowired
+    DroolsConfiguration droolsConfiguration
     KieContainer kContainer
     private KieSession kieSession
     private FactHandle chronosHandle
@@ -80,6 +79,7 @@ class Engine implements Closeable {
         this.publisher = new SubmissionPublisher<>(this.executor, Flow.defaultBufferSize())
         actionStatementParser = new ActionStatementParser(locale)
         bundles = Bundles.get(locale)
+        droolsConfiguration = new DroolsConfiguration()
     }
 
     /**
@@ -90,20 +90,17 @@ class Engine implements Closeable {
         story.chronos = new Chronos()
         story.history = new History(story.world)
 
-        // create the players from the templates
-        story.world.players.each { PlayerTemplate template ->
-            int i = 0
-            while (i < template.quantity.to) {
-                PlayerRequest playerRequest = new PlayerRequest(template, i >= template.quantity.from)
-                story.requests << playerRequest
-                i++
-                publisher.submit(new RequestCreated(playerRequest))
-            }
-        }
-
-        // create goals
+        createPlayerRequests()
         createGoalStatus()
 
+        // let caller create KieContainer if desired
+        if (!kContainer) {
+            WorldRuleGenerator worldRuleGenerator = new WorldRuleGenerator(story.world)
+            StringWriter drl = new StringWriter()
+            StringWriter dslr = new StringWriter()
+            worldRuleGenerator.generate(drl, dslr)
+            kContainer = droolsConfiguration.kieContainer(drl.toString(), dslr.toString())
+        }
         KieSessionConfiguration ksConfig = KieServices.Factory.get().newKieSessionConfiguration()
         ksConfig.setOption(ForceEagerActivationOption.YES)
         kieSession = kContainer.newKieSession(ksConfig)
@@ -217,6 +214,19 @@ class Engine implements Closeable {
     }
 
     @SuppressWarnings('BuilderMethodWithSideEffects')
+    private void createPlayerRequests() {
+        story.world.players.each { PlayerTemplate template ->
+            int i = 0
+            while (i < template.quantity.to) {
+                PlayerRequest playerRequest = new PlayerRequest(template, i >= template.quantity.from)
+                story.requests << playerRequest
+                i++
+                publisher.submit(new RequestCreated(playerRequest))
+            }
+        }
+    }
+
+    @SuppressWarnings('BuilderMethodWithSideEffects')
     private void createGoalStatus() {
         story.world.goals.each { Goal goal ->
             GoalStatus status = new GoalStatus(goal: goal, fulfilled: false)
@@ -236,7 +246,7 @@ class Engine implements Closeable {
     void close(RuleRuntime ruleRuntime) throws IOException {
         story.requests.clear()
         if (!publisher.isClosed()) {
-            publisher.submit(new GameOver())
+            publisher.submit(new StoryEnded())
             publisher.close()
         }
         if (ruleRuntime != null) {

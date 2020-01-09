@@ -1,5 +1,7 @@
 package org.patdouble.adventuregame.ui.console
 
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.Logger
 import groovy.transform.CompileDynamic
 import org.fusesource.jansi.Ansi
 import org.patdouble.adventuregame.engine.Engine
@@ -7,6 +9,7 @@ import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
 import org.patdouble.adventuregame.model.World
 import org.patdouble.adventuregame.model.UniverseRegistry
 import org.patdouble.adventuregame.state.Story
+import org.slf4j.LoggerFactory
 
 /**
  * Console UI for story engine.
@@ -17,6 +20,20 @@ class Main {
     private static final Object WAIT_LOCK = new Object()
 
     static void main(String[] args) {
+        Level logLevel = Level.ERROR
+        for (String arg : args) {
+            switch (arg) {
+                case '--info':
+                    logLevel = Level.INFO
+                    break
+                case '--debug':
+                    logLevel = Level.DEBUG
+                    break
+            }
+        }
+        ((Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME)).setLevel(logLevel)
+        ((Logger) LoggerFactory.getLogger('org.appformer.maven')).setLevel(Level.OFF)
+
         final Console CONSOLE = new Console()
 
         UniverseRegistry registry = new YamlUniverseRegistry()

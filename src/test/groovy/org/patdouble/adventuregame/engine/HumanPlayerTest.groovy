@@ -125,7 +125,7 @@ class HumanPlayerTest extends AbstractPlayerTest {
         and:
         1 * storySubscriber.onNext(new PlayerNotification(warrior,
                 'I don\'t understand what you want to do',
-                'Things you can do: attack, buy, drop, escape, exit, fight, flee, go, leave, look, move, nap, pay, pick up, put down, rest, run, say, see, sleep, speak, stay, swim, take, talk, wait, wake'))
+                'Things you can do: arrest, attack, buy, capture, drop, escape, exit, fight, flee, go, leave, look, move, nap, pay, pick up, put down, release, rest, run, say, see, sleep, speak, stay, swim, take, talk, wait, wake'))
 
     }
 }

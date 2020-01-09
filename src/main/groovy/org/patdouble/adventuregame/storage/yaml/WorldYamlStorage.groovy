@@ -197,6 +197,8 @@ class WorldYamlStorage {
             Goal g = new Goal(name: goalMap.key)
             g.required = data.getOrDefault('required', false) as Boolean
             g.theEnd = data.getOrDefault('the-end', false) as Boolean
+            Collection rules = data.get('rules', []) as Collection
+            g.rules.addAll(rules*.toString())
             world.goals << g
         }
     }

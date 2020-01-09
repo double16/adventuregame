@@ -10,17 +10,4 @@ personas:
     health: 600
     wealth: 100
 
-challenges:
-  - name: thug
-    description: You are facing a thug
-    actions:
-      - name: fight
-        result: beat up the thug
-        health: -12
-        wealth: 10
-      - name: flee
-        result: ran from the thug
-        health: -8
-        wealth: 0
-
 rooms: []

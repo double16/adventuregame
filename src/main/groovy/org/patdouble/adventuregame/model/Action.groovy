@@ -23,7 +23,11 @@ enum Action {
      */
     SLEEP(1),
     /** Wake a sleeping player. */
-    WAKE(0)
+    WAKE(0),
+    /** Capture a player. */
+    CAPTURE(1),
+    /** Release a player. */
+    RELEASE(1)
 
     /** How many time units does this action take? */
     final long chronosCost

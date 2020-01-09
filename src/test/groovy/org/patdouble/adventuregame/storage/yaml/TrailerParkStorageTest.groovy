@@ -143,14 +143,17 @@ class TrailerParkStorageTest extends Specification {
         with(world.goals.find { it.name == 'one' }) {
             !required
             !theEnd
+            rules == [ 'player enters room "trailer_2"' ]
         }
         with(world.goals.find { it.name == 'two' }) {
             !required
             theEnd
+            rules == [ 'player enters room "trailer_4"' ]
         }
         with(world.goals.find { it.name == 'three' }) {
             required
             !theEnd
+            rules == []
         }
     }
 }

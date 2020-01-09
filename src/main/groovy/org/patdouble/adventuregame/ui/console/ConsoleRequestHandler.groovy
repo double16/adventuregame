@@ -133,24 +133,27 @@ class ConsoleRequestHandler implements Flow.Subscriber<StoryMessage>, AutoClosea
     }
 
     private void handle(ActionRequest actionRequest) {
-        console.println {
-            newline()
-            .bold().a(actionRequest.roomSummary.name).boldOff()
-            .newline()
-            .a(actionRequest.roomSummary.description)
-        }
-
-        if (actionRequest.roomSummary.occupants) {
-            console.println {
-                newline()
-                .a(actionRequest.roomSummary.occupants)
-            }
-        }
-
-        console.println()
-
         try {
-            String command = console.readLine("${actionRequest.player} ? ")
+            String command = null
+            while (!command) {
+                console.println {
+                    newline()
+                            .bold().a(actionRequest.roomSummary.name).boldOff()
+                            .newline()
+                            .a(actionRequest.roomSummary.description)
+                }
+
+                if (actionRequest.roomSummary.occupants) {
+                    console.println {
+                        newline()
+                                .a(actionRequest.roomSummary.occupants)
+                    }
+                }
+
+                console.println()
+
+                command = console.readLine("${actionRequest.player} ? ")
+            }
             engine.action(actionRequest.player, command)
         } catch (UserInterruptException | EndOfFileException e) {
             engine.close()

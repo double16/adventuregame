@@ -3,6 +3,7 @@ package org.patdouble.adventuregame.model
 import groovy.transform.Canonical
 import groovy.transform.CompileDynamic
 
+import javax.persistence.ElementCollection
 import javax.persistence.Entity
 import javax.persistence.GeneratedValue
 import javax.persistence.GenerationType
@@ -23,4 +24,7 @@ class Goal {
     boolean required
     /** If this goal is met, end the story regardless of other goals. */
     boolean theEnd
+    /** The rules for fulfilling the goal, written using the DSL (rules/default.dsl). */
+    @ElementCollection
+    List<String> rules = []
 }

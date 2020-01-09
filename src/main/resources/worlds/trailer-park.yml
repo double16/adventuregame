@@ -41,16 +41,18 @@ extras:
 
 goals:
   one:
+    rules:
+      - player enters room "trailer_2"
     required: false
     the-end: false
   two:
+    rules:
+      - player enters room "trailer_4"
     required: false
     the-end: true
   three:
     required: true
     the-end: false
-
-challenges: []
 
 rooms:
   entrance:
@@ -59,7 +61,6 @@ rooms:
     neighbors:
       - direction: north
         room: trailer_2
-    challenges: []
   trailer_1:
     description: Trailer 1
   trailer_2:
