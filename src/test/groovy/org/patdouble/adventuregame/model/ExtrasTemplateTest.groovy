@@ -37,4 +37,10 @@ class ExtrasTemplateTest extends Specification {
         players*.fullName == [ null ]*3
         players*.room == [ RoomMocks.ENTRANCE ]*3
     }
+
+    def "ToString"() {
+        expect:
+        template.toString().contains('ExtrasTemplate')
+        template.toString().contains(' 3')
+    }
 }

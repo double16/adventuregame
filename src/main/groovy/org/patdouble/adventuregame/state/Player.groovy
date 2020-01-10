@@ -52,10 +52,6 @@ class Player implements Temporal {
         getTitle()
     }
 
-    String getStatus() {
-        "${toString()} is at ${persona.health}% health and has \$${persona.wealth}"
-    }
-
     @Override
     @SuppressWarnings('Instanceof')
     boolean equals(Object obj) {

@@ -45,20 +45,6 @@ class Persona {
     /** 0-1000. */
     int memory
 
-    void setHealth(int health) {
-        this.health = health
-        if (health <= 0) {
-            throw new IllegalStateException(toString() + ' is dead :X')
-        }
-    }
-
-    void setWealth(BigDecimal wealth) {
-        this.wealth = wealth
-        if (wealth <= BigDecimal.ZERO) {
-            throw new IllegalStateException(toString() + ' is broke :$')
-        }
-    }
-
     @Override
     String toString() {
         name

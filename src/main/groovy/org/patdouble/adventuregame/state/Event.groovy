@@ -11,7 +11,7 @@ import javax.persistence.Id
 import javax.persistence.OneToMany
 
 /**
- * An event in history. The event only records changes, not the entire current state.
+ * An event in history. The event only records changes, not the entire state.
  */
 @Entity
 @EqualsAndHashCode(excludes = ['id'])

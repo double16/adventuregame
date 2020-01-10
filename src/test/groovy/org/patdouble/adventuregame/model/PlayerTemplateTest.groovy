@@ -26,4 +26,11 @@ class PlayerTemplateTest extends Specification {
         p.fullName == 'victor the spider'
         p.room == RoomMocks.ENTRANCE
     }
+
+    def "ToString"() {
+        expect:
+        template.toString().contains('PlayerTemplate')
+        template.toString().contains(' thief')
+        template.toString().contains(' 1')
+    }
 }
