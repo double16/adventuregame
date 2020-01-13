@@ -310,6 +310,13 @@ class Engine implements Closeable {
     }
 
     /**
+     * Resend requests as RequestCreated messages.
+     */
+    void resendRequests() {
+        story.requests.each { publisher.submit(new RequestCreated(it)) }
+    }
+
+    /**
      * Request the player performs an action.
      * @return true if the action was successful, false otherwise. Any error message will be sent via flow.
      */

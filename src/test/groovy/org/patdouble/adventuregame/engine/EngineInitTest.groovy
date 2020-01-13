@@ -93,4 +93,12 @@ class EngineInitTest extends EngineTest {
         and:
         0 * storySubscriber.onNext(new RequestSatisfied(request))
     }
+
+    def "resendRequests"() {
+        when:
+        engine.init()
+        engine.resendRequests()
+        then: 'notifications'
+        24 * storySubscriber.onNext({ it instanceof RequestCreated })
+    }
 }
