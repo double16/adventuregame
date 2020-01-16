@@ -1,6 +1,6 @@
 package org.patdouble.adventuregame.state
 
-import groovy.transform.CompileDynamic
+import groovy.transform.CompileStatic
 import groovy.transform.EqualsAndHashCode
 
 import javax.persistence.Column
@@ -16,7 +16,7 @@ import org.kie.api.definition.type.PropertyReactive
 @Embeddable
 @EqualsAndHashCode
 @PropertyReactive
-@CompileDynamic
+@CompileStatic
 class Chronos {
     @Column(name = 'chronos')
     long current = 0

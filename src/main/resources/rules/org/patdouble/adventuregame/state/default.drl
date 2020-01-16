@@ -3,6 +3,7 @@ package org.patdouble.adventuregame.state
 dialect "mvel"
 
 import java.util.List;
+import org.patdouble.adventuregame.engine.StoryState;
 
 global org.slf4j.Logger log;
 global org.patdouble.adventuregame.engine.EngineFacade engine;
@@ -14,6 +15,7 @@ rule "next chronos"
     $c : Chronos()
     exists Player()
     forall( Player(chronos >= $c.getCurrent()) )
+    forall( StoryState(ended == false) )
   then
     engine.incrementChronos();
 end

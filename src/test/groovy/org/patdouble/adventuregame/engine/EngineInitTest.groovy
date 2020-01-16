@@ -41,6 +41,9 @@ class EngineInitTest extends EngineTest {
 
         and: 'notifications'
         12 * storySubscriber.onNext({ it instanceof RequestCreated })
+
+        and: 'not closed'
+        !engine.isClosed()
     }
 
     def "addToCast valid"() {
@@ -69,7 +72,7 @@ class EngineInitTest extends EngineTest {
         engine.addToCast(thug)
 
         then:
-        story.cast.contains(warrior)
+        story.cast.contains(thug)
         and:
         !story.requests.find { it.template.persona.name == 'warrior' }
         story.requests.find { it.template.persona.name == 'thief' }
@@ -92,6 +95,88 @@ class EngineInitTest extends EngineTest {
         thrown(IllegalArgumentException)
         and:
         0 * storySubscriber.onNext(new RequestSatisfied(request))
+    }
+
+    def "ignore optional"() {
+        given:
+        engine.init()
+        PlayerRequest warriorRequest = story.requests.find { it.template.persona.name == 'warrior' } as PlayerRequest
+        PlayerRequest thugRequest = story.requests.find { it.template.persona.name == 'thug' } as PlayerRequest
+
+        when:
+        Player warrior = warriorRequest.template.createPlayer(Motivator.AI)
+        engine.addToCast(warrior)
+
+        then:
+        story.cast.contains(warrior)
+
+        and:
+        !story.requests.find { it.template.persona.name == 'warrior' }
+        story.requests.find { it.template.persona.name == 'thief' }
+        story.requests.findAll { it.template.persona.name == 'thug' }.size() == 10
+
+        and:
+        1 * storySubscriber.onNext(new RequestSatisfied(warriorRequest))
+
+        when:
+        engine.ignore(thugRequest)
+
+        then:
+        !story.cast.find { it.persona.name == 'thug' }
+
+        and:
+        !story.requests.find { it.template.persona.name == 'warrior' }
+        story.requests.find { it.template.persona.name == 'thief' }
+        story.requests.findAll { it.template.persona.name == 'thug' }.size() == 9
+        and:
+        0 * storySubscriber.onNext(new RequestSatisfied(thugRequest))
+    }
+
+    def "ignore required"() {
+        given:
+        engine.init()
+        PlayerRequest warriorRequest = story.requests.find { it.template.persona.name == 'warrior' } as PlayerRequest
+
+        when:
+        engine.ignore(warriorRequest)
+
+        then:
+        thrown(IllegalArgumentException)
+
+        and:
+        story.requests.find { it.template.persona.name == 'warrior' }
+        story.requests.find { it.template.persona.name == 'thief' }
+        story.requests.findAll { it.template.persona.name == 'thug' }.size() == 10
+
+        and:
+        0 * storySubscriber.onNext(new RequestSatisfied(warriorRequest))
+    }
+
+    def "autostart"() {
+        given:
+        engine.autoLifecycle = true
+        engine.init()
+        PlayerRequest warriorRequest = story.requests.find { it.template.persona.name == 'warrior' } as PlayerRequest
+        PlayerRequest thiefRequest = story.requests.find { it.template.persona.name == 'thief' } as PlayerRequest
+        PlayerRequest thugRequest = story.requests.find { it.template.persona.name == 'thug' } as PlayerRequest
+
+        when:
+        engine.addToCast(warriorRequest.template.createPlayer(Motivator.AI))
+        engine.addToCast(thiefRequest.template.createPlayer(Motivator.AI))
+        story.requests.findAll { it.template.persona.name == 'thug' }. each {
+            engine.addToCast(it.template.createPlayer(Motivator.AI))
+        }
+
+        then:
+        story.requests.isEmpty()
+        !engine.isClosed()
+        !story.goals.isEmpty()
+
+        when:
+        engine.close()
+
+        then:
+        engine.isClosed()
     }
 
     def "resendRequests"() {

@@ -68,6 +68,7 @@ class Engine implements Closeable {
     KieContainer kContainer
     private KieSession kieSession
     private FactHandle chronosHandle
+    private FactHandle storyStateHandle
 
     Engine(Story story, Executor executor = null) {
         this.story = story
@@ -124,6 +125,7 @@ class Engine implements Closeable {
         kieSession.setGlobal('log', log)
         kieSession.setGlobal('engine', new EngineFacade(this))
         chronosHandle = kieSession.insert(story.chronos)
+        storyStateHandle = kieSession.insert(new StoryState(story))
         story.world.rooms.each { kieSession.insert(it) }
         story.cast.each { kieSession.insert(it) }
         story.requests.each { kieSession.insert(it) }
@@ -233,6 +235,10 @@ class Engine implements Closeable {
         }
     }
 
+    private void syncStoryState() {
+        ((StoryState) kieSession.getObject(storyStateHandle))?.update(story)
+    }
+
     void next() {
         kieSession.fireAllRules()
     }
@@ -242,6 +248,7 @@ class Engine implements Closeable {
      */
     void end() {
         story.ended = true
+        syncStoryState()
         story.requests.each {
             kieSession.delete(kieSession.getFactHandle(it))
         }
@@ -267,11 +274,6 @@ class Engine implements Closeable {
      */
     boolean isClosed() {
         publisher.isClosed()
-    }
-
-    @Override
-    protected Object clone() throws CloneNotSupportedException {
-        return super.clone()
     }
 
     protected void incrementChronos() {
