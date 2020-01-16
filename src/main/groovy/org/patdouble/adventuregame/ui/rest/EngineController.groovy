@@ -3,6 +3,7 @@ package org.patdouble.adventuregame.ui.rest
 import groovy.transform.CompileDynamic
 import org.patdouble.adventuregame.engine.Engine
 import org.patdouble.adventuregame.model.World
+import org.patdouble.adventuregame.state.Motivator
 import org.patdouble.adventuregame.state.Player
 import org.patdouble.adventuregame.state.Story
 import org.patdouble.adventuregame.state.request.PlayerRequest
@@ -10,9 +11,12 @@ import org.patdouble.adventuregame.storage.jpa.StoryRepository
 import org.patdouble.adventuregame.storage.jpa.WorldRepository
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
+import org.springframework.messaging.handler.annotation.MessageMapping
+import org.springframework.messaging.handler.annotation.Payload
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
-import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 
@@ -23,84 +27,113 @@ import org.springframework.web.server.ResponseStatusException
 @CompileDynamic
 class EngineController {
     @Autowired
+    EngineCache engineCache
+    @Autowired
     WorldRepository worldRepository
     @Autowired
     StoryRepository storyRepository
 
-    @RequestMapping(method = RequestMethod.POST, path = '/engine/create')
-    String createStory(@RequestParam('world') String worldId) {
-        World world
-        List<World> worldsByName = worldRepository.findByName(worldId)
-        if (worldsByName) {
-            world = worldsByName.first()
-        } else {
-            world = worldRepository.findById(worldId as UUID).get()
+    private Engine requireEngine(storyId) throws ResponseStatusException {
+        Engine engine = engineCache.get(UUID.fromString(storyId as String))
+        if (!engine) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Story ${storyId} not found")
+        }
+        engine
+    }
+
+    @MessageMapping('/createstory')
+    @RequestMapping(
+            method = RequestMethod.POST,
+            path = '/engine/createstory',
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    CreateStoryResponse createStory(@Payload @RequestBody CreateStoryRequest request) {
+        World world = null
+        if (request.worldId) {
+            world = worldRepository.findById(UUID.fromString(request.worldId)).get()
+        }
+        if (request.worldName && !world) {
+            world = worldRepository.findByName(request.worldName).first()
         }
         if (!world) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND)
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "World ${request} not found")
         }
         Story story = new Story(world)
         Engine engine = new Engine(story)
         engine.autoLifecycle = true
         engine.init()
         storyRepository.save(story)
-        story.id as String
+        Objects.requireNonNull(story.id)
+        new CreateStoryResponse(storyUri: "/engine/play/${story.id}")
     }
 
-    @RequestMapping(method = RequestMethod.POST, path = '/engine/resend')
-    void resendRequests(@RequestParam('story') String storyId) {
-        Engine engine = getEngine(storyId)
-        engine.resendRequests()
-    }
-
-    @RequestMapping(method = RequestMethod.POST, path = '/engine/action')
-    boolean action(
-            @RequestParam('story') String storyId,
-            @RequestParam('player') UUID playerId,
-            @RequestParam('statement') String statement) {
-        Engine engine = getEngine(storyId)
-        Player player = engine.story.cast.find { it.id == playerId }
+    @MessageMapping('/action')
+    @RequestMapping(
+            method = RequestMethod.POST,
+            path = '/engine/action',
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    void action(@Payload @RequestBody ActionRequest actionRequest) {
+        Engine engine = requireEngine(actionRequest.storyId)
+        Player player = engine.story.cast.find { it.id == UUID.fromString(actionRequest.playerId) }
         if (!player) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND)
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Player ${actionRequest.playerId} not found")
         }
-        try {
-            return engine.action(player, statement)
-        } finally {
-            storyRepository.save(engine.story)
-        }
+        engine.action(player, actionRequest.statement)
+        storyRepository.save(engine.story)
     }
 
-    @RequestMapping(method = RequestMethod.POST, path = '/engine/cast/add')
-    void addToCast(@RequestParam('story') String storyId, Player player) {
-        Engine engine = getEngine(storyId)
+    @MessageMapping('/addtocast')
+    @RequestMapping(
+            method = RequestMethod.POST,
+            path = '/engine/addtocast',
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    AddToCastResponse addToCast(@Payload @RequestBody AddToCastRequest request) {
+        Engine engine = requireEngine(request.storyId)
+        PlayerRequest playerRequest = (PlayerRequest) engine.story.requests
+                .find { (it instanceof PlayerRequest) && it.template.id == UUID.fromString(request.playerTemplateId) }
+        if (!playerRequest) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Player template ${request.playerTemplateId} not found")
+        }
+        Player player = playerRequest.template.createPlayer(Motivator.valueOf(request.motivator.toUpperCase()))
+        if (request.fullName) {
+            player.fullName = request.fullName
+        }
+        if (request.nickName) {
+            player.nickName = request.nickName
+        }
         engine.addToCast(player)
         storyRepository.save(engine.story)
+        storyRepository.count()
+        Objects.requireNonNull(player.id)
+        new AddToCastResponse(playerUri: "/engine/play/${engine.story.id}/${player.id}")
     }
 
-    @RequestMapping(method = RequestMethod.POST, path = '/engine/cast/ignore')
-    void ignore(@RequestParam('story') String storyId, PlayerRequest request) {
-        Engine engine = getEngine(storyId)
-        engine.ignore(request)
+    @MessageMapping('/ignorecast')
+    @RequestMapping(
+            method = RequestMethod.POST,
+            path = '/engine/ignorecast',
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    void ignore(@Payload @RequestBody IgnoreCastRequest request) {
+        Engine engine = requireEngine(request.storyId)
+        engine.story.requests
+            .findAll { (it instanceof PlayerRequest) && it.template.id == UUID.fromString(request.playerTemplateId) }
+            .each {
+                engine.ignore(it as PlayerRequest)
+            }
         storyRepository.save(engine.story)
     }
 
-    @RequestMapping(method = RequestMethod.POST, path = '/engine/close')
-    void close(@RequestParam('story') String storyId) {
-        Engine engine = getEngine(storyId)
-        engine.close()
-        storyRepository.save(engine.story)
-    }
-
-    private Engine getEngine(String storyId) {
-        Optional<Story> story = storyRepository.findById(storyId as UUID)
-        if (!story.isPresent()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND)
-        }
-        if (story.get().ended) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT)
-        }
-        Engine engine = new Engine(story.get())
-        engine.autoLifecycle = true
-        return engine
+    @MessageMapping('/start')
+    @RequestMapping(
+            method = RequestMethod.POST,
+            path = '/engine/start',
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    void start(@Payload @RequestBody StartRequest request) {
+        Engine engine = requireEngine(request.storyId)
+        engine.start()
     }
 }

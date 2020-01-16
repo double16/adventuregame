@@ -3,6 +3,7 @@ package org.patdouble.adventuregame.storage.jpa
 import org.patdouble.adventuregame.engine.DroolsConfiguration
 import org.patdouble.adventuregame.engine.Engine
 import org.patdouble.adventuregame.state.Motivator
+import org.patdouble.adventuregame.state.Player
 import org.patdouble.adventuregame.state.Story
 import org.patdouble.adventuregame.state.request.PlayerRequest
 import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
@@ -35,6 +36,7 @@ class StoryRepositoryTest extends Specification {
             story.requests.clone().each { PlayerRequest req -> engine.addToCast(req.template.createPlayer(Motivator.HUMAN)) }
             engine.start()
         }
+        engine.close()
         story
     }
 
@@ -55,10 +57,38 @@ class StoryRepositoryTest extends Specification {
         s1 == s2
         and:
         s2.requests
+        and:
+        s2.id
+        and:
+        if (start) {
+            s1.cast.size() > 0
+            s2.cast.count { it.id } > 0
+        }
 
         where:
         worldName                         | start
         YamlUniverseRegistry.TRAILER_PARK | false
         YamlUniverseRegistry.MIDDLE_EARTH | true
+    }
+
+    def "cast added later"() {
+        given:
+        Story s = newStory(YamlUniverseRegistry.TRAILER_PARK, false)
+
+        when:
+        Story saveResult = storyRepository.save(s)
+        then:
+        s.id
+        saveResult.is(s)
+        s.cast.count { it.id } == 0
+
+        when:
+        s.requests.each { PlayerRequest req ->
+            s.cast << req.template.createPlayer(Motivator.HUMAN)
+        }
+        s.requests.clear()
+        storyRepository.save(s)
+        then:
+        s.cast.count { it.id } > 0
     }
 }

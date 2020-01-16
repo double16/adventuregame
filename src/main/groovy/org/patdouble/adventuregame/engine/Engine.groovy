@@ -83,16 +83,9 @@ class Engine implements Closeable {
     }
 
     /**
-     * Initialize the story to be ready to play, which includes creating request for players.
+     * Create a new KieSession, configured for the story.
      */
-    void init() {
-        assert story.world
-        story.chronos = new Chronos()
-        story.history = new History(story.world)
-
-        createPlayerRequests()
-        createGoalStatus()
-
+    private void newKieSession() {
         // let caller create KieContainer if desired
         if (!kContainer) {
             WorldRuleGenerator worldRuleGenerator = new WorldRuleGenerator(story.world)
@@ -104,18 +97,6 @@ class Engine implements Closeable {
         KieSessionConfiguration ksConfig = KieServices.Factory.get().newKieSessionConfiguration()
         ksConfig.setOption(ForceEagerActivationOption.YES)
         kieSession = kContainer.newKieSession(ksConfig)
-        initKieSession()
-        if (autoLifecycle) {
-            Thread kieThread = new Thread(KIE_THREAD_GROUP, "kie for ${story.world.name}") {
-                @Override
-                void run() {
-                    kieSession.fireUntilHalt()
-                    kieSession.dispose()
-                }
-            }
-            kieThread.daemon = true
-            kieThread.start()
-        }
     }
 
     /**
@@ -130,6 +111,32 @@ class Engine implements Closeable {
         story.cast.each { kieSession.insert(it) }
         story.requests.each { kieSession.insert(it) }
         story.goals.each { kieSession.insert(it) }
+    }
+
+    /**
+     * Initialize the story to be ready to play, which includes creating request for players.
+     */
+    void init() {
+        assert story.world
+        story.chronos = new Chronos()
+        story.history = new History(story.world)
+
+        createPlayerRequests()
+        createGoalStatus()
+
+        newKieSession()
+        initKieSession()
+        if (autoLifecycle) {
+            Thread kieThread = new Thread(KIE_THREAD_GROUP, "kie for ${story.world.name}") {
+                @Override
+                void run() {
+                    kieSession.fireUntilHalt()
+                    kieSession.dispose()
+                }
+            }
+            kieThread.daemon = true
+            kieThread.start()
+        }
     }
 
     /**
@@ -149,7 +156,9 @@ class Engine implements Closeable {
             if (pr.template.persona.name == player.persona.name) {
                 iter.remove()
                 removed = true
-                kieSession.delete(kieSession.getFactHandle(r))
+                Optional.of(kieSession.getFactHandle(r)).ifPresent { FactHandle h ->
+                    kieSession.delete(h)
+                }
                 publisher.submit(new RequestSatisfied(pr))
                 break
             }

@@ -1,0 +1,60 @@
+package org.patdouble.adventuregame.ui.rest
+
+import groovy.transform.CompileDynamic
+import groovy.transform.CompileStatic
+import org.patdouble.adventuregame.engine.Engine
+import org.patdouble.adventuregame.state.Story
+import org.patdouble.adventuregame.storage.jpa.StoryRepository
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.HttpStatus
+import org.springframework.stereotype.Component
+import org.springframework.web.server.ResponseStatusException
+
+import java.time.Duration
+import java.util.concurrent.ConcurrentHashMap
+
+/**
+ * Maintains a cache of {@link org.patdouble.adventuregame.engine.Engine} instances to balance performance and memory.
+ */
+@Component
+@CompileDynamic
+class EngineCache {
+
+    @CompileStatic
+    private class Value {
+        Engine engine
+        long expires
+
+        Value(Engine engine) {
+            this.engine = engine
+            touch()
+        }
+
+        void touch() {
+            expires = expires + ttl.toMillis()
+        }
+    }
+
+    Duration ttl = Duration.ofMinutes(10)
+    @Autowired
+    StoryRepository storyRepository
+    private final ConcurrentHashMap<UUID, Value> map = new ConcurrentHashMap<>()
+
+    Engine get(final UUID storyId) {
+        Value v = map.computeIfAbsent(storyId, { k ->
+            Optional<Story> story = storyRepository.findById(storyId)
+            if (!story.isPresent()) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND)
+            }
+            if (story.get().ended) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT)
+            }
+            Engine engine = new Engine(story.get())
+            engine.autoLifecycle = true
+            engine.init()
+            new Value(engine)
+        })
+        v.touch()
+        v.engine
+    }
+}
