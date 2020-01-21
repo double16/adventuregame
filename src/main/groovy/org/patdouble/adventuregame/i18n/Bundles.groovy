@@ -30,6 +30,9 @@ class Bundles {
     @Lazy
     Template roomsummaryDirectionsTemplate = {
         groovyTemplateEngine.createTemplate(getText().getString('roomsummary.directions')) }()
+    @Lazy
+    Template requiredPlayersTemplate = {
+        groovyTemplateEngine.createTemplate(getText().getString('state.players_required.text')) }()
 
     private Bundles(Locale locale) {
         this.locale = locale

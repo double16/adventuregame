@@ -15,4 +15,13 @@ import javax.transaction.Transactional
 @Unroll
 class EngineCacheTest extends Specification {
 
+    def setup() {
+
+    }
+
+    def cleanup() {
+
+    }
+
+
 }

@@ -9,6 +9,7 @@ import org.kie.api.runtime.KieSessionConfiguration
 import org.kie.api.runtime.rule.FactHandle
 import org.kie.internal.runtime.conf.ForceEagerActivationOption
 import org.patdouble.adventuregame.flow.ChronosChanged
+import org.patdouble.adventuregame.flow.Notification
 import org.patdouble.adventuregame.flow.StoryEnded
 import org.patdouble.adventuregame.flow.PlayerChanged
 import org.patdouble.adventuregame.flow.PlayerNotification
@@ -113,17 +114,7 @@ class Engine implements Closeable {
         story.goals.each { kieSession.insert(it) }
     }
 
-    /**
-     * Initialize the story to be ready to play, which includes creating request for players.
-     */
-    void init() {
-        assert story.world
-        story.chronos = new Chronos()
-        story.history = new History(story.world)
-
-        createPlayerRequests()
-        createGoalStatus()
-
+    private void startRuleEngine() {
         newKieSession()
         initKieSession()
         if (autoLifecycle) {
@@ -139,86 +130,10 @@ class Engine implements Closeable {
         }
     }
 
-    /**
-     * Adds a player to satisfy a {@link PlayerRequest}.
-     * @throw IllegalArgumentException if a matching PlayerRequest isn't found.
-     */
-    @SuppressWarnings('Instanceof')
-    void addToCast(Player player) {
-        boolean removed = false
-        Iterator<Request> iter = story.requests.iterator()
-        while (iter.hasNext()) {
-            Request r = iter.next()
-            if (!(r instanceof PlayerRequest)) {
-                continue
-            }
-            PlayerRequest pr = r as PlayerRequest
-            if (pr.template.persona.name == player.persona.name) {
-                iter.remove()
-                removed = true
-                Optional.of(kieSession.getFactHandle(r)).ifPresent { FactHandle h ->
-                    kieSession.delete(h)
-                }
-                publisher.submit(new RequestSatisfied(pr))
-                break
-            }
-        }
-        if (!removed) {
-            throw new IllegalArgumentException("Cannot find template matching player ${player}")
-        }
-        story.cast << player
-        kieSession.insert(player)
-        publisher.submit(new PlayerChanged(player.clone(), 0))
-        checkInitComplete()
-    }
-
-    /**
-     * Ignore the request.
-     * @throws IllegalArgumentException if the request isn't optional
-     */
-    void ignore(PlayerRequest request) {
-        if (!request.optional) {
-            throw new IllegalArgumentException("Can not ignore required player ${request.template}")
-        }
-        kieSession.delete(kieSession.getFactHandle(request))
-        story.requests.remove(request)
-        checkInitComplete()
-    }
-
-    private void checkInitComplete() {
-        if (autoLifecycle && story.requests.empty) {
-            start()
-        }
-    }
-
-    /**
-     * Start the game after the required cast members have been satisfied. Any requests for optional p[layers will be
-     * removed from the story by this method.
-     * @throew IllegalStateException if there are required players not yet cast
-     */
-    @SuppressWarnings('Instanceof')
-    void start() {
-        Collection<PlayerRequest> pendingPlayers = story.requests
-                .findAll { it instanceof PlayerRequest && !it.optional }
-        if (!pendingPlayers.empty) {
-            throw new IllegalStateException("Required players: ${pendingPlayers*.template*.fullName}")
-        }
-        story.requests.findAll { it instanceof PlayerRequest }
-                .collect { kieSession.getFactHandle(it) }
-                .findAll()
-                .each { kieSession.delete(it) }
-        story.requests.removeIf { it instanceof PlayerRequest }
-
-        placePlayers()
-        createGoalStatus()
-        next()
-    }
-
     private void placePlayers() {
         story.world.extras.each { ExtrasTemplate t ->
             Collection<Player> players = t.createPlayers()
             story.cast.addAll(players)
-            players.each { kieSession.insert(it) }
             players.each { publisher.submit(new PlayerChanged(it.clone(), 0)) }
         }
     }
@@ -248,6 +163,100 @@ class Engine implements Closeable {
         ((StoryState) kieSession.getObject(storyStateHandle))?.update(story)
     }
 
+    /**
+     * Initialize the story to be ready to play, which includes creating request for players.
+     */
+    void init() {
+        assert story.world
+        if (story.chronos) {
+            return
+        }
+
+        story.chronos = new Chronos()
+        story.history = new History(story.world)
+        createPlayerRequests()
+        createGoalStatus()
+
+        checkInitComplete()
+    }
+
+    /**
+     * Adds a player to satisfy a {@link PlayerRequest}.
+     * @throw IllegalArgumentException if a matching PlayerRequest isn't found.
+     */
+    @SuppressWarnings('Instanceof')
+    void addToCast(Player player) {
+        boolean removed = false
+        Iterator<Request> iter = story.requests.iterator()
+        while (iter.hasNext()) {
+            Request r = iter.next()
+            if (!(r instanceof PlayerRequest)) {
+                continue
+            }
+            PlayerRequest pr = r as PlayerRequest
+            if (pr.template.persona.name == player.persona.name) {
+                iter.remove()
+                removed = true
+                publisher.submit(new RequestSatisfied(pr))
+                break
+            }
+        }
+        if (!removed) {
+            throw new IllegalArgumentException("Cannot find template matching player ${player}")
+        }
+        story.cast << player
+        publisher.submit(new PlayerChanged(player.clone(), 0))
+        checkInitComplete()
+    }
+
+    /**
+     * Ignore the request.
+     * @throws IllegalArgumentException if the request isn't optional
+     */
+    void ignore(PlayerRequest request) {
+        if (!request.optional) {
+            throw new IllegalArgumentException("Can not ignore required player ${request.template}")
+        }
+        story.requests.remove(request)
+        checkInitComplete()
+    }
+
+    private void checkInitComplete() {
+        if (autoLifecycle && story.requests.empty) {
+            start()
+        }
+    }
+
+    /**
+     * Start the game after the required cast members have been satisfied. Any requests for optional p[layers will be
+     * removed from the story by this method.
+     * @throew IllegalStateException if there are required players not yet cast
+     */
+    @SuppressWarnings('Instanceof')
+    void start() {
+        Collection<PlayerRequest> pendingPlayers = story.requests
+                .findAll { it instanceof PlayerRequest && !it.optional }
+        if (!pendingPlayers.empty) {
+            String msg = bundles.requiredPlayersTemplate.make([ names: pendingPlayers*.template*.fullName ]).toString()
+            publisher.submit(new Notification(bundles.text.getString('state.players_required.subject'), msg))
+            throw new IllegalStateException(msg)
+        }
+
+        story.requests.removeIf { it instanceof PlayerRequest }
+        if (story.chronos.current == 0) {
+            placePlayers()
+        }
+
+        if (kieSession == null) {
+            startRuleEngine()
+        }
+
+        next()
+    }
+
+    /**
+     * Progress the story. Only necessary when {@link #autoLifecycle} is false. Otherwise this is a NOP.
+     */
     void next() {
         kieSession.fireAllRules()
     }
@@ -256,10 +265,17 @@ class Engine implements Closeable {
      * End the story.
      */
     void end() {
+        if (story.ended) {
+            return
+        }
+
         story.ended = true
         syncStoryState()
-        story.requests.each {
-            kieSession.delete(kieSession.getFactHandle(it))
+        if (kieSession != null) {
+            story.requests
+                .collect { kieSession.getFactHandle(it) }
+                .findAll()
+                .each { kieSession.delete(it) }
         }
         story.requests.clear()
         publisher.submit(new StoryEnded())
@@ -273,8 +289,11 @@ class Engine implements Closeable {
         if (!publisher.isClosed()) {
             publisher.close()
         }
-        kieSession.halt()
-        kieSession.dispose()
+        if (kieSession) {
+            kieSession.halt()
+            kieSession.dispose()
+            kieSession = null
+        }
     }
 
     /**
@@ -387,7 +406,9 @@ class Engine implements Closeable {
                 kieSession.update(kieSession.getFactHandle(player), player)
                 if (actionRequest) {
                     story.requests.remove(actionRequest)
-                    kieSession.delete(kieSession.getFactHandle(actionRequest))
+                    Optional.ofNullable(kieSession.getFactHandle(actionRequest)).ifPresent {
+                        kieSession.delete(it)
+                    }
                     publisher.submit(new RequestSatisfied(actionRequest))
                 }
             }

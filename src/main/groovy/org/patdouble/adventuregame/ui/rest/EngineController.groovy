@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.messaging.handler.annotation.MessageMapping
 import org.springframework.messaging.handler.annotation.Payload
+import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
@@ -32,6 +33,8 @@ class EngineController {
     WorldRepository worldRepository
     @Autowired
     StoryRepository storyRepository
+    @Autowired
+    SimpMessagingTemplate simpMessagingTemplate
 
     private Engine requireEngine(storyId) throws ResponseStatusException {
         Engine engine = engineCache.get(UUID.fromString(storyId as String))
@@ -64,7 +67,9 @@ class EngineController {
         engine.init()
         storyRepository.save(story)
         Objects.requireNonNull(story.id)
-        new CreateStoryResponse(storyUri: "/engine/play/${story.id}")
+        CreateStoryResponse response = new CreateStoryResponse(storyUri: "/engine/play/${story.id}")
+        simpMessagingTemplate.convertAndSend('/topic/storyurl', response)
+        return response
     }
 
     @MessageMapping('/action')
@@ -105,9 +110,9 @@ class EngineController {
         }
         engine.addToCast(player)
         storyRepository.save(engine.story)
-        storyRepository.count()
-        Objects.requireNonNull(player.id)
-        new AddToCastResponse(playerUri: "/engine/play/${engine.story.id}/${player.id}")
+        Player savedPlayer = engine.story.cast.find { it == player }
+        Objects.requireNonNull(savedPlayer?.id)
+        new AddToCastResponse(playerUri: "/engine/play/${engine.story.id}/${savedPlayer.id}")
     }
 
     @MessageMapping('/ignorecast')

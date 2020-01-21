@@ -2,6 +2,7 @@ package org.patdouble.adventuregame.ui.rest
 
 import org.patdouble.adventuregame.engine.Engine
 import org.patdouble.adventuregame.model.PersonaMocks
+import org.patdouble.adventuregame.state.Player
 import org.patdouble.adventuregame.state.request.PlayerRequest
 import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
 import org.springframework.beans.factory.annotation.Autowired
@@ -31,6 +32,7 @@ class EngineControllerTest extends Specification {
     }
 
     void cleanup() {
+        controller.engineCache.clear()
     }
 
     def "CreateStory"() {
@@ -41,11 +43,7 @@ class EngineControllerTest extends Specification {
         CreateStoryResponse response = controller.createStory(request)
 
         then:
-        response.storyUri =~ '/engine/play/[A-Za-z0-9-]+'
-    }
-
-    def "Action"() {
-        // TODO
+        response.storyUri =~ '/engine/play/[A-Fa-f0-9-]+'
     }
 
     def "AddToCast"() {
@@ -64,14 +62,82 @@ class EngineControllerTest extends Specification {
                 nickName: 'Firstly'))
 
         then:
-        response.playerUri =~ '/engine/play/[A-Za-z0-9-]+/[A-Za-z0-9-]+'
+        response.playerUri =~ '/engine/play/[A-Fa-f0-9-]+/[A-Fa-f0-9-]+'
     }
 
-    def "Ignore"() {
-        // TODO
+    def "Ignore required"() {
+        given:
+        Engine engine = controller.engineCache.get(UUID.fromString(storyId))
+        String warriorTemplateId = engine.story.requests
+                .find { (it instanceof PlayerRequest) && it.template.persona.name == PersonaMocks.WARRIOR.name }
+                .template.id as String
+
+        when:
+        controller.ignore(new IgnoreCastRequest(
+                storyId: storyId,
+                playerTemplateId: warriorTemplateId))
+
+        then:
+        thrown(IllegalArgumentException)
+        engine.story.requests.size() == 12
+        engine.story.requests.find { (it instanceof PlayerRequest) && it.template.id.toString() == warriorTemplateId }
+    }
+
+    def "Ignore optional"() {
+        given:
+        Engine engine = controller.engineCache.get(UUID.fromString(storyId))
+        String thugTemplateId = engine.story.requests
+                .find { (it instanceof PlayerRequest) && it.template.persona.name == 'thug' }
+                .template.id as String
+
+        when:
+        controller.ignore(new IgnoreCastRequest(
+                storyId: storyId,
+                playerTemplateId: thugTemplateId))
+
+        then:
+        engine.story.requests.size() == 2
+        !engine.story.requests.find { (it instanceof PlayerRequest) && it.template.id.toString() == thugTemplateId }
     }
 
     def "Start"() {
-        // TODO
+        given:
+        Engine engine = controller.engineCache.get(UUID.fromString(storyId))
+        engine.story.requests.findAll { it instanceof PlayerRequest }.each {
+            controller.addToCast(new AddToCastRequest(
+                    storyId: storyId,
+                    playerTemplateId: it.template.id as String,
+                    motivator: 'human'))
+        }
+        when:
+        controller.start(new StartRequest(storyId: storyId))
+
+        then:
+        notThrown(Exception)
+        and:
+        engine.story.chronos.current > 0
+    }
+
+    def "Action"() {
+        given:
+        Engine engine = controller.engineCache.get(UUID.fromString(storyId))
+        engine.story.requests.findAll { it instanceof PlayerRequest }.each {
+            controller.addToCast(new AddToCastRequest(
+                    storyId: storyId,
+                    playerTemplateId: it.template.id as String,
+                    motivator: 'human'))
+        }
+        controller.start(new StartRequest(storyId: storyId))
+        Player warrior = engine.story.cast.find { it.persona.name == PersonaMocks.WARRIOR.name }
+
+        when:
+        controller.action(new ActionRequest(
+                storyId: storyId,
+                playerId: warrior.id as String,
+                statement: 'go north'
+        ))
+
+        then:
+        warrior.room.id == 'trailer_2'
     }
 }

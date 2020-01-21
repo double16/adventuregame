@@ -156,9 +156,9 @@ class EngineInitTest extends EngineTest {
         given:
         engine.autoLifecycle = true
         engine.init()
+        engine.story.goals.each { it.goal.required = false }
         PlayerRequest warriorRequest = story.requests.find { it.template.persona.name == 'warrior' } as PlayerRequest
         PlayerRequest thiefRequest = story.requests.find { it.template.persona.name == 'thief' } as PlayerRequest
-        PlayerRequest thugRequest = story.requests.find { it.template.persona.name == 'thug' } as PlayerRequest
 
         when:
         engine.addToCast(warriorRequest.template.createPlayer(Motivator.AI))
@@ -185,5 +185,61 @@ class EngineInitTest extends EngineTest {
         engine.resendRequests()
         then: 'notifications'
         24 * storySubscriber.onNext({ it instanceof RequestCreated })
+    }
+
+    def "init idempotency"() {
+        given:
+        engine.init()
+        int requestCount = engine.story.requests.size()
+        int goalStatusCount = engine.story.goals.size()
+        int castCount = engine.story.cast.size()
+
+        when:
+        engine.init()
+        then:
+        requestCount == engine.story.requests.size()
+        goalStatusCount == engine.story.goals.size()
+        castCount == engine.story.cast.size()
+    }
+
+    def "start idempotency"() {
+        given:
+        engine.init()
+        engine.story.requests
+            .findAll { (it instanceof PlayerRequest) && !it.optional }
+            .each { engine.addToCast(it.template.createPlayer(Motivator.HUMAN)) }
+        engine.start()
+        int requestCount = engine.story.requests.size()
+        int goalStatusCount = engine.story.goals.size()
+        int castCount = engine.story.cast.size()
+
+        when:
+        engine.start()
+        then:
+        requestCount == engine.story.requests.size()
+        goalStatusCount == engine.story.goals.size()
+        castCount == engine.story.cast.size()
+
+    }
+
+    def "end idempotency"() {
+        given:
+        engine.init()
+        engine.story.requests
+                .findAll { (it instanceof PlayerRequest) && !it.optional }
+                .each { engine.addToCast(it.template.createPlayer(Motivator.HUMAN)) }
+        engine.start()
+        engine.end()
+        int requestCount = engine.story.requests.size()
+        int goalStatusCount = engine.story.goals.size()
+        int castCount = engine.story.cast.size()
+
+        when:
+        engine.end()
+        then:
+        requestCount == engine.story.requests.size()
+        goalStatusCount == engine.story.goals.size()
+        castCount == engine.story.cast.size()
+
     }
 }

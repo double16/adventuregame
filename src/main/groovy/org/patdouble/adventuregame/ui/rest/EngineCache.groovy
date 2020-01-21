@@ -10,8 +10,10 @@ import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.web.server.ResponseStatusException
 
+import javax.validation.constraints.NotNull
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Maintains a cache of {@link org.patdouble.adventuregame.engine.Engine} instances to balance performance and memory.
@@ -22,8 +24,8 @@ class EngineCache {
 
     @CompileStatic
     private class Value {
-        Engine engine
-        long expires
+        final Engine engine
+        final AtomicLong expires = new AtomicLong(0)
 
         Value(Engine engine) {
             this.engine = engine
@@ -31,10 +33,11 @@ class EngineCache {
         }
 
         void touch() {
-            expires = expires + ttl.toMillis()
+            expires.set(System.currentTimeMillis() + ttl.toMillis())
         }
     }
 
+    @NotNull
     Duration ttl = Duration.ofMinutes(10)
     @Autowired
     StoryRepository storyRepository
@@ -52,9 +55,18 @@ class EngineCache {
             Engine engine = new Engine(story.get())
             engine.autoLifecycle = true
             engine.init()
+            if (engine.story.chronos.current > 0) {
+                engine.start()
+            }
             new Value(engine)
         })
         v.touch()
         v.engine
+    }
+
+    void clear() {
+        List<Engine> toClose = new ArrayList<Engine>(map.values()*.engine)
+        map.clear()
+        toClose*.close()
     }
 }
