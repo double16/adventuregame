@@ -4,6 +4,7 @@ import org.patdouble.adventuregame.flow.PlayerNotification
 import org.patdouble.adventuregame.flow.RoomSummary
 import org.patdouble.adventuregame.state.Motivator
 import org.patdouble.adventuregame.state.request.ActionRequest
+import org.patdouble.adventuregame.state.request.PlayerRequest
 
 class HumanPlayerTest extends AbstractPlayerTest {
     @Override
@@ -43,6 +44,17 @@ class HumanPlayerTest extends AbstractPlayerTest {
         story.roomSummary(story.world.rooms.find { it.id == 'entrance' }, warrior, engine.bundles).occupants == 'Victor the thief and 3 thugs are here with you.'
         story.roomSummary(story.world.rooms.find { it.id == 'dump' }, warrior, engine.bundles).occupants == '5 thugs are here with you.'
         !story.roomSummary(story.world.rooms.find { it.id == 'trailer_1' }, warrior, engine.bundles).occupants
+    }
+
+    def "multiple for persona"() {
+        when:
+        story.requests.find { it instanceof PlayerRequest }.each { PlayerRequest r ->
+            engine.addToCast(r.template.createPlayer(Motivator.HUMAN))
+        }
+        engine.start()
+
+        then:
+        story.requests.size() == 12
     }
 
     def "roomSummary human players no extras"() {
