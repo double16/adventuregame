@@ -18,6 +18,8 @@ import javax.persistence.Id
 import javax.persistence.ManyToOne
 import javax.persistence.OneToMany
 import javax.persistence.OneToOne
+import javax.persistence.TemporalType
+import java.time.LocalDateTime
 
 /**
  * The current state of a story. The world, characters, positions, history, ...
@@ -49,6 +51,7 @@ class Story {
     History history
     @OneToMany(cascade = CascadeType.ALL)
     Collection<Request> requests = []
+    LocalDateTime lastModified
 
     Story() { }
 

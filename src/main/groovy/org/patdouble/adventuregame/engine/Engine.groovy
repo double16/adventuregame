@@ -2,6 +2,7 @@ package org.patdouble.adventuregame.engine
 
 import groovy.transform.CompileDynamic
 import groovy.util.logging.Slf4j
+import org.drools.core.common.InternalAgenda
 import org.kie.api.KieServices
 import org.kie.api.runtime.KieContainer
 import org.kie.api.runtime.KieSession
@@ -34,6 +35,9 @@ import org.patdouble.adventuregame.state.request.ActionRequest
 import org.patdouble.adventuregame.state.request.PlayerRequest
 import org.patdouble.adventuregame.state.request.Request
 
+import java.time.Duration
+import java.time.temporal.ChronoUnit
+import java.time.temporal.TemporalUnit
 import java.util.concurrent.Executor
 import java.util.concurrent.Flow
 import java.util.concurrent.ForkJoinPool
@@ -196,6 +200,7 @@ class Engine implements Closeable {
             PlayerRequest pr = r as PlayerRequest
             if (pr.template.persona.name == player.persona.name) {
                 iter.remove()
+                player.siblingNumber = story.cast.count { it.persona.name == player.persona.name } + 1
                 removed = true
                 publisher.submit(new RequestSatisfied(pr))
                 break
@@ -225,6 +230,13 @@ class Engine implements Closeable {
         if (autoLifecycle && story.requests.empty) {
             start()
         }
+    }
+
+    protected boolean isFiring() {
+        if (kieSession == null) {
+            return false
+        }
+        ((InternalAgenda) kieSession.agenda).isFiring()
     }
 
     /**
@@ -302,6 +314,21 @@ class Engine implements Closeable {
      */
     boolean isClosed() {
         publisher.isClosed()
+    }
+
+    /**
+     * Wait for the rule engine to stop firing.
+     * @param max the maximum amount of time to wait
+     */
+    void waitForFiringFinish(Duration max) {
+        long end = System.currentTimeMillis() + max.get(ChronoUnit.MILLIS)
+        while (isFiring() && !Thread.interrupted() && System.currentTimeMillis() < end) {
+            try {
+                Thread.sleep(200)
+            } catch (InterruptedException e) {
+                break
+            }
+        }
     }
 
     protected void incrementChronos() {

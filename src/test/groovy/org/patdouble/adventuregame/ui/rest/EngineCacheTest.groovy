@@ -17,6 +17,8 @@ import spock.lang.Specification
 import spock.lang.Unroll
 
 import javax.transaction.Transactional
+import java.time.Duration
+import java.time.temporal.ChronoUnit
 
 @SpringBootTest
 @AutoConfigureTestDatabase
@@ -120,14 +122,29 @@ class EngineCacheTest extends Specification {
     }
 
     def "clear"() {
+        given:
+        List<Engine> engines = []
+        engines << cache.get(storyRepository.save(new Story(worldRepository.findByName(YamlUniverseRegistry.TRAILER_PARK).first())).id)
+        engines << cache.get(storyRepository.save(new Story(worldRepository.findByName(YamlUniverseRegistry.MIDDLE_EARTH).first())).id)
 
+        when:
+        cache.clear()
+
+        then:
+//        2 * storyRepositorySpy.save(_)
+        engines.every { it.isClosed() }
     }
 
     def "expire"() {
+        given:
+        cache.ttl = Duration.of(50, ChronoUnit.MILLIS)
+        expect: 'impl'
+        false
 
     }
 
-    def "regular save"() {
-
+    def "save at intervals"() {
+        expect: 'impl'
+        false
     }
 }

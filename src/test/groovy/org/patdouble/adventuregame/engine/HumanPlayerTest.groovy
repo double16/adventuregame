@@ -2,6 +2,7 @@ package org.patdouble.adventuregame.engine
 
 import org.patdouble.adventuregame.flow.PlayerNotification
 import org.patdouble.adventuregame.flow.RoomSummary
+import org.patdouble.adventuregame.model.PersonaMocks
 import org.patdouble.adventuregame.state.Motivator
 import org.patdouble.adventuregame.state.request.ActionRequest
 import org.patdouble.adventuregame.state.request.PlayerRequest
@@ -48,13 +49,20 @@ class HumanPlayerTest extends AbstractPlayerTest {
 
     def "multiple for persona"() {
         when:
-        story.requests.find { it instanceof PlayerRequest }.each { PlayerRequest r ->
+        story.requests.findAll { it instanceof PlayerRequest }.each { PlayerRequest r ->
             engine.addToCast(r.template.createPlayer(Motivator.HUMAN))
         }
         engine.start()
 
         then:
-        story.requests.size() == 12
+        story.cast.count { it.motivator == Motivator.HUMAN } == 12
+        story.cast.find { it.persona.name == PersonaMocks.THIEF.name && it.siblingNumber == 1 }
+        story.cast.find { it.persona.name == PersonaMocks.WARRIOR.name && it.siblingNumber == 1 }
+        story.cast.find { it.persona.name == 'thug' && it.siblingNumber == 1 }
+        story.cast.find { it.persona.name == 'thug' && it.siblingNumber == 2 }
+        story.cast.find { it.persona.name == 'thug' && it.siblingNumber == 10 }
+        and:
+        story.requests.count { it instanceof ActionRequest } == 12
     }
 
     def "roomSummary human players no extras"() {

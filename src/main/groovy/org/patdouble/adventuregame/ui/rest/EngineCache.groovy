@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Maintains a cache of {@link org.patdouble.adventuregame.engine.Engine} instances to balance performance and memory.
+ * This class is thread-safe.
  */
 @Component
 @CompileDynamic
@@ -50,7 +51,7 @@ class EngineCache {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND)
             }
             if (story.get().ended) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT)
+                throw new ResponseStatusException(HttpStatus.CONFLICT, 'Story is ended')
             }
             Engine engine = new Engine(story.get())
             engine.autoLifecycle = true
@@ -65,8 +66,13 @@ class EngineCache {
     }
 
     void clear() {
-        List<Engine> toClose = new ArrayList<Engine>(map.values()*.engine)
-        map.clear()
-        toClose*.close()
+        Iterator<Value> i = map.values().iterator()
+        while (i.hasNext()) {
+            Value v = i.next()
+            // remove it before we start closing so no one else will use it
+            i.remove()
+            storyRepository.save(v.engine.story)
+            v.engine.close()
+        }
     }
 }

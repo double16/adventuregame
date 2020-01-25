@@ -25,6 +25,8 @@ class Player implements Temporal {
     @Delegate(excludes = [ 'clone' ])
     @ManyToOne
     Persona persona
+    /** Unique number per Persona when multiple players use the same Persona. */
+    int siblingNumber = 1
     String nickName
     String fullName
     /** The location of the player. */
@@ -42,6 +44,8 @@ class Player implements Temporal {
     String getTitle() {
         if (nickName) {
             "${nickName} the ${persona.name.toLowerCase()}"
+        } else if (siblingNumber > 1) {
+            "${persona.name.toLowerCase()} ${siblingNumber}"
         } else {
             persona.name.toLowerCase()
         }
@@ -60,6 +64,7 @@ class Player implements Temporal {
         }
         Player other = obj as Player
         return persona.name == other.persona.name &&
+                siblingNumber == other.siblingNumber &&
                 nickName == other.nickName &&
                 motivator == other.motivator
     }
