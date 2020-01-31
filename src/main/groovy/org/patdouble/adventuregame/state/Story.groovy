@@ -2,6 +2,8 @@ package org.patdouble.adventuregame.state
 
 import groovy.transform.CompileDynamic
 import groovy.transform.EqualsAndHashCode
+import org.hibernate.annotations.CreationTimestamp
+import org.hibernate.annotations.UpdateTimestamp
 import org.patdouble.adventuregame.flow.RoomSummary
 import org.patdouble.adventuregame.i18n.Bundles
 import org.patdouble.adventuregame.model.Persona
@@ -18,7 +20,7 @@ import javax.persistence.Id
 import javax.persistence.ManyToOne
 import javax.persistence.OneToMany
 import javax.persistence.OneToOne
-import javax.persistence.TemporalType
+import java.sql.Timestamp
 import java.time.LocalDateTime
 
 /**
@@ -28,7 +30,7 @@ import java.time.LocalDateTime
  * {@link org.patdouble.adventuregame.engine.Engine}.
  */
 @Entity
-@EqualsAndHashCode(excludes = ['id'])
+@EqualsAndHashCode(excludes = ['id', 'created', 'modified'])
 @CompileDynamic
 class Story {
     public static final String FULL_STOP = '.'
@@ -51,7 +53,12 @@ class Story {
     History history
     @OneToMany(cascade = CascadeType.ALL)
     Collection<Request> requests = []
-    LocalDateTime lastModified
+    @CreationTimestamp
+    @SuppressWarnings('Unused')
+    LocalDateTime created
+    @UpdateTimestamp
+    @SuppressWarnings('Unused')
+    LocalDateTime modified
 
     Story() { }
 
@@ -63,13 +70,13 @@ class Story {
         cast.findAll { it.nickName && (!room || it.room == room ) }
     }
 
-    Map<Persona, List<Player>> getExtras(Room room = null) {
-        cast.findAll { !it.nickName && (!room || it.room == room ) }.groupBy { it.persona }
+    Map<String, List<Player>> getExtras(Room room = null) {
+        cast.findAll { !it.nickName && (!room || it.room == room ) }.groupBy { it.persona.name }
     }
 
     RoomSummary roomSummary(Room room, Player player, Bundles bundles) {
         Collection<Player> players = getPlayers(room) - [player]
-        Map<Persona, List<Player>> extras = getExtras(room)
+        Map<String, List<Player>> extras = getExtras(room)
         String occupants = null
         // DO NOT use property version, it doesn't work for Map.isEmpty()
         if (!players.isEmpty() || !extras.isEmpty()) {

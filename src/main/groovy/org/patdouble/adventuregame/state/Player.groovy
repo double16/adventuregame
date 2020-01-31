@@ -5,11 +5,13 @@ import groovy.transform.CompileDynamic
 import org.patdouble.adventuregame.model.Persona
 import org.patdouble.adventuregame.model.Room
 
+import javax.persistence.CascadeType
 import javax.persistence.Entity
 import javax.persistence.GeneratedValue
 import javax.persistence.GenerationType
 import javax.persistence.Id
 import javax.persistence.ManyToOne
+import javax.persistence.OneToOne
 
 /**
  * Models the player's attributes and current state.
@@ -23,7 +25,7 @@ class Player implements Temporal {
 
     Motivator motivator
     @Delegate(excludes = [ 'clone' ])
-    @ManyToOne
+    @OneToOne(cascade = CascadeType.ALL)
     Persona persona
     /** Unique number per Persona when multiple players use the same Persona. */
     int siblingNumber = 1
@@ -39,6 +41,7 @@ class Player implements Temporal {
         this.motivator = motivator
         this.nickName = nickName
         this.persona = persona.clone()
+        this.persona.id = null
     }
 
     String getTitle() {

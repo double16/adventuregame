@@ -13,6 +13,10 @@ import org.springframework.web.server.ResponseStatusException
 import javax.validation.constraints.NotNull
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
 /**
@@ -38,11 +42,55 @@ class EngineCache {
         }
     }
 
+    private ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadExecutor()
+    private ScheduledFuture scheduledFuture
+
     @NotNull
     Duration ttl = Duration.ofMinutes(10)
+    @NotNull
+    Duration sweepInterval = Duration.ofMinutes(20)
     @Autowired
     StoryRepository storyRepository
     private final ConcurrentHashMap<UUID, Value> map = new ConcurrentHashMap<>()
+
+    EngineCache() {
+        scheduleSweep()
+    }
+
+    /**
+     * Remove the engines contained in the Iterable. This method is thread-safe. The Iterable should also be thread-safe.
+     */
+    private void remove(Iterable<Value> engines) {
+        Iterator<Value> i = engines.iterator()
+        while (i.hasNext()) {
+            Value v = i.next()
+            // remove it before we start closing so no one else will use it
+            i.remove()
+            storyRepository.save(v.engine.story)
+            v.engine.close()
+        }
+    }
+
+    private scheduleSweep() {
+        if (scheduledFuture != null) {
+            scheduledFuture.cancel(false)
+        }
+        scheduledFuture = scheduledExecutorService.scheduleAtFixedRate({
+            sweep()
+            expire()
+        },
+                sweepInterval.toMillis(),
+                sweepInterval.toMillis(),
+                TimeUnit.MILLISECONDS)
+    }
+
+    void setSweepInterval(@NotNull Duration d) {
+        Objects.nonNull(d)
+        if (d != sweepInterval) {
+            sweepInterval = d
+            scheduleSweep()
+        }
+    }
 
     Engine get(final UUID storyId) {
         Value v = map.computeIfAbsent(storyId, { k ->
@@ -66,13 +114,23 @@ class EngineCache {
     }
 
     void clear() {
-        Iterator<Value> i = map.values().iterator()
-        while (i.hasNext()) {
-            Value v = i.next()
-            // remove it before we start closing so no one else will use it
-            i.remove()
+        remove(map.values())
+    }
+
+    /**
+     * Expire engines that haven't seen activity since the {@link #ttl}.
+     */
+    void expire(long timeInMillis = System.currentTimeMillis()) {
+        remove(map.values().findAll { it.expires.get() > timeInMillis })
+    }
+
+    void sweep() {
+        map.values().each { Value v ->
             storyRepository.save(v.engine.story)
-            v.engine.close()
         }
+    }
+
+    int size() {
+        map.size()
     }
 }

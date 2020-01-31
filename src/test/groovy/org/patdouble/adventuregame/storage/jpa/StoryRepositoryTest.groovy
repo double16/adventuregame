@@ -1,12 +1,14 @@
 package org.patdouble.adventuregame.storage.jpa
 
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.Logger
 import org.patdouble.adventuregame.engine.DroolsConfiguration
 import org.patdouble.adventuregame.engine.Engine
 import org.patdouble.adventuregame.state.Motivator
-import org.patdouble.adventuregame.state.Player
 import org.patdouble.adventuregame.state.Story
 import org.patdouble.adventuregame.state.request.PlayerRequest
 import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.context.SpringBootTest
@@ -41,8 +43,11 @@ class StoryRepositoryTest extends Specification {
     }
 
     def setup() {
-        storyRepository.save(newStory(YamlUniverseRegistry.TRAILER_PARK, false))
-        storyRepository.save(newStory(YamlUniverseRegistry.MIDDLE_EARTH, true))
+        ((Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME)).setLevel(Level.INFO)
+        ((Logger) LoggerFactory.getLogger('org.hibernate.SQL')).setLevel(Level.DEBUG)
+
+        storyRepository.saveAndFlush(newStory(YamlUniverseRegistry.TRAILER_PARK, false))
+        storyRepository.saveAndFlush(newStory(YamlUniverseRegistry.MIDDLE_EARTH, true))
     }
 
     def "save and load #worldName"() {
@@ -76,7 +81,7 @@ class StoryRepositoryTest extends Specification {
         Story s = newStory(YamlUniverseRegistry.TRAILER_PARK, false)
 
         when:
-        Story saveResult = storyRepository.save(s)
+        Story saveResult = storyRepository.saveAndFlush(s)
         then:
         s.id
         saveResult.is(s)
@@ -87,8 +92,28 @@ class StoryRepositoryTest extends Specification {
             s.cast << req.template.createPlayer(Motivator.HUMAN)
         }
         s.requests.clear()
-        storyRepository.save(s)
+        storyRepository.saveAndFlush(s)
         then:
         s.cast.count { it.id } > 0
+    }
+
+    def "timestamps"() {
+        given:
+        Story s = newStory(YamlUniverseRegistry.TRAILER_PARK, true)
+
+        when:
+        storyRepository.saveAndFlush(s)
+        then:
+        s.created
+        s.modified
+
+        when:
+        def created1 = s.created
+        def modified1 = s.modified
+        s.chronos.next()
+        storyRepository.saveAndFlush(s)
+        then:
+        modified1 != s.modified
+        created1 == s.created
     }
 }

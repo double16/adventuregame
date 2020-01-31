@@ -350,8 +350,8 @@ class Engine implements Closeable {
                 story.roomSummary(player.room, player, bundles))
         if (!story.requests.contains(request)) {
             log.info('Creating action request {}', request)
-            request.actions = actionStatementParser.availableActions.asImmutable()
-            request.directions = player.room.neighbors.keySet().sort().asImmutable()
+            request.actions.addAll(actionStatementParser.availableActions)
+            request.directions.addAll(player.room.neighbors.keySet().sort())
             story.requests.add(request)
             kieSession.insert(request)
             publisher.submit(new RequestCreated(request))

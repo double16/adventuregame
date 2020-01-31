@@ -12,7 +12,7 @@ import javax.validation.constraints.NotNull
  */
 @CompileDynamic
 trait CharacterTrait {
-    @Delegate
+    @Delegate(excludes = [ 'clone' ])
     @ManyToOne
     @NotNull
     Persona persona
@@ -23,7 +23,7 @@ trait CharacterTrait {
     Room room
 
     Player createPlayer(@NotNull Motivator motivator) {
-        Player p = new Player(motivator, persona.clone(), nickName)
+        Player p = new Player(motivator, persona, nickName)
         p.fullName = fullName
         p.room = room
         p

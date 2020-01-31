@@ -18,7 +18,7 @@ import javax.validation.constraints.NotNull
  * defeated.
  */
 @Canonical(excludes = ['id'])
-@AutoClone
+@AutoClone(excludes = ['id'])
 @Entity
 @CompileDynamic
 class Persona {

@@ -7,7 +7,6 @@ import org.patdouble.adventuregame.state.request.PlayerRequest
 import org.patdouble.adventuregame.storage.jpa.StoryRepository
 import org.patdouble.adventuregame.storage.jpa.WorldRepository
 import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
-import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistryTest
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.context.SpringBootTest
@@ -18,6 +17,7 @@ import spock.lang.Unroll
 
 import javax.transaction.Transactional
 import java.time.Duration
+import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 
 @SpringBootTest
@@ -126,25 +126,57 @@ class EngineCacheTest extends Specification {
         List<Engine> engines = []
         engines << cache.get(storyRepository.save(new Story(worldRepository.findByName(YamlUniverseRegistry.TRAILER_PARK).first())).id)
         engines << cache.get(storyRepository.save(new Story(worldRepository.findByName(YamlUniverseRegistry.MIDDLE_EARTH).first())).id)
+        List<LocalDateTime> modified = engines.collect { it.story.modified }
 
         when:
+        engines.each { Engine e ->
+            e.addToCast(e.story.requests.find { it instanceof PlayerRequest }.template.createPlayer(Motivator.HUMAN))
+        }
         cache.clear()
+        cache.storyRepository.flush()
 
         then:
-//        2 * storyRepositorySpy.save(_)
+        engines[0].story.modified > modified[0]
+        engines[1].story.modified > modified[1]
         engines.every { it.isClosed() }
     }
 
     def "expire"() {
         given:
-        cache.ttl = Duration.of(50, ChronoUnit.MILLIS)
-        expect: 'impl'
-        false
-
+        cache.ttl = Duration.of(100, ChronoUnit.MILLIS)
+        List<Story> stories = []
+        stories << storyRepository.saveAndFlush(new Story(worldRepository.findByName(YamlUniverseRegistry.TRAILER_PARK).first()))
+        stories << storyRepository.saveAndFlush(new Story(worldRepository.findByName(YamlUniverseRegistry.MIDDLE_EARTH).first()))
+        List<LocalDateTime> modified = stories.collect { it.modified }
+        when:
+        cache.get(stories[1].id).with { Engine e ->
+            e.addToCast(e.story.requests.find { it instanceof PlayerRequest }.template.createPlayer(Motivator.HUMAN))
+        }
+        cache.expire(System.currentTimeMillis() + 101)
+        storyRepository.flush()
+        then:
+        cache.size() == 1
+        and: 'expired story was saved'
+        storyRepository.findById(stories[1].id).get().modified > modified[1]
     }
 
     def "save at intervals"() {
-        expect: 'impl'
-        false
+        given:
+        List<Engine> engines = []
+        engines << cache.get(storyRepository.save(new Story(worldRepository.findByName(YamlUniverseRegistry.TRAILER_PARK).first())).id)
+        engines << cache.get(storyRepository.save(new Story(worldRepository.findByName(YamlUniverseRegistry.MIDDLE_EARTH).first())).id)
+        List<LocalDateTime> modified = engines.collect { it.story.modified }
+
+        when:
+        engines.each { Engine e ->
+            e.addToCast(e.story.requests.find { it instanceof PlayerRequest }.template.createPlayer(Motivator.HUMAN))
+        }
+        cache.sweep()
+        cache.storyRepository.flush()
+
+        then:
+        engines[0].story.modified > modified[0]
+        engines[1].story.modified > modified[1]
+        engines.every { !it.isClosed() }
     }
 }
