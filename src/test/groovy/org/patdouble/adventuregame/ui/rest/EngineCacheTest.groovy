@@ -33,14 +33,6 @@ class EngineCacheTest extends Specification {
     @Autowired
     EngineCache cache
 
-    def setup() {
-
-    }
-
-    def cleanup() {
-
-    }
-
     def "get new story"() {
         given:
         Story story = new Story(worldRepository.findByName(YamlUniverseRegistry.TRAILER_PARK).first())

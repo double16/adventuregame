@@ -42,7 +42,7 @@ class EngineCache {
         }
     }
 
-    private ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadExecutor()
+    private ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
     private ScheduledFuture scheduledFuture
 
     @NotNull
