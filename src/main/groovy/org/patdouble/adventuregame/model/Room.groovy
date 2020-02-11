@@ -36,6 +36,7 @@ class Room {
         Collections.unmodifiableMap(neighbors)
     }
 
+    @SuppressWarnings('ParameterReassignment')
     void addNeighbor(@NotNull String direction, @NotNull Room room) {
         assert direction != null
         assert room != null

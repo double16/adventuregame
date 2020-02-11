@@ -2,6 +2,7 @@ package org.patdouble.adventuregame.state
 
 import groovy.transform.CompileDynamic
 import groovy.transform.EqualsAndHashCode
+import org.patdouble.adventuregame.storage.jpa.Constants
 
 import javax.persistence.CascadeType
 import javax.persistence.Entity
@@ -14,7 +15,7 @@ import javax.persistence.OneToMany
  * An event in history. The event only records changes, not the entire state.
  */
 @Entity
-@EqualsAndHashCode(excludes = ['id'])
+@EqualsAndHashCode(excludes = [Constants.COL_ID])
 @CompileDynamic
 class Event {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)

@@ -17,22 +17,22 @@ class Bundles {
 
     final Locale locale
     @Lazy
-    SimpleTemplateEngine groovyTemplateEngine = { new SimpleTemplateEngine() }()
+    SimpleTemplateEngine groovyTemplateEngine = { new SimpleTemplateEngine() } ()
     @Lazy
     Template actionInvalidTextTemplate = {
-        groovyTemplateEngine.createTemplate(getText().getString('action.invalid.text')) }()
+        groovyTemplateEngine.createTemplate(text.getString('action.invalid.text')) } ()
     @Lazy
     Template goInstructionsTemplate = {
-        groovyTemplateEngine.createTemplate(getText().getString('action.go.instructions.text')) }()
+        groovyTemplateEngine.createTemplate(text.getString('action.go.instructions.text')) } ()
     @Lazy
     Template roomsummaryTextTemplate = {
-        groovyTemplateEngine.createTemplate(getText().getString('roomsummary.text')) }()
+        groovyTemplateEngine.createTemplate(text.getString('roomsummary.text')) } ()
     @Lazy
     Template roomsummaryDirectionsTemplate = {
-        groovyTemplateEngine.createTemplate(getText().getString('roomsummary.directions')) }()
+        groovyTemplateEngine.createTemplate(text.getString('roomsummary.directions')) } ()
     @Lazy
     Template requiredPlayersTemplate = {
-        groovyTemplateEngine.createTemplate(getText().getString('state.players_required.text')) }()
+        groovyTemplateEngine.createTemplate(text.getString('state.players_required.text')) } ()
 
     private Bundles(Locale locale) {
         this.locale = locale

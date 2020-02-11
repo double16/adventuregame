@@ -1,6 +1,9 @@
 package org.patdouble.adventuregame.ui.rest
 
 import org.patdouble.adventuregame.engine.Engine
+import org.patdouble.adventuregame.flow.ChronosChanged
+import org.patdouble.adventuregame.flow.PlayerChanged
+import org.patdouble.adventuregame.flow.RequestSatisfied
 import org.patdouble.adventuregame.model.PersonaMocks
 import org.patdouble.adventuregame.state.Player
 import org.patdouble.adventuregame.state.request.PlayerRequest
@@ -8,6 +11,7 @@ import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.test.context.ContextConfiguration
 import spock.lang.Specification
 import spock.lang.Unroll
@@ -23,9 +27,14 @@ class EngineControllerTest extends Specification {
 
     @Autowired
     EngineController controller
+    SimpMessagingTemplate simpMessagingTemplate
     String storyId
 
     void setup() {
+        controller.engineCache.autoLifecycle = false
+        simpMessagingTemplate = Mock()
+        controller.simpMessagingTemplate = simpMessagingTemplate
+        controller.engineCache.simpMessagingTemplate = simpMessagingTemplate
         CreateStoryRequest request = new CreateStoryRequest(worldName: YamlUniverseRegistry.TRAILER_PARK)
         CreateStoryResponse response = controller.createStory(request)
         storyId = response.storyUri.split('/').last()
@@ -33,6 +42,7 @@ class EngineControllerTest extends Specification {
 
     void cleanup() {
         controller.engineCache.clear()
+        controller.engineCache.autoLifecycle = true
     }
 
     def "CreateStory"() {
@@ -43,7 +53,7 @@ class EngineControllerTest extends Specification {
         CreateStoryResponse response = controller.createStory(request)
 
         then:
-        response.storyUri =~ '/engine/play/[A-Fa-f0-9-]+'
+        response.storyUri =~ '/play/[A-Fa-f0-9-]+'
     }
 
     def "AddToCast"() {
@@ -62,7 +72,11 @@ class EngineControllerTest extends Specification {
                 nickName: 'Firstly'))
 
         then:
-        response.playerUri =~ '/engine/play/[A-Fa-f0-9-]+/[A-Fa-f0-9-]+'
+        response.playerUri =~ '/play/[A-Fa-f0-9-]+/[A-Fa-f0-9-]+'
+        and:
+        1 * simpMessagingTemplate.convertAndSend(
+                "/topic/story/${storyId}",
+                { it instanceof RequestSatisfied && it.request.template.id.toString() == warriorTemplateId })
     }
 
     def "Ignore required"() {
@@ -81,6 +95,8 @@ class EngineControllerTest extends Specification {
         thrown(IllegalArgumentException)
         engine.story.requests.size() == 12
         engine.story.requests.find { (it instanceof PlayerRequest) && it.template.id.toString() == warriorTemplateId }
+        and:
+        0 * simpMessagingTemplate.convertAndSend(_, _)
     }
 
     def "Ignore optional"() {
@@ -98,6 +114,8 @@ class EngineControllerTest extends Specification {
         then:
         engine.story.requests.size() == 2
         !engine.story.requests.find { (it instanceof PlayerRequest) && it.template.id.toString() == thugTemplateId }
+        and:
+        0 * simpMessagingTemplate.convertAndSend(_, _)
     }
 
     def "Start"() {
@@ -116,6 +134,10 @@ class EngineControllerTest extends Specification {
         notThrown(Exception)
         and:
         engine.story.chronos.current > 0
+        and:
+        1 * simpMessagingTemplate.convertAndSend(
+                "/topic/story/${storyId}",
+                { it instanceof ChronosChanged })
     }
 
     def "Action"() {
@@ -139,5 +161,9 @@ class EngineControllerTest extends Specification {
 
         then:
         warrior.room.id == 'trailer_2'
+        and:
+        1 * simpMessagingTemplate.convertAndSend(
+                "/topic/story/${storyId}",
+                { it instanceof PlayerChanged && it.player.nickName == 'Shadowblow' && it.chronos == 1 })
     }
 }

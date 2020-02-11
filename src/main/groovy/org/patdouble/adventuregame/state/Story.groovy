@@ -6,10 +6,10 @@ import org.hibernate.annotations.CreationTimestamp
 import org.hibernate.annotations.UpdateTimestamp
 import org.patdouble.adventuregame.flow.RoomSummary
 import org.patdouble.adventuregame.i18n.Bundles
-import org.patdouble.adventuregame.model.Persona
 import org.patdouble.adventuregame.model.Room
 import org.patdouble.adventuregame.model.World
 import org.patdouble.adventuregame.state.request.Request
+import org.patdouble.adventuregame.storage.jpa.Constants
 
 import javax.persistence.CascadeType
 import javax.persistence.Embedded
@@ -20,7 +20,6 @@ import javax.persistence.Id
 import javax.persistence.ManyToOne
 import javax.persistence.OneToMany
 import javax.persistence.OneToOne
-import java.sql.Timestamp
 import java.time.LocalDateTime
 
 /**
@@ -30,7 +29,7 @@ import java.time.LocalDateTime
  * {@link org.patdouble.adventuregame.engine.Engine}.
  */
 @Entity
-@EqualsAndHashCode(excludes = ['id', 'created', 'modified'])
+@EqualsAndHashCode(excludes = [Constants.COL_ID, 'created', 'modified'])
 @CompileDynamic
 class Story {
     public static final String FULL_STOP = '.'

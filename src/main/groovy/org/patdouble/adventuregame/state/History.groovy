@@ -3,6 +3,7 @@ package org.patdouble.adventuregame.state
 import groovy.transform.CompileDynamic
 import groovy.transform.EqualsAndHashCode
 import org.patdouble.adventuregame.model.World
+import org.patdouble.adventuregame.storage.jpa.Constants
 
 import javax.persistence.CascadeType
 import javax.persistence.Entity
@@ -16,7 +17,7 @@ import javax.persistence.OneToMany
  * Records the history of the story. Used for manuscript generation.
  */
 @Entity
-@EqualsAndHashCode(excludes = ['id'])
+@EqualsAndHashCode(excludes = [Constants.COL_ID])
 @CompileDynamic
 class History {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)

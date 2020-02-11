@@ -2,6 +2,7 @@ package org.patdouble.adventuregame.model
 
 import groovy.transform.CompileDynamic
 import groovy.transform.EqualsAndHashCode
+import org.patdouble.adventuregame.storage.jpa.Constants
 
 import javax.persistence.CascadeType
 import javax.persistence.Entity
@@ -17,7 +18,7 @@ import javax.persistence.OneToMany
  * This is the top level model object.
  */
 @Entity
-@EqualsAndHashCode(excludes = ['id'])
+@EqualsAndHashCode(excludes = [Constants.COL_ID])
 @CompileDynamic
 class World {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)

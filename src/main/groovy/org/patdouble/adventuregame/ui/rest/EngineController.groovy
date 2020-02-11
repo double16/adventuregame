@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.messaging.handler.annotation.MessageMapping
 import org.springframework.messaging.handler.annotation.Payload
+import org.springframework.messaging.handler.annotation.SendTo
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -26,6 +27,9 @@ import org.springframework.web.server.ResponseStatusException
  */
 @RestController
 @CompileDynamic
+@RequestMapping('/api/engine')
+@MessageMapping('/engine')
+@SuppressWarnings('Instanceof')
 class EngineController {
     @Autowired
     EngineCache engineCache
@@ -36,18 +40,11 @@ class EngineController {
     @Autowired
     SimpMessagingTemplate simpMessagingTemplate
 
-    private Engine requireEngine(storyId) throws ResponseStatusException {
-        Engine engine = engineCache.get(UUID.fromString(storyId as String))
-        if (!engine) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Story ${storyId} not found")
-        }
-        engine
-    }
-
     @MessageMapping('/createstory')
+    @SendTo('/topic/storyurl')
     @RequestMapping(
             method = RequestMethod.POST,
-            path = '/engine/createstory',
+            path = 'createstory',
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     CreateStoryResponse createStory(@Payload @RequestBody CreateStoryRequest request) {
@@ -67,15 +64,13 @@ class EngineController {
         engine.init()
         storyRepository.save(story)
         Objects.requireNonNull(story.id)
-        CreateStoryResponse response = new CreateStoryResponse(storyUri: "/engine/play/${story.id}")
-        simpMessagingTemplate.convertAndSend('/topic/storyurl', response)
-        return response
+        new CreateStoryResponse(storyUri: "/play/${story.id}")
     }
 
     @MessageMapping('/action')
     @RequestMapping(
             method = RequestMethod.POST,
-            path = '/engine/action',
+            path = 'action',
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     void action(@Payload @RequestBody ActionRequest actionRequest) {
@@ -91,7 +86,7 @@ class EngineController {
     @MessageMapping('/addtocast')
     @RequestMapping(
             method = RequestMethod.POST,
-            path = '/engine/addtocast',
+            path = 'addtocast',
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     AddToCastResponse addToCast(@Payload @RequestBody AddToCastRequest request) {
@@ -99,7 +94,8 @@ class EngineController {
         PlayerRequest playerRequest = (PlayerRequest) engine.story.requests
                 .find { (it instanceof PlayerRequest) && it.template.id == UUID.fromString(request.playerTemplateId) }
         if (!playerRequest) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Player template ${request.playerTemplateId} not found")
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "Player template ${request.playerTemplateId} not found")
         }
         Player player = playerRequest.template.createPlayer(Motivator.valueOf(request.motivator.toUpperCase()))
         if (request.fullName) {
@@ -112,13 +108,13 @@ class EngineController {
         storyRepository.save(engine.story)
         Player savedPlayer = engine.story.cast.find { it == player }
         Objects.requireNonNull(savedPlayer?.id)
-        new AddToCastResponse(playerUri: "/engine/play/${engine.story.id}/${savedPlayer.id}")
+        new AddToCastResponse(playerUri: "/play/${engine.story.id}/${savedPlayer.id}")
     }
 
     @MessageMapping('/ignorecast')
     @RequestMapping(
             method = RequestMethod.POST,
-            path = '/engine/ignorecast',
+            path = 'ignorecast',
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     void ignore(@Payload @RequestBody IgnoreCastRequest request) {
@@ -134,11 +130,19 @@ class EngineController {
     @MessageMapping('/start')
     @RequestMapping(
             method = RequestMethod.POST,
-            path = '/engine/start',
+            path = 'start',
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     void start(@Payload @RequestBody StartRequest request) {
         Engine engine = requireEngine(request.storyId)
         engine.start()
+    }
+
+    private Engine requireEngine(storyId) throws ResponseStatusException {
+        Engine engine = engineCache.get(UUID.fromString(storyId as String))
+        if (!engine) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Story ${storyId} not found")
+        }
+        engine
     }
 }

@@ -6,6 +6,7 @@ import org.hibernate.annotations.Columns
 import org.hibernate.annotations.Type
 import org.patdouble.adventuregame.state.Motivator
 import org.patdouble.adventuregame.state.Player
+import org.patdouble.adventuregame.storage.jpa.Constants
 
 import javax.persistence.Column
 import javax.persistence.Entity
@@ -17,7 +18,7 @@ import javax.validation.constraints.NotNull
 /**
  * Template for players in the story. Players can either be human or AI.
  */
-@Canonical(excludes = ['id'])
+@Canonical(excludes = [Constants.COL_ID])
 @Entity
 @CompileDynamic
 class PlayerTemplate implements CharacterTrait {

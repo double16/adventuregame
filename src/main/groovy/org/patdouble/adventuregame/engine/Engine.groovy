@@ -37,7 +37,6 @@ import org.patdouble.adventuregame.state.request.Request
 
 import java.time.Duration
 import java.time.temporal.ChronoUnit
-import java.time.temporal.TemporalUnit
 import java.util.concurrent.Executor
 import java.util.concurrent.Flow
 import java.util.concurrent.ForkJoinPool
@@ -85,86 +84,6 @@ class Engine implements Closeable {
         actionStatementParser = new ActionStatementParser(locale)
         bundles = Bundles.get(locale)
         droolsConfiguration = new DroolsConfiguration()
-    }
-
-    /**
-     * Create a new KieSession, configured for the story.
-     */
-    private void newKieSession() {
-        // let caller create KieContainer if desired
-        if (!kContainer) {
-            WorldRuleGenerator worldRuleGenerator = new WorldRuleGenerator(story.world)
-            StringWriter drl = new StringWriter()
-            StringWriter dslr = new StringWriter()
-            worldRuleGenerator.generate(drl, dslr)
-            kContainer = droolsConfiguration.kieContainer(drl.toString(), dslr.toString())
-        }
-        KieSessionConfiguration ksConfig = KieServices.Factory.get().newKieSessionConfiguration()
-        ksConfig.setOption(ForceEagerActivationOption.YES)
-        kieSession = kContainer.newKieSession(ksConfig)
-    }
-
-    /**
-     * Initialize the facts in the KIE session from the story.
-     */
-    private void initKieSession() {
-        kieSession.setGlobal('log', log)
-        kieSession.setGlobal('engine', new EngineFacade(this))
-        chronosHandle = kieSession.insert(story.chronos)
-        storyStateHandle = kieSession.insert(new StoryState(story))
-        story.world.rooms.each { kieSession.insert(it) }
-        story.cast.each { kieSession.insert(it) }
-        story.requests.each { kieSession.insert(it) }
-        story.goals.each { kieSession.insert(it) }
-    }
-
-    private void startRuleEngine() {
-        newKieSession()
-        initKieSession()
-        if (autoLifecycle) {
-            Thread kieThread = new Thread(KIE_THREAD_GROUP, "kie for ${story.world.name}") {
-                @Override
-                void run() {
-                    kieSession.fireUntilHalt()
-                    kieSession.dispose()
-                }
-            }
-            kieThread.daemon = true
-            kieThread.start()
-        }
-    }
-
-    private void placePlayers() {
-        story.world.extras.each { ExtrasTemplate t ->
-            Collection<Player> players = t.createPlayers()
-            story.cast.addAll(players)
-            players.each { publisher.submit(new PlayerChanged(it.clone(), 0)) }
-        }
-    }
-
-    @SuppressWarnings('BuilderMethodWithSideEffects')
-    private void createPlayerRequests() {
-        story.world.players.each { PlayerTemplate template ->
-            int i = 0
-            while (i < template.quantity.to) {
-                PlayerRequest playerRequest = new PlayerRequest(template, i >= template.quantity.from)
-                story.requests << playerRequest
-                i++
-                publisher.submit(new RequestCreated(playerRequest))
-            }
-        }
-    }
-
-    @SuppressWarnings('BuilderMethodWithSideEffects')
-    private void createGoalStatus() {
-        story.world.goals.each { Goal goal ->
-            GoalStatus status = new GoalStatus(goal: goal, fulfilled: false)
-            story.goals << status
-        }
-    }
-
-    private void syncStoryState() {
-        ((StoryState) kieSession.getObject(storyStateHandle))?.update(story)
     }
 
     /**
@@ -226,19 +145,6 @@ class Engine implements Closeable {
         checkInitComplete()
     }
 
-    private void checkInitComplete() {
-        if (autoLifecycle && story.requests.empty) {
-            start()
-        }
-    }
-
-    protected boolean isFiring() {
-        if (kieSession == null) {
-            return false
-        }
-        ((InternalAgenda) kieSession.agenda).isFiring()
-    }
-
     /**
      * Start the game after the required cast members have been satisfied. Any requests for optional p[layers will be
      * removed from the story by this method.
@@ -249,7 +155,7 @@ class Engine implements Closeable {
         Collection<PlayerRequest> pendingPlayers = story.requests
                 .findAll { it instanceof PlayerRequest && !it.optional }
         if (!pendingPlayers.empty) {
-            String msg = bundles.requiredPlayersTemplate.make([ names: pendingPlayers*.template*.fullName ]).toString()
+            String msg = bundles.requiredPlayersTemplate.make([ names: pendingPlayers*.template*.fullName ])
             publisher.submit(new Notification(bundles.text.getString('state.players_required.subject'), msg))
             throw new IllegalStateException(msg)
         }
@@ -329,41 +235,6 @@ class Engine implements Closeable {
                 break
             }
         }
-    }
-
-    protected void incrementChronos() {
-        log.info('Incrementing chronos')
-        if (chronosLimit && story.chronos.current >= chronosLimit) {
-            throw new IllegalStateException("Chronos exceeded limit of ${chronosLimit}")
-        }
-        recordHistory()
-        story.chronos++
-        kieSession.update(chronosHandle, story.chronos)
-        publisher.submit(new ChronosChanged(story.chronos.current))
-    }
-
-    @SuppressWarnings('BuilderMethodWithSideEffects')
-    protected void createActionRequest(Player player) {
-        ActionRequest request = new ActionRequest(
-                player,
-                story.chronos.current,
-                story.roomSummary(player.room, player, bundles))
-        if (!story.requests.contains(request)) {
-            log.info('Creating action request {}', request)
-            request.actions.addAll(actionStatementParser.availableActions)
-            request.directions.addAll(player.room.neighbors.keySet().sort())
-            story.requests.add(request)
-            kieSession.insert(request)
-            publisher.submit(new RequestCreated(request))
-        }
-    }
-
-    /**
-     * Create a new event in history.
-     * @return the new event
-     */
-    private Event recordHistory() {
-        null
     }
 
     /**
@@ -446,6 +317,134 @@ class Engine implements Closeable {
         }
         next()
         success
+    }
+
+    /**
+     * Create a new KieSession, configured for the story.
+     */
+    private void newKieSession() {
+        // let caller create KieContainer if desired
+        if (!kContainer) {
+            WorldRuleGenerator worldRuleGenerator = new WorldRuleGenerator(story.world)
+            StringWriter drl = new StringWriter()
+            StringWriter dslr = new StringWriter()
+            worldRuleGenerator.generate(drl, dslr)
+            kContainer = droolsConfiguration.kieContainer(drl.toString(), dslr.toString())
+        }
+        KieSessionConfiguration ksConfig = KieServices.Factory.get().newKieSessionConfiguration()
+        ksConfig.setOption(ForceEagerActivationOption.YES)
+        kieSession = kContainer.newKieSession(ksConfig)
+    }
+
+    /**
+     * Initialize the facts in the KIE session from the story.
+     */
+    private void initKieSession() {
+        kieSession.setGlobal('log', log)
+        kieSession.setGlobal('engine', new EngineFacade(this))
+        chronosHandle = kieSession.insert(story.chronos)
+        storyStateHandle = kieSession.insert(new StoryState(story))
+        story.world.rooms.each { kieSession.insert(it) }
+        story.cast.each { kieSession.insert(it) }
+        story.requests.each { kieSession.insert(it) }
+        story.goals.each { kieSession.insert(it) }
+    }
+
+    private void startRuleEngine() {
+        newKieSession()
+        initKieSession()
+        if (autoLifecycle) {
+            Thread kieThread = new Thread(KIE_THREAD_GROUP, "kie for ${story.world.name}") {
+                @Override
+                void run() {
+                    kieSession.fireUntilHalt()
+                    kieSession.dispose()
+                }
+            }
+            kieThread.daemon = true
+            kieThread.start()
+        }
+    }
+
+    private void placePlayers() {
+        story.world.extras.each { ExtrasTemplate t ->
+            Collection<Player> players = t.createPlayers()
+            story.cast.addAll(players)
+            players.each { publisher.submit(new PlayerChanged(it.clone(), 0)) }
+        }
+    }
+
+    @SuppressWarnings('BuilderMethodWithSideEffects')
+    private void createPlayerRequests() {
+        story.world.players.each { PlayerTemplate template ->
+            int i = 0
+            while (i < template.quantity.to) {
+                PlayerRequest playerRequest = new PlayerRequest(template, i >= template.quantity.from)
+                story.requests << playerRequest
+                i++
+                publisher.submit(new RequestCreated(playerRequest))
+            }
+        }
+    }
+
+    @SuppressWarnings('BuilderMethodWithSideEffects')
+    private void createGoalStatus() {
+        story.world.goals.each { Goal goal ->
+            GoalStatus status = new GoalStatus(goal: goal, fulfilled: false)
+            story.goals << status
+        }
+    }
+
+    private void syncStoryState() {
+        ((StoryState) kieSession.getObject(storyStateHandle))?.update(story)
+    }
+
+    private void checkInitComplete() {
+        if (autoLifecycle && story.requests.empty) {
+            start()
+        }
+    }
+
+    protected boolean isFiring() {
+        if (kieSession == null) {
+            return false
+        }
+        ((InternalAgenda) kieSession.agenda).isFiring()
+    }
+
+    protected void incrementChronos() {
+        log.info('Incrementing chronos')
+        if (chronosLimit && story.chronos.current >= chronosLimit) {
+            throw new IllegalStateException("Chronos exceeded limit of ${chronosLimit}")
+        }
+        recordHistory()
+        story.chronos++
+        kieSession.update(chronosHandle, story.chronos)
+        publisher.submit(new ChronosChanged(story.chronos.current))
+    }
+
+    @SuppressWarnings('BuilderMethodWithSideEffects')
+    protected void createActionRequest(Player player) {
+        ActionRequest request = new ActionRequest(
+                player,
+                story.chronos.current,
+                story.roomSummary(player.room, player, bundles))
+        if (!story.requests.contains(request)) {
+            log.info('Creating action request {}', request)
+            request.actions.addAll(actionStatementParser.availableActions)
+            request.directions.addAll(player.room.neighbors.keySet().sort())
+            story.requests.add(request)
+            kieSession.insert(request)
+            publisher.submit(new RequestCreated(request))
+        }
+    }
+
+    /**
+     * Create a new event in history.
+     * @return the new event
+     */
+    private Event recordHistory() {
+        null
     }
 
     private boolean actionGo(Player player, ActionStatement action) {

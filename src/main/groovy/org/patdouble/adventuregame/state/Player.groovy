@@ -4,6 +4,7 @@ import groovy.transform.AutoClone
 import groovy.transform.CompileDynamic
 import org.patdouble.adventuregame.model.Persona
 import org.patdouble.adventuregame.model.Room
+import org.patdouble.adventuregame.storage.jpa.Constants
 
 import javax.persistence.CascadeType
 import javax.persistence.Entity
@@ -16,7 +17,7 @@ import javax.persistence.OneToOne
 /**
  * Models the player's attributes and current state.
  */
-@AutoClone(excludes = ['id'])
+@AutoClone(excludes = [Constants.COL_ID])
 @Entity
 @CompileDynamic
 class Player implements Temporal {

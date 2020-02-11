@@ -3,6 +3,7 @@ package org.patdouble.adventuregame.model
 import groovy.transform.AutoClone
 import groovy.transform.Canonical
 import groovy.transform.CompileDynamic
+import org.patdouble.adventuregame.storage.jpa.Constants
 
 import javax.persistence.Entity
 import javax.persistence.GeneratedValue
@@ -17,8 +18,8 @@ import javax.validation.constraints.NotNull
  * A warrior would take less damage during fighting. The thief could find more wealth on enemies after they are
  * defeated.
  */
-@Canonical(excludes = ['id'])
-@AutoClone(excludes = ['id'])
+@Canonical(excludes = [Constants.COL_ID])
+@AutoClone(excludes = [Constants.COL_ID])
 @Entity
 @CompileDynamic
 class Persona {
