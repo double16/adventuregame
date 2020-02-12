@@ -11,6 +11,7 @@ import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.web.server.LocalServerPort
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.test.context.ContextConfiguration
 import spock.lang.Specification
@@ -18,7 +19,7 @@ import spock.lang.Unroll
 
 import javax.transaction.Transactional
 
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureTestDatabase
 @ContextConfiguration
 @Transactional
@@ -27,6 +28,8 @@ class EngineControllerTest extends Specification {
 
     @Autowired
     EngineController controller
+    @LocalServerPort
+    int port
     SimpMessagingTemplate simpMessagingTemplate
     String storyId
 
