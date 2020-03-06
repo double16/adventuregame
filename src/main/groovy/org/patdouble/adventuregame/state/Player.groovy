@@ -1,5 +1,6 @@
 package org.patdouble.adventuregame.state
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import groovy.transform.AutoClone
 import groovy.transform.CompileDynamic
 import org.patdouble.adventuregame.model.Persona
@@ -25,9 +26,10 @@ class Player implements Temporal {
     UUID id
 
     Motivator motivator
-    @Delegate(excludes = [ 'clone' ])
+    @Delegate(excludes = [ 'clone', 'id' ])
     @OneToOne(cascade = CascadeType.ALL)
-    Persona persona
+    @JsonIgnore
+    Persona persona = new Persona()
     /** Unique number per Persona when multiple players use the same Persona. */
     int siblingNumber = 1
     String nickName
@@ -45,6 +47,7 @@ class Player implements Temporal {
         this.persona.id = null
     }
 
+    @JsonIgnore
     String getTitle() {
         if (nickName) {
             "${nickName} the ${persona.name.toLowerCase()}"
@@ -75,6 +78,6 @@ class Player implements Temporal {
 
     @Override
     int hashCode() {
-        Objects.hash(persona.name, nickName, motivator)
+        Objects.hash(persona.name, siblingNumber, nickName, motivator)
     }
 }

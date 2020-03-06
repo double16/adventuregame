@@ -12,5 +12,5 @@ import org.patdouble.adventuregame.state.request.Request
 @ToString(includePackage = false)
 @CompileStatic
 class RequestSatisfied extends StoryMessage {
-    final Request request
+    Request request
 }

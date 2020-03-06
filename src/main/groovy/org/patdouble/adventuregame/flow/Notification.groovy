@@ -11,6 +11,6 @@ import groovy.transform.ToString
 @ToString(includePackage = false, includeNames = true)
 @CompileStatic
 class Notification extends StoryMessage {
-    final String subject
-    final String text
+    String subject
+    String text
 }

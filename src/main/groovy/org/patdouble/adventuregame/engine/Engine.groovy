@@ -141,7 +141,9 @@ class Engine implements Closeable {
         if (!request.optional) {
             throw new IllegalArgumentException("Can not ignore required player ${request.template}")
         }
-        story.requests.remove(request)
+        if (story.requests.remove(request)) {
+            publisher.submit(new RequestSatisfied(request))
+        }
         checkInitComplete()
     }
 
@@ -155,7 +157,7 @@ class Engine implements Closeable {
         Collection<PlayerRequest> pendingPlayers = story.requests
                 .findAll { it instanceof PlayerRequest && !it.optional }
         if (!pendingPlayers.empty) {
-            String msg = bundles.requiredPlayersTemplate.make([ names: pendingPlayers*.template*.fullName ])
+            String msg = bundles.requiredPlayersTemplate.make([ names: pendingPlayers*.template*.fullName ]) as String
             publisher.submit(new Notification(bundles.text.getString('state.players_required.subject'), msg))
             throw new IllegalStateException(msg)
         }

@@ -12,6 +12,6 @@ import org.patdouble.adventuregame.state.Player
 @ToString(includePackage = false, includeNames = true)
 @CompileStatic
 class PlayerChanged extends StoryMessage {
-    final Player player
-    final long chronos
+    Player player
+    long chronos
 }

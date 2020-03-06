@@ -1,5 +1,6 @@
 package org.patdouble.adventuregame.model
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import groovy.transform.Canonical
 import groovy.transform.CompileDynamic
 import org.patdouble.adventuregame.state.Motivator
@@ -36,6 +37,12 @@ class ExtrasTemplate implements CharacterTrait {
             players << createPlayer()
         }
         players
+    }
+
+    @Override
+    @JsonIgnore
+    Persona getPersona() {
+        CharacterTrait.super.getPersona()
     }
 
     @Override

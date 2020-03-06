@@ -129,7 +129,7 @@ class EngineInitTest extends EngineTest {
         story.requests.find { it.template.persona.name == 'thief' }
         story.requests.findAll { it.template.persona.name == 'thug' }.size() == 9
         and:
-        0 * storySubscriber.onNext(new RequestSatisfied(thugRequest))
+        1 * storySubscriber.onNext(new RequestSatisfied(thugRequest))
     }
 
     def "ignore required"() {

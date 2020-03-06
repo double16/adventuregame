@@ -12,5 +12,5 @@ import groovy.transform.ToString
 @CompileStatic
 class ChronosChanged extends StoryMessage {
     /** The new current chronos value. */
-    final long current
+    long current
 }

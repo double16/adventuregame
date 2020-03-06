@@ -1,5 +1,6 @@
 package org.patdouble.adventuregame.model
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import groovy.transform.CompileDynamic
 import org.patdouble.adventuregame.state.Motivator
 import org.patdouble.adventuregame.state.Player
@@ -12,10 +13,11 @@ import javax.validation.constraints.NotNull
  */
 @CompileDynamic
 trait CharacterTrait {
-    @Delegate(excludes = [ 'clone' ])
+    @Delegate(excludes = [ 'clone', 'id' ])
     @ManyToOne
     @NotNull
-    Persona persona
+    @JsonIgnore
+    Persona persona = new Persona()
     String nickName
     String fullName
     @ManyToOne
