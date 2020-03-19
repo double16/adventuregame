@@ -15,6 +15,7 @@ enum Direction {
     UP,
     DOWN
 
+    @SuppressWarnings('EmptyCatchBlock')
     static Optional<Direction> opposite(String direction) {
         if (direction == null) {
             return Optional.empty()
@@ -29,7 +30,7 @@ enum Direction {
                 case DOWN: return Optional.of(UP)
             }
         } catch (IllegalArgumentException e) {
-            return Optional.empty()
+            // fall thru expected
         }
         return Optional.empty()
     }

@@ -40,6 +40,8 @@ class PlayerTest extends Specification {
         p1a != p2b
         p1b != p3
         p2b != p3
+        and:
+        p1a != ""
     }
 
     def "hashcode"() {

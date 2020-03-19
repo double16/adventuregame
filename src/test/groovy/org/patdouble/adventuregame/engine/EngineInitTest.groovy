@@ -1,5 +1,6 @@
 package org.patdouble.adventuregame.engine
 
+import org.patdouble.adventuregame.flow.Notification
 import org.patdouble.adventuregame.flow.RequestCreated
 import org.patdouble.adventuregame.flow.RequestSatisfied
 import org.patdouble.adventuregame.state.Motivator
@@ -150,6 +151,25 @@ class EngineInitTest extends EngineTest {
 
         and:
         0 * storySubscriber.onNext(new RequestSatisfied(warriorRequest))
+    }
+
+    def "start with pending players"() {
+        given:
+        engine.init()
+
+        when:
+        engine.start()
+
+        then:
+        thrown(IllegalStateException)
+
+        and:
+        story.requests.find { it.template.persona.name == 'warrior' }
+        story.requests.find { it.template.persona.name == 'thief' }
+        story.requests.findAll { it.template.persona.name == 'thug' }.size() == 10
+
+        and:
+        1 * storySubscriber.onNext(new Notification('Required Players Missing', 'Required Players: Shadowblow the Hammer, Victor the Spider'))
     }
 
     def "autostart"() {

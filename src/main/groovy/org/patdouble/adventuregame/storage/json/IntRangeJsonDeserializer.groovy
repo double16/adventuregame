@@ -14,6 +14,10 @@ import groovy.transform.CompileStatic
  */
 @CompileStatic
 class IntRangeJsonDeserializer extends StdDeserializer<Range<Integer>> {
+    public static final String NODE_REV = 'rev'
+    public static final String NODE_INCL = 'incl'
+    public static final String NODE_TO = 'to'
+    public static final String NODE_FROM = 'from'
 
     IntRangeJsonDeserializer() {
         this(Range)
@@ -26,9 +30,16 @@ class IntRangeJsonDeserializer extends StdDeserializer<Range<Integer>> {
     @Override
     Range<Integer> deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
         JsonNode node = (JsonNode) p.getCodec().readTree(p)
-        int from = ((IntNode) node.get('from')).numberValue().intValue()
-        int to = ((IntNode) node.get('to')).numberValue().intValue()
-        boolean inclusive = ((BooleanNode) node.get('incl')).booleanValue()
+        int from = ((IntNode) node.get(NODE_FROM)).numberValue().intValue()
+        int to = ((IntNode) node.get(NODE_TO)).numberValue().intValue()
+        boolean inclusive = ((BooleanNode) node.get(NODE_INCL)).booleanValue()
+        boolean reverse = node.has(NODE_REV) ? ((BooleanNode) node.get(NODE_REV)).booleanValue() : false
+
+        if (reverse) {
+            int t = from
+            from = to
+            to = t
+        }
 
         if (inclusive) {
             return new IntRange(true, from, to)

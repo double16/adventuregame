@@ -13,8 +13,8 @@ import org.jline.terminal.TerminalBuilder
  */
 @CompileDynamic
 class Console implements AutoCloseable, Flushable {
-    private final PrintStream output
-    private final PrintStream error
+    final PrintStream output
+    final PrintStream error
     private final Terminal terminal
     private final LineReader reader
 
@@ -24,28 +24,35 @@ class Console implements AutoCloseable, Flushable {
             InputStream input = null) {
 
         if ((output == null || output.is(AnsiConsole.out())) && (input == null || input.is(System.in))) {
-            this.output = output ?: AnsiConsole.out()
+            this.output =  (output == null) ? AnsiConsole.out() : output
             terminal = TerminalBuilder.terminal()
         } else {
-            this.output = output ?: AnsiConsole.out()
-            terminal = TerminalBuilder.builder().system(false).streams(input ?: System.in, output).build()
+            this.output = (output == null) ? AnsiConsole.out() : output
+            boolean dumb = !this.output.is(AnsiConsole.out()) || !System.in.is(input)
+            terminal = TerminalBuilder.builder()
+                    .system(false)
+                    .type(Terminal.TYPE_DUMB)
+                    .dumb(dumb)
+                    .jna(!dumb)
+                    .jansi(!dumb)
+                    .streams((input == null) ? System.in : input, output)
+                    .build()
         }
-        this.error = error ?: System.err
+        this.error = (error == null) ? System.err : error
 
         reader = LineReaderBuilder.builder().terminal(terminal).build()
     }
 
     @Override
     void close() throws Exception {
-        this.output.close()
-        this.error.close()
-        this.terminal.close()
+        terminal.close()
+        error.close()
     }
 
     @Override
     void flush() throws IOException {
-        this.output.flush()
-        this.error.flush()
+        terminal.flush()
+        error.flush()
     }
 
     Console print(CharSequence s) {

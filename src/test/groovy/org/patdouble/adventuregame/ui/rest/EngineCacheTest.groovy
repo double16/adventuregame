@@ -171,4 +171,21 @@ class EngineCacheTest extends Specification {
         engines[1].story.modified > modified[1]
         engines.every { !it.isClosed() }
     }
+
+    def "sweep interval null"() {
+        when:
+        cache.sweepInterval = null
+        then:
+        thrown(NullPointerException)
+    }
+
+    def "change sweep interval"() {
+        given:
+        def future = cache.scheduledFuture
+        when:
+        cache.sweepInterval = Duration.ofMinutes(60)
+        then:
+        cache.sweepInterval == Duration.ofMinutes(60)
+        !future.is(cache.scheduledFuture)
+    }
 }

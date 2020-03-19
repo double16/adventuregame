@@ -65,7 +65,7 @@ class EngineCache {
     }
 
     void setSweepInterval(@NotNull Duration d) {
-        Objects.nonNull(d)
+        Objects.requireNonNull(d)
         if (d != sweepInterval) {
             sweepInterval = d
             scheduleSweep()

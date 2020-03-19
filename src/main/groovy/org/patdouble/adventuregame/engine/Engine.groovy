@@ -360,7 +360,7 @@ class Engine implements Closeable {
                 @Override
                 void run() {
                     kieSession.fireUntilHalt()
-                    kieSession.dispose()
+                    kieSession?.dispose()
                 }
             }
             kieThread.daemon = true

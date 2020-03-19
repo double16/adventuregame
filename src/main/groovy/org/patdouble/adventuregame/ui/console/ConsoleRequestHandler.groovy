@@ -25,12 +25,19 @@ class ConsoleRequestHandler implements Flow.Subscriber<StoryMessage>, AutoClosea
     private final Console console
     private final Engine engine
     private final Set<PlayerTemplate> skippedPlayerTemplates = [] as Set
+    private final Closure exitStrategy
 
-    ConsoleRequestHandler(Console console, Engine engine) {
+    @SuppressWarnings('SystemExit')
+    ConsoleRequestHandler(Console console, Engine engine, Closure exitStrategy = null) {
         Objects.requireNonNull(console)
         Objects.requireNonNull(engine)
         this.console = console
         this.engine = engine
+        if (exitStrategy == null) {
+            this.exitStrategy = { System.exit(it as int) }
+        } else {
+            this.exitStrategy = exitStrategy
+        }
     }
 
     @Override
@@ -61,15 +68,14 @@ class ConsoleRequestHandler implements Flow.Subscriber<StoryMessage>, AutoClosea
     }
 
     @Override
-    @SuppressWarnings(['SystemExit', 'PrintStackTrace'])
+    @SuppressWarnings('PrintStackTrace')
     void onError(Throwable throwable) {
-        throwable.printStackTrace()
+        throwable.printStackTrace(console.error)
         close()
-        System.exit(2)
+        exitStrategy.call(2)
     }
 
     @Override
-    @SuppressWarnings('SystemExit')
     void onComplete() {
         console.println {
             newline()
@@ -77,7 +83,7 @@ class ConsoleRequestHandler implements Flow.Subscriber<StoryMessage>, AutoClosea
                 .newline()
                 .reset() }
         console.close()
-        System.exit(0)
+        exitStrategy.call(0)
     }
 
     @Override

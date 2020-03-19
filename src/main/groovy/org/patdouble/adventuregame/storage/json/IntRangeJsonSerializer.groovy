@@ -22,9 +22,12 @@ class IntRangeJsonSerializer extends StdSerializer<Range<Integer>> {
     @Override
     void serialize(Range<Integer> value, JsonGenerator gen, SerializerProvider provider) throws IOException {
         gen.writeStartObject()
-        gen.writeNumberField('from', value.from)
-        gen.writeNumberField('to', value.to)
-        gen.writeBooleanField('incl', (value as IntRange).inclusive)
+        gen.writeNumberField(IntRangeJsonDeserializer.NODE_FROM, value.from)
+        gen.writeNumberField(IntRangeJsonDeserializer.NODE_TO, value.to)
+        gen.writeBooleanField(IntRangeJsonDeserializer.NODE_INCL, (value as IntRange).inclusive)
+        if (value.reverse) {
+            gen.writeBooleanField(IntRangeJsonDeserializer.NODE_REV, value.reverse)
+        }
         gen.writeEndObject()
     }
 

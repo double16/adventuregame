@@ -70,7 +70,7 @@ class EngineControllerTest extends Specification {
                 motivator: 'human',
                 fullName: 'First Last',
                 nickName: 'Firstly'))
-
+        Thread.sleep(1000)
         then:
         response.playerUri =~ '/play/[A-Fa-f0-9-]+/[A-Fa-f0-9-]+'
         and:

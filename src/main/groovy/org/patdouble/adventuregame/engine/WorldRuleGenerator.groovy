@@ -36,6 +36,7 @@ global org.patdouble.adventuregame.engine.EngineFacade engine;
             dslr.append("""
 
 rule "world goal ${g.name}"
+  salience 2000
   when
     Story Goal "${g.name}"
     ${g.rules.join('\n')}

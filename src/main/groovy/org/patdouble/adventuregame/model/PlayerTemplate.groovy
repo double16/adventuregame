@@ -23,7 +23,7 @@ import javax.validation.constraints.NotNull
 /**
  * Template for players in the story. Players can either be human or AI.
  */
-@Canonical(excludes = [Constants.COL_ID])
+@Canonical(includes = [Constants.COL_ID])
 @Entity
 @CompileDynamic
 class PlayerTemplate implements CharacterTrait {
@@ -52,5 +52,23 @@ class PlayerTemplate implements CharacterTrait {
     String toString() {
         "PlayerTemplate: ${persona.toString()}, nick ${nickName}, " +
                 "full ${fullName}, room ${room?.id}, qty ${quantity.toString()}"
+    }
+
+    @SuppressWarnings('Instanceof')
+    @Override
+    boolean equals(Object obj) {
+        if (!(obj instanceof PlayerTemplate)) {
+            return false
+        }
+        PlayerTemplate other = obj
+        return Objects.equals(quantity, other.quantity) &&
+                Objects.equals(persona, other.persona) &&
+                Objects.equals(nickName, other.nickName) &&
+                Objects.equals(fullName, other.fullName)
+    }
+
+    @Override
+    int hashCode() {
+        Objects.hash(quantity, persona, nickName, fullName)
     }
 }

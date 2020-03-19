@@ -48,4 +48,31 @@ class RoomTest extends Specification {
         r1 != r3
         r2 != r3
     }
+
+    def "addNeighbor"() {
+        given:
+        Room r1 = new Room(id: 'r1')
+        Room r2 = new Room(id: 'r2')
+        Room r3 = new Room(id: 'r3')
+        when:
+        r1.addNeighbor('north', r2)
+        r1.addNeighbor('south', r3)
+        then:
+        r1.getNeighbors() == [
+                'north': r2,
+                'south': r3
+        ]
+    }
+
+    def "addNeighbor prevents duplicate rooms per direction"() {
+        given:
+        Room r1 = new Room(id: 'r1')
+        Room r2 = new Room(id: 'r2')
+        Room r3 = new Room(id: 'r3')
+        when:
+        r1.addNeighbor('north', r2)
+        r1.addNeighbor('north', r3)
+        then:
+        thrown(IllegalArgumentException)
+    }
 }

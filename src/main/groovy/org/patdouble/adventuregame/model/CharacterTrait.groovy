@@ -2,6 +2,7 @@ package org.patdouble.adventuregame.model
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import groovy.transform.CompileDynamic
+import groovy.transform.EqualsAndHashCode
 import org.patdouble.adventuregame.state.Motivator
 import org.patdouble.adventuregame.state.Player
 
@@ -12,6 +13,7 @@ import javax.validation.constraints.NotNull
  * Common traits for characters.
  */
 @CompileDynamic
+@EqualsAndHashCode
 trait CharacterTrait {
     @Delegate(excludes = [ 'clone', 'id' ])
     @ManyToOne
