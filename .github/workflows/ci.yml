@@ -38,9 +38,10 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-gradle-zap-
     - name: check
-      run: ./gradlew check --warning-mode all
+      run: ./gradlew check --warning-mode all --stacktrace
     - name: Archvie check reports
       uses: actions/upload-artifact@v1
+      if: failure()
       with:
         name: check-reports
         path: build/reports
