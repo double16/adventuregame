@@ -32,7 +32,7 @@ class AbstractConsoleTest extends Specification {
         console = new Console(output, error, input)
     }
 
-    boolean hasOutput(String substring, int tries = 3, Duration interval = Duration.ofSeconds(3)) {
+    boolean hasOutput(String substring, int tries = 4, Duration interval = Duration.ofSeconds(3)) {
         for(int i = 0; i < tries; i++) {
             if (outputData.toString().contains(substring)) {
                 outputData.reset()

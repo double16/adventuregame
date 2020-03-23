@@ -2,6 +2,7 @@ package org.patdouble.adventuregame.ui.console
 
 import ch.qos.logback.classic.Level
 import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
+import static org.patdouble.adventuregame.SpecHelper.wait
 
 class ConsoleRequestHandlerTest extends AbstractConsoleTest {
     Main main
@@ -20,10 +21,12 @@ class ConsoleRequestHandlerTest extends AbstractConsoleTest {
     }
 
     def "onError"() {
-        given:
+        when:
         main.start(exitStrategy)
         ConsoleRequestHandler handler = new ConsoleRequestHandler(console, main.engine, exitStrategy)
         main.engine.subscribe(handler)
+        then:
+        wait { assert handler.subscription != null }
         when:
         handler.onError(new IllegalArgumentException())
         then:

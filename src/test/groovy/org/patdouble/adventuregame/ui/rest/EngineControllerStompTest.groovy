@@ -48,6 +48,7 @@ import java.util.concurrent.TimeUnit
 @Unroll
 @Slf4j
 class EngineControllerStompTest extends Specification {
+    static final int POLL_TIMEOUT = 15
 
     @Autowired
     EngineController controller
@@ -143,7 +144,7 @@ class EngineControllerStompTest extends Specification {
         then:
         response.playerUri =~ '/play/[A-Fa-f0-9-]+/[A-Fa-f0-9-]+'
         and:
-        pollMessages(5, TimeUnit.SECONDS)
+        pollMessages(POLL_TIMEOUT, TimeUnit.SECONDS)
                 .collect { it.second }
                 .find { it instanceof RequestSatisfied && it.request.template.id.toString() == warriorTemplateId }
     }
@@ -165,7 +166,7 @@ class EngineControllerStompTest extends Specification {
         engine.story.requests.size() == 12
         engine.story.requests.find { (it instanceof PlayerRequest) && it.template.id.toString() == warriorTemplateId }
         and:
-        !messages.poll(5, TimeUnit.SECONDS)
+        !messages.poll(POLL_TIMEOUT, TimeUnit.SECONDS)
     }
 
     def "Ignore optional"() {
@@ -184,7 +185,7 @@ class EngineControllerStompTest extends Specification {
         engine.story.requests.size() == 2
         !engine.story.requests.find { (it instanceof PlayerRequest) && it.template.id.toString() == thugTemplateId }
         and:
-        pollMessages(5, TimeUnit.SECONDS)
+        pollMessages(POLL_TIMEOUT, TimeUnit.SECONDS)
                 .collect { it.second }
                 .find { it instanceof RequestSatisfied && it.request.template.id.toString() == thugTemplateId }
     }
@@ -206,7 +207,7 @@ class EngineControllerStompTest extends Specification {
         and:
         engine.story.chronos.current > 0
         and:
-        pollMessages(5, TimeUnit.SECONDS)
+        pollMessages(POLL_TIMEOUT, TimeUnit.SECONDS)
                 .collect { it.second }
                 .find { it instanceof ChronosChanged }
     }
@@ -233,7 +234,7 @@ class EngineControllerStompTest extends Specification {
         then:
         warrior.room.id == 'trailer_2'
         and:
-        pollMessages(5, TimeUnit.SECONDS)
+        pollMessages(POLL_TIMEOUT, TimeUnit.SECONDS)
                 .collect { it.second }
                 .find { it instanceof PlayerChanged && it.player.nickName == 'Shadowblow' && it.chronos == 1 }
     }

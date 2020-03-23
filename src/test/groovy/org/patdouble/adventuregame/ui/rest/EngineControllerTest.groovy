@@ -15,6 +15,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.test.context.ContextConfiguration
 import spock.lang.Specification
 import spock.lang.Unroll
+import static org.patdouble.adventuregame.SpecHelper.wait
 
 import javax.transaction.Transactional
 
@@ -70,15 +71,16 @@ class EngineControllerTest extends Specification {
                 motivator: 'human',
                 fullName: 'First Last',
                 nickName: 'Firstly'))
-        Thread.sleep(1000)
         then:
         response.playerUri =~ '/play/[A-Fa-f0-9-]+/[A-Fa-f0-9-]+'
         and:
-        1 * simpMessagingTemplate.convertAndSend(
-                "/topic/story/${storyId}",
-                { it instanceof RequestSatisfied && it.request.template.id.toString() == warriorTemplateId },
-                ['type':'RequestSatisfied']
-        )
+        wait {
+            1 * simpMessagingTemplate.convertAndSend(
+                    "/topic/story/${storyId}",
+                    { it instanceof RequestSatisfied && it.request.template.id.toString() == warriorTemplateId },
+                    ['type':'RequestSatisfied']
+            )
+        }
     }
 
     def "Ignore required"() {
@@ -135,12 +137,14 @@ class EngineControllerTest extends Specification {
         then:
         notThrown(Exception)
         and:
-        engine.story.chronos.current > 0
+        wait { assert engine.story.chronos.current > 0 }
         and:
-        1 * simpMessagingTemplate.convertAndSend(
-                "/topic/story/${storyId}",
-                { it instanceof ChronosChanged },
-                ['type':'ChronosChanged'])
+        wait {
+            1 * simpMessagingTemplate.convertAndSend(
+                    "/topic/story/${storyId}",
+                    { it instanceof ChronosChanged },
+                    ['type':'ChronosChanged'])
+        }
     }
 
     def "Action"() {
@@ -163,11 +167,15 @@ class EngineControllerTest extends Specification {
         ))
 
         then:
-        warrior.room.id == 'trailer_2'
+        wait {
+            assert warrior.room.id == 'trailer_2'
+        }
         and:
-        1 * simpMessagingTemplate.convertAndSend(
-                "/topic/story/${storyId}",
-                { it instanceof PlayerChanged && it.player.nickName == 'Shadowblow' && it.chronos == 1 },
-                ['type':'PlayerChanged'])
+        wait {
+            1 * simpMessagingTemplate.convertAndSend(
+                    "/topic/story/${storyId}",
+                    { it instanceof PlayerChanged && it.player.nickName == 'Shadowblow' && it.chronos == 1 },
+                    ['type':'PlayerChanged'])
+        }
     }
 }
