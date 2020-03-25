@@ -50,7 +50,7 @@ class PlayerTemplate implements CharacterTrait {
 
     @Override
     String toString() {
-        "PlayerTemplate: ${persona.toString()}, nick ${nickName}, " +
+        "PlayerTemplate: ${persona.toString()}, id ${id}, nick ${nickName}, " +
                 "full ${fullName}, room ${room?.id}, qty ${quantity.toString()}"
     }
 

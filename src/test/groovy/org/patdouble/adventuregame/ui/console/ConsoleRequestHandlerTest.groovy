@@ -2,7 +2,8 @@ package org.patdouble.adventuregame.ui.console
 
 import ch.qos.logback.classic.Level
 import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
-import static org.patdouble.adventuregame.SpecHelper.wait
+
+import java.util.concurrent.Flow
 
 class ConsoleRequestHandlerTest extends AbstractConsoleTest {
     Main main
@@ -21,16 +22,16 @@ class ConsoleRequestHandlerTest extends AbstractConsoleTest {
     }
 
     def "onError"() {
-        when:
+        given:
         main.start(exitStrategy)
+        Flow.Subscription subscription = Mock()
         ConsoleRequestHandler handler = new ConsoleRequestHandler(console, main.engine, exitStrategy)
-        main.engine.subscribe(handler)
-        then:
-        wait { assert handler.subscription != null }
+        handler.onSubscribe(subscription)
         when:
         handler.onError(new IllegalArgumentException())
         then:
         errorData.toString().contains('IllegalArgumentException')
+        subscription.cancel()
     }
 
     def "human player shadowblow"() {

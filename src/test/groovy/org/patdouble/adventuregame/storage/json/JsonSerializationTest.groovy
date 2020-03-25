@@ -41,6 +41,7 @@ class JsonSerializationTest extends EngineTest {
         then:
         new JsonPathExpectationsHelper('$.request.@class').assertValue(json, '.PlayerRequest')
         new JsonPathExpectationsHelper('$.request.template.persona').doesNotExist(json)
+        new JsonPathExpectationsHelper('$.request.template.id').assertValue(json, req.template.id as String)
 
         when:
         RequestSatisfied read = mapper.readValue(json, RequestSatisfied)
@@ -61,6 +62,7 @@ class JsonSerializationTest extends EngineTest {
         then:
         new JsonPathExpectationsHelper('$.request.@class').assertValue(json, '.PlayerRequest')
         new JsonPathExpectationsHelper('$.request.template.persona').doesNotExist(json)
+        new JsonPathExpectationsHelper('$.request.template.id').assertValue(json, req.template.id as String)
 
         when:
         RequestCreated read = mapper.readValue(json, RequestCreated)

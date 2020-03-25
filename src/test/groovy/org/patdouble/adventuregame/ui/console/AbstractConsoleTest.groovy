@@ -8,8 +8,7 @@ import java.nio.charset.Charset
 import java.time.Duration
 
 class AbstractConsoleTest extends Specification {
-    @Shared
-    static Charset cs = Charset.forName('US-ASCII')
+    Charset cs = Charset.forName('US-ASCII')
     ByteArrayOutputStream outputData
     PrintStream output
     ByteArrayOutputStream errorData
@@ -24,32 +23,31 @@ class AbstractConsoleTest extends Specification {
 
     void setup() {
         outputData = new ByteArrayOutputStream()
-        output = new PrintStream(outputData, false, 'US-ASCII')
+        output = new PrintStream(outputData, true, 'US-ASCII')
         errorData = new ByteArrayOutputStream()
-        error = new PrintStream(errorData, false, 'US-ASCII')
+        error = new PrintStream(errorData, true, 'US-ASCII')
         inputData = new PipedOutputStream()
         input = new PipedInputStream(inputData)
         console = new Console(output, error, input)
     }
 
-    boolean hasOutput(String substring, int tries = 4, Duration interval = Duration.ofSeconds(3)) {
+    void cleanup() {
+        console.close()
+    }
+
+    void hasOutput(String substring, int tries = 4, Duration interval = Duration.ofSeconds(3)) {
         for(int i = 0; i < tries; i++) {
             if (outputData.toString().contains(substring)) {
                 outputData.reset()
-                return true
+                return
             }
             Thread.sleep(interval.toMillis())
         }
-        return false
+        assert outputData.toString().contains(substring)
     }
 
     void answer(String prompt, String answer) {
-        if (!hasOutput(prompt)) {
-            String msg = "Could not find prompt: \"${prompt}\" in\n${outputData.toString()}"
-            System.err.println msg
-            return
-// causes Spock to stop the tests: throw new AssertionError((Object) msg)
-        }
+        hasOutput(prompt)
         inputData.write(cs.encode(answer).array())
     }
 }
