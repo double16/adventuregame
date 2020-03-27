@@ -23,6 +23,7 @@ class EngineFlowToSpringMessagingAdapter implements Flow.Subscriber<StoryMessage
         this.storyId = storyId
         this.destination = "/topic/story/${storyId}"
         this.simpMessagingTemplate = simpMessagingTemplate
+        log.info "Adapter created for destination ${this.destination}, messaging template ${this.simpMessagingTemplate}"
     }
 
     @Override

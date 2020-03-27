@@ -13,7 +13,6 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.test.context.ContextConfiguration
-import spock.lang.Retry
 import spock.lang.Specification
 import spock.lang.Unroll
 import static org.patdouble.adventuregame.SpecHelper.wait
