@@ -27,10 +27,6 @@ import org.springframework.web.socket.client.WebSocketClient
 import org.springframework.web.socket.client.standard.StandardWebSocketClient
 import org.springframework.web.socket.handler.LoggingWebSocketHandlerDecorator
 import org.springframework.web.socket.messaging.WebSocketStompClient
-import org.springframework.web.socket.sockjs.client.RestTemplateXhrTransport
-import org.springframework.web.socket.sockjs.client.SockJsClient
-import org.springframework.web.socket.sockjs.client.Transport
-import org.springframework.web.socket.sockjs.client.WebSocketTransport
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -66,19 +62,14 @@ class EngineControllerStompTest extends Specification {
         CreateStoryResponse response = controller.createStory(request)
         storyId = response.storyUri.split('/').last()
 
-        // https://docs.spring.io/spring-framework/docs/5.0.0.BUILD-SNAPSHOT/spring-framework-reference/html/websocket.html
-        List<Transport> transports = new ArrayList<>(2)
-        transports.add(new WebSocketTransport(new StandardWebSocketClient()))
-        transports.add(new RestTemplateXhrTransport())
-
-        WebSocketClient webSocketClient = new SockJsClient(transports)
+        WebSocketClient webSocketClient = new StandardWebSocketClient()
         stompClient = new WebSocketStompClient(webSocketClient)
         stompClient.setMessageConverter(new MappingJackson2MessageConverter())
         stompClient.connect("ws://localhost:${port}/socket", new StompSessionHandlerAdapter() {
             @Override
             void afterConnected(StompSession session, StompHeaders connectedHeaders) {
                 log.info "STOMP session ${session.sessionId} subscribing to story ${storyId}"
-                session.subscribe("/topic/story/${storyId}", new StompFrameHandler() {
+                session.subscribe("/topic/story.${storyId}", new StompFrameHandler() {
                     @Override
                     Type getPayloadType(StompHeaders headers) {
                         String type = headers.getFirst('type')

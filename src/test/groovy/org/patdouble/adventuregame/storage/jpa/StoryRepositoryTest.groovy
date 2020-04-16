@@ -47,7 +47,7 @@ class StoryRepositoryTest extends Specification {
         ((Logger) LoggerFactory.getLogger('org.hibernate.SQL')).setLevel(Level.DEBUG)
 
         storyRepository.saveAndFlush(newStory(YamlUniverseRegistry.TRAILER_PARK, false))
-        storyRepository.saveAndFlush(newStory(YamlUniverseRegistry.MIDDLE_EARTH, true))
+        storyRepository.saveAndFlush(newStory(YamlUniverseRegistry.THE_HOBBIT, true))
     }
 
     def "save and load #worldName"() {
@@ -73,7 +73,7 @@ class StoryRepositoryTest extends Specification {
         where:
         worldName                         | start
         YamlUniverseRegistry.TRAILER_PARK | false
-        YamlUniverseRegistry.MIDDLE_EARTH | true
+        YamlUniverseRegistry.THE_HOBBIT | true
     }
 
     def "cast added later"() {

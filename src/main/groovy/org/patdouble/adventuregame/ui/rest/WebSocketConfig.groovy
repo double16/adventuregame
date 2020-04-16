@@ -13,16 +13,20 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @Configuration
 @EnableWebSocketMessageBroker
 @CompileDynamic
+@SuppressWarnings('UnnecessarySetter')
 class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+    static final String TOPIC_PREFIX = '/topic'
+    static final String USER_PREFIX = '/user'
 
     @Override
     void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint('/socket').withSockJS()
+        registry.addEndpoint('/socket').setHandshakeHandler(new CustomHandshakeHandler())
     }
 
     @Override
     void configureMessageBroker(MessageBrokerRegistry config) {
-        config.enableSimpleBroker('/topic/', '/queue/')
-        config.setApplicationDestinationPrefixes('/app/')
+        config.enableSimpleBroker(TOPIC_PREFIX)
+        config.setApplicationDestinationPrefixes(TOPIC_PREFIX)
+        config.setUserDestinationPrefix(USER_PREFIX)
     }
 }

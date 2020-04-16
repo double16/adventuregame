@@ -3,7 +3,7 @@ package org.patdouble.adventuregame.ui.rest
 import groovy.transform.CompileDynamic
 import groovy.util.logging.Slf4j
 import org.patdouble.adventuregame.flow.StoryMessage
-import org.springframework.messaging.simp.SimpMessagingTemplate
+import org.springframework.messaging.simp.SimpMessageSendingOperations
 
 import java.util.concurrent.Flow
 
@@ -14,16 +14,15 @@ import java.util.concurrent.Flow
 @Slf4j
 class EngineFlowToSpringMessagingAdapter implements Flow.Subscriber<StoryMessage> {
 
-    private final SimpMessagingTemplate simpMessagingTemplate
+    private final SimpMessageSendingOperations simpMessagingTemplate
     private final UUID storyId
     private final String destination
     private Flow.Subscription subscription
 
-    EngineFlowToSpringMessagingAdapter(UUID storyId, SimpMessagingTemplate simpMessagingTemplate) {
+    EngineFlowToSpringMessagingAdapter(UUID storyId, SimpMessageSendingOperations simpMessagingTemplate) {
         this.storyId = storyId
-        this.destination = "/topic/story/${storyId}"
+        this.destination = "/topic/story.${storyId}"
         this.simpMessagingTemplate = simpMessagingTemplate
-        log.info "Adapter created for destination ${this.destination}, messaging template ${this.simpMessagingTemplate}"
     }
 
     @Override
@@ -34,7 +33,7 @@ class EngineFlowToSpringMessagingAdapter implements Flow.Subscriber<StoryMessage
 
     @Override
     void onNext(StoryMessage item) {
-        log.info "Forwarding to ${destination}: ${item}"
+        log.info 'Forwarding to {}: {}', destination, item
         simpMessagingTemplate.convertAndSend(destination, item, [type: item.class.simpleName])
     }
 

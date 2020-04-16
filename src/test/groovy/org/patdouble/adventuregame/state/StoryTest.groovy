@@ -13,12 +13,12 @@ class StoryTest extends Specification {
     def "Equals"() {
         expect:
         newStory(YamlUniverseRegistry.TRAILER_PARK) == newStory(YamlUniverseRegistry.TRAILER_PARK)
-        newStory(YamlUniverseRegistry.TRAILER_PARK) != newStory(YamlUniverseRegistry.MIDDLE_EARTH)
+        newStory(YamlUniverseRegistry.TRAILER_PARK) != newStory(YamlUniverseRegistry.THE_HOBBIT)
     }
 
     def "Hashcode"() {
         expect:
         newStory(YamlUniverseRegistry.TRAILER_PARK).hashCode() == newStory(YamlUniverseRegistry.TRAILER_PARK).hashCode()
-        newStory(YamlUniverseRegistry.TRAILER_PARK).hashCode() != newStory(YamlUniverseRegistry.MIDDLE_EARTH).hashCode()
+        newStory(YamlUniverseRegistry.TRAILER_PARK).hashCode() != newStory(YamlUniverseRegistry.THE_HOBBIT).hashCode()
     }
 }

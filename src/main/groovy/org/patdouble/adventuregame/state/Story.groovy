@@ -38,7 +38,7 @@ class Story {
     UUID id
 
     /** The world from which this stage was set. */
-    @ManyToOne
+    @ManyToOne(cascade = CascadeType.MERGE)
     World world
     @OneToMany(cascade = CascadeType.ALL)
     Collection<Player> cast = []

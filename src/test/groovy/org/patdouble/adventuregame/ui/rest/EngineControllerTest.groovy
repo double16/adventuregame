@@ -1,6 +1,7 @@
 package org.patdouble.adventuregame.ui.rest
 
 import org.patdouble.adventuregame.engine.Engine
+import org.patdouble.adventuregame.engine.RecordingSimpMessageTemplate
 import org.patdouble.adventuregame.flow.ChronosChanged
 import org.patdouble.adventuregame.flow.PlayerChanged
 import org.patdouble.adventuregame.flow.RequestSatisfied
@@ -11,7 +12,6 @@ import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.test.context.ContextConfiguration
 import spock.lang.Specification
 import spock.lang.Unroll
@@ -28,12 +28,12 @@ class EngineControllerTest extends Specification {
 
     @Autowired
     EngineController controller
-    SimpMessagingTemplate simpMessagingTemplate
+    RecordingSimpMessageTemplate simpMessagingTemplate
     String storyId
 
     void setup() {
         controller.engineCache.autoLifecycle = false
-        simpMessagingTemplate = Mock()
+        simpMessagingTemplate = new RecordingSimpMessageTemplate()
         controller.simpMessagingTemplate = simpMessagingTemplate
         controller.engineCache.simpMessagingTemplate = simpMessagingTemplate
         CreateStoryRequest request = new CreateStoryRequest(worldName: YamlUniverseRegistry.TRAILER_PARK)
@@ -46,9 +46,35 @@ class EngineControllerTest extends Specification {
         controller.engineCache.autoLifecycle = true
     }
 
-    def "CreateStory"() {
+    def "CreateStory by name"() {
         given:
         CreateStoryRequest request = new CreateStoryRequest(worldName: YamlUniverseRegistry.TRAILER_PARK)
+
+        when:
+        CreateStoryResponse response = controller.createStory(request)
+
+        then:
+        response.storyUri =~ '/play/[A-Fa-f0-9-]+'
+    }
+
+    def "CreateStory by id"() {
+        given:
+        String id = controller.worldRepository.findByName(YamlUniverseRegistry.TRAILER_PARK).first().id.toString()
+        System.out.println "worldId = ${id}"
+        CreateStoryRequest request = new CreateStoryRequest(worldId: id)
+
+        when:
+        CreateStoryResponse response = controller.createStory(request)
+
+        then:
+        response.storyUri =~ '/play/[A-Fa-f0-9-]+'
+    }
+
+    def "CreateStory by URI"() {
+        given:
+        String id = "http://localhost:8080/api/worlds/"+controller.worldRepository.findByName(YamlUniverseRegistry.TRAILER_PARK).first().id.toString()
+        System.out.println "worldId = ${id}"
+        CreateStoryRequest request = new CreateStoryRequest(worldId: id)
 
         when:
         CreateStoryResponse response = controller.createStory(request)
@@ -75,11 +101,12 @@ class EngineControllerTest extends Specification {
         response.playerUri =~ '/play/[A-Fa-f0-9-]+/[A-Fa-f0-9-]+'
         and:
         wait {
-            1 * simpMessagingTemplate.convertAndSend(
-                    "/topic/story/${storyId}",
-                    { it instanceof RequestSatisfied && it.request.template.id.toString() == warriorTemplateId },
-                    ['type':'RequestSatisfied']
-            )
+            simpMessagingTemplate.messages.find {
+                it.first == "/topic/story.${storyId}" as String &&
+                it.second.payload instanceof RequestSatisfied &&
+                it.second.payload.request.template.id.toString() == warriorTemplateId &&
+                it.second.headers['type'] == 'RequestSatisfied'
+            }
         }
     }
 
@@ -100,7 +127,12 @@ class EngineControllerTest extends Specification {
         engine.story.requests.size() == 12
         engine.story.requests.find { (it instanceof PlayerRequest) && it.template.id.toString() == warriorTemplateId }
         and:
-        0 * simpMessagingTemplate.convertAndSend(_, _)
+        !simpMessagingTemplate.messages.find {
+            it.first == "/topic/story.${storyId}" as String &&
+                    it.second.payload instanceof RequestSatisfied &&
+                    it.second.payload.request.template.id.toString() == warriorTemplateId &&
+                    it.second.headers['type'] == 'RequestSatisfied'
+        }
     }
 
     def "Ignore optional"() {
@@ -119,7 +151,14 @@ class EngineControllerTest extends Specification {
         engine.story.requests.size() == 2
         !engine.story.requests.find { (it instanceof PlayerRequest) && it.template.id.toString() == thugTemplateId }
         and:
-        0 * simpMessagingTemplate.convertAndSend(_, _)
+        wait {
+            simpMessagingTemplate.messages.find {
+                it.first == "/topic/story.${storyId}" as String &&
+                        it.second.payload instanceof RequestSatisfied &&
+                        it.second.payload.request.template.id.toString() == thugTemplateId &&
+                        it.second.headers['type'] == 'RequestSatisfied'
+            }
+        }
     }
 
     def "Start"() {
@@ -140,10 +179,11 @@ class EngineControllerTest extends Specification {
         wait { assert engine.story.chronos.current > 0 }
         and:
         wait {
-            1 * simpMessagingTemplate.convertAndSend(
-                    "/topic/story/${storyId}",
-                    { it instanceof ChronosChanged },
-                    ['type':'ChronosChanged'])
+            simpMessagingTemplate.messages.find {
+                it.first == "/topic/story.${storyId}" as String &&
+                        it.second.payload instanceof ChronosChanged &&
+                        it.second.headers['type'] == 'ChronosChanged'
+            }
         }
     }
 
@@ -172,10 +212,13 @@ class EngineControllerTest extends Specification {
         }
         and:
         wait {
-            1 * simpMessagingTemplate.convertAndSend(
-                    "/topic/story/${storyId}",
-                    { it instanceof PlayerChanged && it.player.nickName == 'Shadowblow' && it.chronos == 1 },
-                    ['type':'PlayerChanged'])
+            simpMessagingTemplate.messages.find {
+                it.first == "/topic/story.${storyId}" as String &&
+                        it.second.payload instanceof PlayerChanged &&
+                        it.second.payload.player.nickName == 'Shadowblow' &&
+                        it.second.payload.chronos == 1 &&
+                        it.second.headers['type'] == 'PlayerChanged'
+            }
         }
     }
 }

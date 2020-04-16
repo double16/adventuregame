@@ -5,24 +5,28 @@
           href="/webjars/bootstrap/css/bootstrap.min.css" />
     <script src="/webjars/jquery/jquery.min.js"></script>
     <script src="/webjars/bootstrap/js/bootstrap.min.js"></script>
-    <script src="/webjars/vue/dist/vue.min.js"></script>
-    <script src="/webjars/vue-router/dist/vue-router.min.js"></script>
+    <script src="/webjars/vue/dist/vue.js"></script>
+    <script src="/webjars/vue-router/dist/vue-router.js"></script>
     <script src="/webjars/axios/dist/axios.min.js"></script>
     <script src="/webjars/rxjs/bundles/rxjs.umd.min.js"></script>
     <script src="/webjars/dagre/dist/dagre.min.js"></script>
     <script src="/webjars/dagre-d3/dist/dagre-d3.min.js"></script>
-    <script src="/webjars/sockjs-client/sockjs.min.js"></script>
-    <script src="/webjars/stomp-websocket/stomp.min.js"></script>
+    <script src="/webjars/github-com-stomp-js-stompjs/stomp.umd.js"></script>
 </head>
 <body>
 
 <div class="container"><br/>
     <div class="alert alert-success">
-        <a href="#" class="close" data-dismiss="alert"
-           aria-label="close">x</a>
+        <a href="#" class="close" data-dismiss="alert" aria-label="close">x</a>
         <strong>Success!</strong> It is working as we expected.
     </div>
 </div>
 
+<div id="app" class="container">
+    <router-link to="/">Start Over</router-link>
+    <router-view></router-view>
+</div>
+
+<script src="/app.js"></script>
 </body>
 </html>

@@ -10,12 +10,12 @@ import org.patdouble.adventuregame.model.World
 @CompileDynamic
 class YamlUniverseRegistry implements UniverseRegistry {
     static final String TRAILER_PARK = 'Trailer Park'
-    static final String MIDDLE_EARTH = 'Middle Earth'
+    static final String THE_HOBBIT = 'The Hobbit'
 
     private final List<World> worlds
 
     YamlUniverseRegistry() {
-        worlds = ['/worlds/middle-earth.yml', '/worlds/trailer-park.yml'].collect { String path ->
+        worlds = ['/worlds/the-hobbit.yml', '/worlds/trailer-park.yml'].collect { String path ->
             InputStream is = YamlUniverseRegistry.getResourceAsStream(path)
             new WorldYamlStorage().load(is)
         }.asImmutable()

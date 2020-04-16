@@ -3,14 +3,13 @@ package org.patdouble.adventuregame.storage.yaml
 import org.patdouble.adventuregame.model.Persona
 import org.patdouble.adventuregame.model.PlayerTemplate
 import org.patdouble.adventuregame.model.World
-import org.patdouble.adventuregame.state.Player
 import spock.lang.Specification
 
 class WorldYamlStorageTest extends Specification {
     YamlUniverseRegistry registry = new YamlUniverseRegistry()
 
-    private World loadMiddleEarth() {
-        registry.worlds.find { it.name == YamlUniverseRegistry.MIDDLE_EARTH }
+    private World loadTheHobbit() {
+        registry.worlds.find { it.name == YamlUniverseRegistry.THE_HOBBIT }
     }
 
     private World loadTrailerPark() {
@@ -18,13 +17,13 @@ class WorldYamlStorageTest extends Specification {
     }
 
     def "load"() {
-        when: 'Middle Earth is loaded'
-        World world = loadMiddleEarth()
+        when: 'The Hobbit is loaded'
+        World world = loadTheHobbit()
 
         then: 'World meta-data is present'
-        world.name == YamlUniverseRegistry.MIDDLE_EARTH
+        world.name == YamlUniverseRegistry.THE_HOBBIT
         world.author == 'double16'
-        world.description == 'The world of J.R.R. Tolkien'
+        world.description == 'The Hobbit by J.R.R. Tolkien'
 
         and: 'personas are loaded'
         world.personas.size() == 5
@@ -47,13 +46,13 @@ class WorldYamlStorageTest extends Specification {
 
     def "hash code"() {
         expect:
-        loadMiddleEarth().hashCode() == loadMiddleEarth().hashCode()
-        loadMiddleEarth().hashCode() != loadTrailerPark().hashCode()
+        loadTheHobbit().hashCode() == loadTheHobbit().hashCode()
+        loadTheHobbit().hashCode() != loadTrailerPark().hashCode()
     }
 
     def "equals"() {
         expect:
-        loadMiddleEarth() == loadMiddleEarth()
-        loadMiddleEarth() != loadTrailerPark()
+        loadTheHobbit() == loadTheHobbit()
+        loadTheHobbit() != loadTrailerPark()
     }
 }

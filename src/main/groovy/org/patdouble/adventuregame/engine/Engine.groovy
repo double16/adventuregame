@@ -121,6 +121,7 @@ class Engine implements Closeable {
                 iter.remove()
                 player.siblingNumber = story.cast.count { it.persona.name == player.persona.name } + 1
                 removed = true
+                Objects.requireNonNull(pr.id)
                 publisher.submit(new RequestSatisfied(pr))
                 break
             }
@@ -128,7 +129,8 @@ class Engine implements Closeable {
         if (!removed) {
             throw new IllegalArgumentException("Cannot find template matching player ${player}")
         }
-        story.cast << player
+        story.cast.add(player)
+        Objects.requireNonNull(player.id)
         publisher.submit(new PlayerChanged(player.clone(), 0))
         checkInitComplete()
     }
@@ -142,6 +144,7 @@ class Engine implements Closeable {
             throw new IllegalArgumentException("Can not ignore required player ${request.template}")
         }
         if (story.requests.remove(request)) {
+            Objects.requireNonNull(request.id)
             publisher.submit(new RequestSatisfied(request))
         }
         checkInitComplete()
@@ -150,19 +153,29 @@ class Engine implements Closeable {
     /**
      * Start the game after the required cast members have been satisfied. Any requests for optional p[layers will be
      * removed from the story by this method.
+     * @param forceMotivator if set, any remaining required players will be created with the specified motivator
      * @throew IllegalStateException if there are required players not yet cast
      */
     @SuppressWarnings('Instanceof')
-    void start() {
-        Collection<PlayerRequest> pendingPlayers = story.requests
-                .findAll { it instanceof PlayerRequest && !it.optional }
-        if (!pendingPlayers.empty) {
-            String msg = bundles.requiredPlayersTemplate.make([ names: pendingPlayers*.template*.fullName ]) as String
-            publisher.submit(new Notification(bundles.text.getString('state.players_required.subject'), msg))
-            throw new IllegalStateException(msg)
+    void start(final Motivator forceMotivator = null) {
+        if (forceMotivator == null) {
+            Collection<PlayerRequest> pendingPlayers = story.requests
+                    .findAll { it instanceof PlayerRequest && !it.optional }
+            if (!pendingPlayers.empty) {
+                String msg = bundles.requiredPlayersTemplate.make([ names: pendingPlayers*.template*.fullName ]) as String
+                publisher.submit(new Notification(bundles.text.getString('state.players_required.subject'), msg))
+                throw new IllegalStateException(msg)
+            }
         }
 
-        story.requests.removeIf { it instanceof PlayerRequest }
+        story.requests.findAll { it instanceof PlayerRequest }.each { PlayerRequest playerRequest ->
+            if (playerRequest.optional) {
+                ignore(playerRequest)
+            } else {
+                addToCast(playerRequest.template.createPlayer(forceMotivator))
+            }
+        }
+
         if (story.chronos.current == 0) {
             placePlayers()
         }
@@ -240,13 +253,6 @@ class Engine implements Closeable {
     }
 
     /**
-     * Resend requests as RequestCreated messages.
-     */
-    void resendRequests() {
-        story.requests.each { publisher.submit(new RequestCreated(it)) }
-    }
-
-    /**
      * Request the player performs an action.
      * @return true if the action was successful, false otherwise. Any error message will be sent via flow.
      */
@@ -265,6 +271,7 @@ class Engine implements Closeable {
         if (player.motivator == Motivator.HUMAN) {
             if (!actionRequest) {
                 log.error('action for player {} without request, action = {}', player, action)
+                Objects.requireNonNull(player.id)
                 publisher.submit(new PlayerNotification(player,
                         bundles.text.getString('action.norequest.subject'),
                         bundles.text.getString('action.norequest.text')))
@@ -293,11 +300,13 @@ class Engine implements Closeable {
         }
 
         if (!validAction) {
+            Objects.requireNonNull(player.id)
             publisher.submit(new PlayerNotification(player,
                     bundles.text.getString('action.invalid.subject'),
                     bundles.actionInvalidTextTemplate.make([ actions: actionStatementParser.availableActions ])
                             .toString()))
             if (actionRequest) {
+                Objects.requireNonNull(actionRequest.id)
                 publisher.submit(new RequestCreated(actionRequest))
             }
         } else if (success) {
@@ -309,11 +318,13 @@ class Engine implements Closeable {
                     Optional.ofNullable(kieSession.getFactHandle(actionRequest)).ifPresent {
                         kieSession.delete(it)
                     }
+                    Objects.requireNonNull(actionRequest.id)
                     publisher.submit(new RequestSatisfied(actionRequest))
                 }
             }
         } else {
             if (actionRequest) {
+                Objects.requireNonNull(actionRequest.id)
                 publisher.submit(new RequestCreated(actionRequest))
             }
         }
@@ -372,7 +383,10 @@ class Engine implements Closeable {
         story.world.extras.each { ExtrasTemplate t ->
             Collection<Player> players = t.createPlayers()
             story.cast.addAll(players)
-            players.each { publisher.submit(new PlayerChanged(it.clone(), 0)) }
+            players.each {
+                Objects.requireNonNull(it.id)
+                publisher.submit(new PlayerChanged(it.clone(), 0))
+            }
         }
     }
 
@@ -384,6 +398,7 @@ class Engine implements Closeable {
                 PlayerRequest playerRequest = new PlayerRequest(template, i >= template.quantity.from)
                 story.requests << playerRequest
                 i++
+                Objects.requireNonNull(playerRequest.id)
                 publisher.submit(new RequestCreated(playerRequest))
             }
         }
@@ -437,6 +452,7 @@ class Engine implements Closeable {
             request.directions.addAll(player.room.neighbors.keySet().sort())
             story.requests.add(request)
             kieSession.insert(request)
+            Objects.requireNonNull(request.id)
             publisher.submit(new RequestCreated(request))
         }
     }
@@ -464,6 +480,7 @@ class Engine implements Closeable {
         }
 
         if (candidates.size() != 1) {
+            Objects.requireNonNull(player.id)
             publisher.submit(new PlayerNotification(player,
                     bundles.text.getString('action.go.instructions.subject'),
                     bundles.goInstructionsTemplate.make([ directions: directions ]).toString()))
@@ -471,6 +488,7 @@ class Engine implements Closeable {
         }
 
         player.room = player.room.neighbors.get(candidates.first())
+        Objects.requireNonNull(player.id)
         publisher.submit(new PlayerChanged(player.clone(), story.chronos.current))
 
         true

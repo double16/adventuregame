@@ -199,14 +199,6 @@ class EngineInitTest extends EngineTest {
         engine.isClosed()
     }
 
-    def "resendRequests"() {
-        when:
-        engine.init()
-        engine.resendRequests()
-        then: 'notifications'
-        24 * storySubscriber.onNext({ it instanceof RequestCreated })
-    }
-
     def "init idempotency"() {
         given:
         engine.init()

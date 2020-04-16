@@ -10,7 +10,7 @@ class ConsoleTest extends AbstractConsoleTest {
         then:
         defaultConsole.output.is(AnsiConsole.out())
         defaultConsole.error.is(System.err)
-        defaultConsole.terminal.getType() == 'dumb'
+        defaultConsole.terminal.getType().startsWith('dumb')
     }
 
     def "closing"() {

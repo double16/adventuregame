@@ -117,7 +117,7 @@ class EngineCacheTest extends Specification {
         given:
         List<Engine> engines = []
         engines << cache.get(storyRepository.save(new Story(worldRepository.findByName(YamlUniverseRegistry.TRAILER_PARK).first())).id)
-        engines << cache.get(storyRepository.save(new Story(worldRepository.findByName(YamlUniverseRegistry.MIDDLE_EARTH).first())).id)
+        engines << cache.get(storyRepository.save(new Story(worldRepository.findByName(YamlUniverseRegistry.THE_HOBBIT).first())).id)
         List<LocalDateTime> modified = engines.collect { it.story.modified }
 
         when:
@@ -138,7 +138,7 @@ class EngineCacheTest extends Specification {
         cache.ttl = Duration.of(100, ChronoUnit.MILLIS)
         List<Story> stories = []
         stories << storyRepository.saveAndFlush(new Story(worldRepository.findByName(YamlUniverseRegistry.TRAILER_PARK).first()))
-        stories << storyRepository.saveAndFlush(new Story(worldRepository.findByName(YamlUniverseRegistry.MIDDLE_EARTH).first()))
+        stories << storyRepository.saveAndFlush(new Story(worldRepository.findByName(YamlUniverseRegistry.THE_HOBBIT).first()))
         List<LocalDateTime> modified = stories.collect { it.modified }
         when:
         cache.get(stories[1].id).with { Engine e ->
@@ -156,7 +156,7 @@ class EngineCacheTest extends Specification {
         given:
         List<Engine> engines = []
         engines << cache.get(storyRepository.save(new Story(worldRepository.findByName(YamlUniverseRegistry.TRAILER_PARK).first())).id)
-        engines << cache.get(storyRepository.save(new Story(worldRepository.findByName(YamlUniverseRegistry.MIDDLE_EARTH).first())).id)
+        engines << cache.get(storyRepository.save(new Story(worldRepository.findByName(YamlUniverseRegistry.THE_HOBBIT).first())).id)
         List<LocalDateTime> modified = engines.collect { it.story.modified }
 
         when:

@@ -9,8 +9,6 @@ import org.patdouble.adventuregame.storage.jpa.Constants
 
 import javax.persistence.CascadeType
 import javax.persistence.Entity
-import javax.persistence.GeneratedValue
-import javax.persistence.GenerationType
 import javax.persistence.Id
 import javax.persistence.ManyToOne
 import javax.persistence.OneToOne
@@ -22,8 +20,8 @@ import javax.persistence.OneToOne
 @Entity
 @CompileDynamic
 class Player implements Temporal {
-    @Id @GeneratedValue(strategy = GenerationType.AUTO)
-    UUID id
+    @Id
+    UUID id = UUID.randomUUID()
 
     Motivator motivator
     @Delegate(excludes = [ 'clone', 'id' ])

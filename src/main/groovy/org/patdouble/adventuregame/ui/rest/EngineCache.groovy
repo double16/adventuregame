@@ -3,11 +3,13 @@ package org.patdouble.adventuregame.ui.rest
 import groovy.transform.CompileDynamic
 import groovy.transform.CompileStatic
 import org.patdouble.adventuregame.engine.Engine
+import org.patdouble.adventuregame.model.World
 import org.patdouble.adventuregame.state.Story
 import org.patdouble.adventuregame.storage.jpa.StoryRepository
+import org.patdouble.adventuregame.storage.jpa.WorldRepository
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
-import org.springframework.messaging.simp.SimpMessagingTemplate
+import org.springframework.messaging.simp.SimpMessageSendingOperations
 import org.springframework.stereotype.Component
 import org.springframework.web.server.ResponseStatusException
 
@@ -54,9 +56,11 @@ class EngineCache {
     /** Automatically move through the lifecycle. */
     boolean autoLifecycle = true
     @Autowired
+    WorldRepository worldRepository
+    @Autowired
     StoryRepository storyRepository
     @Autowired(required = false)
-    SimpMessagingTemplate simpMessagingTemplate
+    SimpMessageSendingOperations simpMessagingTemplate
 
     private final ConcurrentMap<UUID, Value> map = new ConcurrentHashMap<>()
 
@@ -72,6 +76,14 @@ class EngineCache {
         }
     }
 
+    private Engine configure(Engine engine) {
+        if (simpMessagingTemplate != null) {
+            engine.subscribe(new EngineFlowToSpringMessagingAdapter(engine.story.id, simpMessagingTemplate))
+        }
+        engine.autoLifecycle = this.autoLifecycle
+        engine
+    }
+
     /**
      * Get an engine for the story.
      * @param storyId the ID of the story.
@@ -85,11 +97,7 @@ class EngineCache {
             if (story.get().ended) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, 'Story is ended')
             }
-            Engine engine = new Engine(story.get())
-            if (simpMessagingTemplate != null) {
-                engine.subscribe(new EngineFlowToSpringMessagingAdapter(engine.story.id, simpMessagingTemplate))
-            }
-            engine.autoLifecycle = this.autoLifecycle
+            Engine engine = configure(new Engine(story.get()))
             engine.init()
             if (engine.story.chronos.current > 0) {
                 engine.start()
@@ -98,6 +106,21 @@ class EngineCache {
         }
         v.touch()
         v.engine
+    }
+
+    /**
+     * Create a new story.
+     */
+    Engine create(World world) {
+        // We need the World loaded by our repository
+        world = worldRepository.findById(world.id).orElseThrow()
+        Story story = storyRepository.saveAndFlush(new Story(world))
+        Objects.requireNonNull(story.id)
+        Engine engine = configure(new Engine(story))
+        engine.init()
+        storyRepository.saveAndFlush(story)
+        map.put(story.id, new Value(engine))
+        engine
     }
 
     void clear() {
@@ -115,6 +138,7 @@ class EngineCache {
         map.values().each { Value v ->
             storyRepository.save(v.engine.story)
         }
+        storyRepository.flush()
     }
 
     int size() {

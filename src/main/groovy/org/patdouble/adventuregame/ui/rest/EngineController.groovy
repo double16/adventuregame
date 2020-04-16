@@ -2,20 +2,23 @@ package org.patdouble.adventuregame.ui.rest
 
 import groovy.transform.CompileDynamic
 import org.patdouble.adventuregame.engine.Engine
+import org.patdouble.adventuregame.flow.PlayerNotification
+import org.patdouble.adventuregame.flow.RequestCreated
+import org.patdouble.adventuregame.flow.StoryMessage
 import org.patdouble.adventuregame.model.World
 import org.patdouble.adventuregame.state.Motivator
 import org.patdouble.adventuregame.state.Player
-import org.patdouble.adventuregame.state.Story
 import org.patdouble.adventuregame.state.request.PlayerRequest
-import org.patdouble.adventuregame.storage.jpa.StoryRepository
 import org.patdouble.adventuregame.storage.jpa.WorldRepository
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.messaging.handler.annotation.DestinationVariable
 import org.springframework.messaging.handler.annotation.MessageMapping
 import org.springframework.messaging.handler.annotation.Payload
 import org.springframework.messaging.handler.annotation.SendTo
-import org.springframework.messaging.simp.SimpMessagingTemplate
+import org.springframework.messaging.simp.SimpMessageSendingOperations
+import org.springframework.messaging.simp.annotation.SubscribeMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
@@ -28,7 +31,7 @@ import org.springframework.web.server.ResponseStatusException
 @RestController
 @CompileDynamic
 @RequestMapping('/api/engine')
-@MessageMapping('/engine')
+@MessageMapping//('/engine')
 @SuppressWarnings('Instanceof')
 class EngineController {
     @Autowired
@@ -36,9 +39,7 @@ class EngineController {
     @Autowired
     WorldRepository worldRepository
     @Autowired
-    StoryRepository storyRepository
-    @Autowired
-    SimpMessagingTemplate simpMessagingTemplate
+    SimpMessageSendingOperations simpMessagingTemplate
 
     @MessageMapping('/createstory')
     @SendTo('/topic/storyurl')
@@ -50,7 +51,7 @@ class EngineController {
     CreateStoryResponse createStory(@Payload @RequestBody CreateStoryRequest request) {
         World world = null
         if (request.worldId) {
-            world = worldRepository.findById(UUID.fromString(request.worldId)).get()
+            world = worldRepository.findById(UUID.fromString(request.worldId.split('/').last())).get()
         }
         if (request.worldName && !world) {
             world = worldRepository.findByName(request.worldName).first()
@@ -58,13 +59,14 @@ class EngineController {
         if (!world) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "World ${request} not found")
         }
-        Story story = new Story(world)
-        Engine engine = new Engine(story)
-        engine.autoLifecycle = true
-        engine.init()
-        storyRepository.save(story)
-        Objects.requireNonNull(story.id)
-        new CreateStoryResponse(storyUri: "/play/${story.id}")
+        Engine engine = engineCache.create(world)
+        new CreateStoryResponse(storyUri: "/play/${engine.story.id}")
+    }
+
+    @SubscribeMapping('/story.{storyId}')
+    List<StoryMessage> subscribe(@DestinationVariable('storyId') String storyId) {
+        Engine engine = requireEngine(storyId)
+        engine.story.requests.collect { new RequestCreated(it) } + engine.story.cast.collect { new PlayerNotification(it) }
     }
 
     @MessageMapping('/action')
@@ -80,7 +82,6 @@ class EngineController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Player ${actionRequest.playerId} not found")
         }
         engine.action(player, actionRequest.statement)
-        storyRepository.save(engine.story)
     }
 
     @MessageMapping('/addtocast')
@@ -105,7 +106,6 @@ class EngineController {
             player.nickName = request.nickName
         }
         engine.addToCast(player)
-        storyRepository.save(engine.story)
         Player savedPlayer = engine.story.cast.find { it == player }
         Objects.requireNonNull(savedPlayer?.id)
         new AddToCastResponse(playerUri: "/play/${engine.story.id}/${savedPlayer.id}")
@@ -124,7 +124,6 @@ class EngineController {
             .each {
                 engine.ignore(it as PlayerRequest)
             }
-        storyRepository.save(engine.story)
     }
 
     @MessageMapping('/start')
@@ -135,7 +134,7 @@ class EngineController {
             produces = MediaType.APPLICATION_JSON_VALUE)
     void start(@Payload @RequestBody StartRequest request) {
         Engine engine = requireEngine(request.storyId)
-        engine.start()
+        engine.start(Motivator.AI)
     }
 
     private Engine requireEngine(storyId) throws ResponseStatusException {
