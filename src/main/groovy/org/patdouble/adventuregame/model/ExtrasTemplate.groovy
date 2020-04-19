@@ -8,8 +8,6 @@ import org.patdouble.adventuregame.state.Player
 import org.patdouble.adventuregame.storage.jpa.Constants
 
 import javax.persistence.Entity
-import javax.persistence.GeneratedValue
-import javax.persistence.GenerationType
 import javax.persistence.Id
 
 /**
@@ -20,8 +18,8 @@ import javax.persistence.Id
 @Entity
 @CompileDynamic
 class ExtrasTemplate implements CharacterTrait {
-    @Id @GeneratedValue(strategy = GenerationType.AUTO)
-    UUID id
+    @Id
+    UUID id = UUID.randomUUID()
 
     /** The number of extras. */
     int quantity = 1
@@ -47,6 +45,6 @@ class ExtrasTemplate implements CharacterTrait {
 
     @Override
     String toString() {
-        "ExtrasTemplate: ${persona.toString()}, nick ${nickName}, full ${fullName}, room ${room.id}, qty ${quantity}"
+        "ExtrasTemplate: ${persona.toString()}, nick ${nickName}, full ${fullName}, room ${room.modelId}, qty ${quantity}"
     }
 }

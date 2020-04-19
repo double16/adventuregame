@@ -23,7 +23,7 @@ class HumanPlayerGoTest extends AbstractPlayerTest {
         then:
         success
         warrior.chronos == 1
-        warrior.room.id == 'trailer_2'
+        warrior.room.modelId == 'trailer_2'
         !story.requests.find { it instanceof ActionRequest && it.player == warrior }
         and:
         1 * storySubscriber.onNext(new PlayerChanged(warrior, 1))
@@ -40,7 +40,7 @@ class HumanPlayerGoTest extends AbstractPlayerTest {
         then:
         success
         warrior.chronos == 1
-        warrior.room.id == 'trailer_2'
+        warrior.room.modelId == 'trailer_2'
         !story.requests.find { it instanceof ActionRequest && it.player == warrior }
         and:
         1 * storySubscriber.onNext(new PlayerChanged(warrior, 1))
@@ -50,7 +50,7 @@ class HumanPlayerGoTest extends AbstractPlayerTest {
     def "multiple go directions - abbreviated"() {
         given:
         engine.start()
-        warrior.room = story.world.rooms.find { it.id == 'dump' }
+        warrior.room = story.world.rooms.find { it.modelId == 'dump' }
 
         when:
         boolean success = engine.action(warrior, 'go d')
@@ -58,7 +58,7 @@ class HumanPlayerGoTest extends AbstractPlayerTest {
         then:
         !success
         warrior.chronos == 0
-        warrior.room.id == 'dump'
+        warrior.room.modelId == 'dump'
         story.requests.find { it instanceof ActionRequest && it.player == warrior }
         and:
         0 * storySubscriber.onNext(new PlayerChanged(warrior, 1))
@@ -75,7 +75,7 @@ class HumanPlayerGoTest extends AbstractPlayerTest {
         then:
         !success
         warrior.chronos == 0
-        warrior.room.id == 'entrance'
+        warrior.room.modelId == 'entrance'
         story.requests.find { it instanceof ActionRequest && it.player == warrior }
         and:
         0 * storySubscriber.onNext(new PlayerChanged(warrior, 1))
@@ -87,7 +87,7 @@ class HumanPlayerGoTest extends AbstractPlayerTest {
         then:
         !success
         warrior.chronos == 0
-        warrior.room.id == 'entrance'
+        warrior.room.modelId == 'entrance'
         story.requests.find { it instanceof ActionRequest && it.player == warrior }
         and:
         0 * storySubscriber.onNext(new PlayerChanged(warrior, 1))
@@ -99,7 +99,7 @@ class HumanPlayerGoTest extends AbstractPlayerTest {
         then:
         !success
         warrior.chronos == 0
-        warrior.room.id == 'entrance'
+        warrior.room.modelId == 'entrance'
         story.requests.find { it instanceof ActionRequest && it.player == warrior }
         and:
         0 * storySubscriber.onNext(new PlayerChanged(warrior, 1))
@@ -118,8 +118,8 @@ class HumanPlayerGoTest extends AbstractPlayerTest {
         then:
         warrior.chronos == 1
         thief.chronos == 1
-        warrior.room.id == 'trailer_2'
-        thief.room.id == 'trailer_2'
+        warrior.room.modelId == 'trailer_2'
+        thief.room.modelId == 'trailer_2'
         !story.requests.find { it instanceof ActionRequest && it.chronos == 1 }
         story.requests.findAll { it instanceof ActionRequest && it.chronos == 2 }.size() == 2
         with(story.requests.find { it instanceof ActionRequest && it.player == warrior }) {

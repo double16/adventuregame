@@ -223,7 +223,7 @@ class EngineControllerStompTest extends Specification {
         ))
 
         then:
-        warrior.room.id == 'trailer_2'
+        warrior.room.modelId == 'trailer_2'
         and:
         pollMessages(POLL_TIMEOUT, TimeUnit.SECONDS)
                 .collect { it.second }

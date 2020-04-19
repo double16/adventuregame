@@ -2,6 +2,7 @@ package org.patdouble.adventuregame.state
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import groovy.transform.AutoClone
+import groovy.transform.AutoCloneStyle
 import groovy.transform.CompileDynamic
 import org.patdouble.adventuregame.model.Persona
 import org.patdouble.adventuregame.model.Room
@@ -16,7 +17,7 @@ import javax.persistence.OneToOne
 /**
  * Models the player's attributes and current state.
  */
-@AutoClone(excludes = [Constants.COL_ID])
+@AutoClone(excludes = [Constants.COL_ID], style = AutoCloneStyle.COPY_CONSTRUCTOR)
 @Entity
 @CompileDynamic
 class Player implements Temporal {
@@ -42,7 +43,6 @@ class Player implements Temporal {
         this.motivator = motivator
         this.nickName = nickName
         this.persona = persona.clone()
-        this.persona.id = null
     }
 
     @JsonIgnore

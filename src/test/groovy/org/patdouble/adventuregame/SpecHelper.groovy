@@ -10,7 +10,6 @@ class SpecHelper {
         while (retries-- > 1) {
             try {
                 assertions.call()
-                return
             } catch (Exception | AssertionError e) {
                 // eat exceptions
                 // System.out.println "Assertion failure, retrying: ${e.toString()}"

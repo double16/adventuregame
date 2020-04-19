@@ -27,7 +27,7 @@ class JpaWorldLoader {
         return { args ->
             yamlUniverseRegistry.worlds.each { World world ->
                 if (!worldRepository.findByName(world.name)) {
-                    World saved = worldRepository.save(world)
+                    World saved = worldRepository.saveAndFlush(world)
                     JpaWorldLoader.log.info "Add world \"${saved.name}\" with ID ${saved.id}"
                 }
             }

@@ -7,8 +7,6 @@ import org.patdouble.adventuregame.storage.jpa.Constants
 
 import javax.persistence.CascadeType
 import javax.persistence.Entity
-import javax.persistence.GeneratedValue
-import javax.persistence.GenerationType
 import javax.persistence.Id
 import javax.persistence.ManyToOne
 import javax.persistence.OneToMany
@@ -20,12 +18,12 @@ import javax.persistence.OneToMany
 @EqualsAndHashCode(excludes = [Constants.COL_ID])
 @CompileDynamic
 class History {
-    @Id @GeneratedValue(strategy = GenerationType.AUTO)
-    UUID id
+    @Id
+    UUID id = UUID.randomUUID()
 
     @ManyToOne
     World world
-    @OneToMany(cascade = CascadeType.ALL)
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     List<Event> events = []
 
     History() { }

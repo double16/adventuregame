@@ -3,6 +3,10 @@ package org.patdouble.adventuregame.engine
 import org.patdouble.adventuregame.flow.StoryEnded
 import org.patdouble.adventuregame.state.Motivator
 
+import java.time.Duration
+
+import static org.patdouble.adventuregame.SpecHelper.wait
+
 class HumanPlayerGoalTest extends AbstractPlayerTest {
     @Override
     Motivator getDefaultMotivator() {
@@ -21,7 +25,7 @@ class HumanPlayerGoalTest extends AbstractPlayerTest {
         engine.action(warrior, 'go east')
 
         then:
-        warrior.room.id == 'trailer_4'
+        warrior.room.modelId == 'trailer_4'
         and:
         engine.story.goals.find { it.goal.name == 'one' }.fulfilled
         engine.story.goals.find { it.goal.name == 'two' }.fulfilled

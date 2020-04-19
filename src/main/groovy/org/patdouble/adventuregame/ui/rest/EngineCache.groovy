@@ -13,6 +13,8 @@ import org.springframework.messaging.simp.SimpMessageSendingOperations
 import org.springframework.stereotype.Component
 import org.springframework.web.server.ResponseStatusException
 
+import javax.persistence.EntityManager
+import javax.persistence.PersistenceContext
 import javax.validation.constraints.NotNull
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
@@ -59,6 +61,8 @@ class EngineCache {
     WorldRepository worldRepository
     @Autowired
     StoryRepository storyRepository
+    @PersistenceContext
+    EntityManager entityManager
     @Autowired(required = false)
     SimpMessageSendingOperations simpMessagingTemplate
 
@@ -112,13 +116,11 @@ class EngineCache {
      * Create a new story.
      */
     Engine create(World world) {
-        // We need the World loaded by our repository
-        world = worldRepository.findById(world.id).orElseThrow()
-        Story story = storyRepository.saveAndFlush(new Story(world))
+        Story story = storyRepository.save(new Story(world))
         Objects.requireNonNull(story.id)
         Engine engine = configure(new Engine(story))
         engine.init()
-        storyRepository.saveAndFlush(story)
+        engine.story = storyRepository.saveAndFlush(story)
         map.put(story.id, new Value(engine))
         engine
     }
@@ -136,7 +138,8 @@ class EngineCache {
 
     void sweep() {
         map.values().each { Value v ->
-            storyRepository.save(v.engine.story)
+//            entityManager.merge(v.engine.story)
+            v.engine.story = storyRepository.save(v.engine.story)
         }
         storyRepository.flush()
     }
@@ -155,9 +158,11 @@ class EngineCache {
             Value v = i.next()
             // remove it before we start closing so no one else will use it
             i.remove()
-            storyRepository.save(v.engine.story)
+//            entityManager.merge(v.engine.story)
+            v.engine.story = storyRepository.save(v.engine.story)
             v.engine.close()
         }
+        storyRepository.flush()
     }
 
     private void scheduleSweep() {

@@ -152,11 +152,11 @@ class WorldYamlStorage {
             String roomId = roomMap.key
             Map<String, Object> data = (Map<String, Object>) roomMap.value
             Room room = new Room()
-            room.id = roomId
+            room.modelId = roomId
             room.name = data.get(KEY_NAME) as String
             room.description = data.get(KEY_DESCRIPTION) as String
             if (room.name == null) {
-                room.name = room.id.replaceAll(/[_-]+/, ' ').replaceAll(/\b([a-z])/) { it[1].toUpperCase() }
+                room.name = room.modelId.replaceAll(/[_-]+/, ' ').replaceAll(/\b([a-z])/) { it[1].toUpperCase() }
             }
             world.rooms.add(room)
         }

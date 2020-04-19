@@ -7,21 +7,19 @@ import org.patdouble.adventuregame.model.Goal
 import org.patdouble.adventuregame.storage.jpa.Constants
 
 import javax.persistence.Entity
-import javax.persistence.GeneratedValue
-import javax.persistence.GenerationType
 import javax.persistence.Id
 import javax.persistence.ManyToOne
 
 /**
  * Tracks fulfillment of a {@link Goal}.
  */
-@Canonical(excludes = [Constants.COL_ID])
+@Canonical(excludes = [Constants.COL_ID], includePackage = false)
 @Entity
 @PropertyReactive
 @CompileDynamic
 class GoalStatus {
-    @Id @GeneratedValue(strategy = GenerationType.AUTO)
-    UUID id
+    @Id
+    UUID id = UUID.randomUUID()
     @ManyToOne
     Goal goal
     boolean fulfilled

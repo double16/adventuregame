@@ -125,7 +125,6 @@ class EngineCacheTest extends Specification {
             e.addToCast(e.story.requests.find { it instanceof PlayerRequest }.template.createPlayer(Motivator.HUMAN))
         }
         cache.clear()
-        cache.storyRepository.flush()
 
         then:
         engines[0].story.modified > modified[0]

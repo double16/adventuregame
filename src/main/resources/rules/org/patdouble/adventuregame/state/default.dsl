@@ -8,5 +8,5 @@
 [then]log {message}=log.info({message});
 
 [when]Story Goal "{name}"=$goal : GoalStatus(goal.name == "{name}", getFulfilled() == false)
-[when]player enters room "{room_id}"=Player(room.id == "{room_id}")
+[when]player enters room "{room_id}"=Player(room.modelId == "{room_id}")
 [then]goal is fulfilled=modify($goal) { setFulfilled(true) }

@@ -2,6 +2,7 @@ package org.patdouble.adventuregame.engine
 
 import groovy.transform.CompileDynamic
 import groovy.util.logging.Slf4j
+import org.apache.maven.lifecycle.MissingProjectException
 import org.drools.core.common.InternalAgenda
 import org.kie.api.KieServices
 import org.kie.api.runtime.KieContainer
@@ -55,7 +56,7 @@ class Engine implements Closeable {
     @SuppressWarnings('ThreadGroup')
     final static ThreadGroup KIE_THREAD_GROUP = new ThreadGroup('kie-sessions')
 
-    final Story story
+    Story story
     final Locale locale = Locale.ENGLISH
     final ActionStatementParser actionStatementParser
     final Bundles bundles
@@ -73,13 +74,11 @@ class Engine implements Closeable {
     private KieSession kieSession
     private FactHandle chronosHandle
     private FactHandle storyStateHandle
+    private Map<UUID, FactHandle> handles = [:]
 
     Engine(Story story, Executor executor = null) {
         this.story = story
-        this.executor = executor
-        if (this.executor == null) {
-            this.executor = ForkJoinPool.commonPool()
-        }
+        this.executor = executor ?: ForkJoinPool.commonPool()
         this.publisher = new SubmissionPublisher<>(this.executor, Flow.defaultBufferSize())
         actionStatementParser = new ActionStatementParser(locale)
         bundles = Bundles.get(locale)
@@ -204,12 +203,7 @@ class Engine implements Closeable {
 
         story.ended = true
         syncStoryState()
-        if (kieSession != null) {
-            story.requests
-                .collect { kieSession.getFactHandle(it) }
-                .findAll()
-                .each { kieSession.delete(it) }
-        }
+        removeKieObjects(story.requests)
         story.requests.clear()
         publisher.submit(new StoryEnded())
     }
@@ -242,7 +236,7 @@ class Engine implements Closeable {
      * @param max the maximum amount of time to wait
      */
     void waitForFiringFinish(Duration max) {
-        long end = System.currentTimeMillis() + max.get(ChronoUnit.MILLIS)
+        long end = System.currentTimeMillis() + max.toMillis()
         while (isFiring() && !Thread.interrupted() && System.currentTimeMillis() < end) {
             try {
                 Thread.sleep(200)
@@ -315,9 +309,7 @@ class Engine implements Closeable {
                 kieSession.update(kieSession.getFactHandle(player), player)
                 if (actionRequest) {
                     story.requests.remove(actionRequest)
-                    Optional.ofNullable(kieSession.getFactHandle(actionRequest)).ifPresent {
-                        kieSession.delete(it)
-                    }
+                    removeKieObject(actionRequest)
                     Objects.requireNonNull(actionRequest.id)
                     publisher.submit(new RequestSatisfied(actionRequest))
                 }
@@ -350,6 +342,75 @@ class Engine implements Closeable {
     }
 
     /**
+     * Replace story object, which is expected to happen due to persistence behavior. This is NOT intended to change the
+     * content of the story, only the objects involved.
+     */
+    void setStory(Story story) {
+        Objects.requireNonNull(story)
+        if (story.is(this.story)) {
+            return
+        }
+        // FIXME: lock the engine
+        this.story = story
+        if (kieSession != null) {
+            populateKieSession()
+            syncStoryState()
+        }
+    }
+
+    private void addOrReplaceKieObject(object) {
+        Objects.requireNonNull(kieSession, 'KIE session not initialized')
+        try {
+            UUID id = object.id
+            if (id) {
+                FactHandle handle = handles.get(id)
+                if (handle) {
+                    kieSession.update(handle, object)
+                } else {
+                    handles.put(id, kieSession.insert(object))
+                }
+            } else {
+                throw new IllegalStateException("Transient object ${object} requested to add to the KIE session")
+            }
+        } catch (MissingProjectException e) {
+            throw new IllegalStateException("Object ${object} requested to add to the KIE session but has no 'id' property", e)
+        }
+    }
+
+    private void addOrReplaceKieObjects(Object ... objects) {
+        objects.flatten().each { addOrReplaceKieObject(it) }
+    }
+
+    private void removeKieObject(object) {
+        if (kieSession == null) {
+            return
+        }
+        try {
+            UUID id = object.id
+            if (id) {
+                FactHandle handle = handles.get(id)
+                if (handle) {
+                    kieSession.delete(handle)
+                    handles.remove(id)
+                } else {
+                    throw new IllegalStateException("Object ${object} requested to remove from the KIE session but not FactHandle found")
+                }
+            } else {
+                throw new IllegalStateException("Transient object ${object} requested to remove from the KIE session")
+            }
+        } catch (MissingPropertyException e) {
+            throw new IllegalStateException("Object ${object} requested to remove from the KIE session but has no 'id' property", e)
+        }
+    }
+
+    private void removeKieObjects(Object ... objects) {
+        if (kieSession == null) {
+            return
+        }
+        objects.flatten().each { removeKieObject(it) }
+    }
+
+    /**
      * Initialize the facts in the KIE session from the story.
      */
     private void initKieSession() {
@@ -357,10 +418,12 @@ class Engine implements Closeable {
         kieSession.setGlobal('engine', new EngineFacade(this))
         chronosHandle = kieSession.insert(story.chronos)
         storyStateHandle = kieSession.insert(new StoryState(story))
-        story.world.rooms.each { kieSession.insert(it) }
-        story.cast.each { kieSession.insert(it) }
-        story.requests.each { kieSession.insert(it) }
-        story.goals.each { kieSession.insert(it) }
+        populateKieSession()
+    }
+
+    private void populateKieSession() {
+        syncStoryState()
+        addOrReplaceKieObjects(story.world.rooms, story.cast, story.requests, story.goals)
     }
 
     private void startRuleEngine() {
@@ -451,8 +514,7 @@ class Engine implements Closeable {
             request.actions.addAll(actionStatementParser.availableActions)
             request.directions.addAll(player.room.neighbors.keySet().sort())
             story.requests.add(request)
-            kieSession.insert(request)
-            Objects.requireNonNull(request.id)
+            addOrReplaceKieObject(request)
             publisher.submit(new RequestCreated(request))
         }
     }

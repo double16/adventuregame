@@ -40,18 +40,18 @@ class Story {
     /** The world from which this stage was set. */
     @ManyToOne(cascade = CascadeType.MERGE)
     World world
-    @OneToMany(cascade = CascadeType.ALL)
-    Collection<Player> cast = []
-    @OneToMany(cascade = CascadeType.ALL)
-    Collection<GoalStatus> goals = []
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    List<Player> cast = []
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    List<GoalStatus> goals = []
     @Embedded
     Chronos chronos
     /** True if the story has ended. */
     boolean ended
     @OneToOne(cascade = CascadeType.ALL)
     History history
-    @OneToMany(cascade = CascadeType.ALL)
-    Collection<Request> requests = []
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    List<Request> requests = []
     @CreationTimestamp
     @SuppressWarnings('Unused')
     LocalDateTime created

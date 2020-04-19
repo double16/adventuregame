@@ -21,7 +21,7 @@ class HumanPlayerWaitTest extends AbstractPlayerTest {
         then:
         success
         warrior.chronos == 1
-        warrior.room.id == 'entrance'
+        warrior.room.modelId == 'entrance'
         !story.requests.find { it instanceof ActionRequest && it.player == warrior }
         and:
         0 * storySubscriber.onNext(new PlayerChanged(warrior, 1))
@@ -39,8 +39,8 @@ class HumanPlayerWaitTest extends AbstractPlayerTest {
         then:
         warrior.chronos == 1
         thief.chronos == 1
-        warrior.room.id == 'entrance'
-        thief.room.id == 'entrance'
+        warrior.room.modelId == 'entrance'
+        thief.room.modelId == 'entrance'
         !story.requests.find { it instanceof ActionRequest && it.chronos == 1 }
         story.requests.findAll { it instanceof ActionRequest && it.chronos == 2 }.size() == 2
         with(story.requests.find { it instanceof ActionRequest && it.player == warrior }) {

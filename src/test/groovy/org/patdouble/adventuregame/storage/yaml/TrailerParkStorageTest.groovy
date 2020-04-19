@@ -39,7 +39,7 @@ class TrailerParkStorageTest extends Specification {
         shadowblow.fullName == 'Shadowblow the Hammer'
         shadowblow.persona.name == 'warrior'
         shadowblow.quantity == 1..1
-        shadowblow.room.id == 'entrance'
+        shadowblow.room.modelId == 'entrance'
 
         and: 'Victor'
         PlayerTemplate victor = world.players.find { it.nickName == 'Victor' }
@@ -47,7 +47,7 @@ class TrailerParkStorageTest extends Specification {
         victor.fullName == 'Victor the Spider'
         victor.persona.name == 'thief'
         victor.quantity == 1..1
-        victor.room.id == 'entrance'
+        victor.room.modelId == 'entrance'
 
         and: 'thug players'
         PlayerTemplate thugPlayer = world.players.find { it.persona.name == 'thug' }
@@ -55,7 +55,7 @@ class TrailerParkStorageTest extends Specification {
         thugPlayer.fullName == null
         thugPlayer.persona.name == 'thug'
         thugPlayer.quantity == 0..10
-        thugPlayer.room.id == 'dump'
+        thugPlayer.room.modelId == 'dump'
 
         and: 'extras'
         world.extras.size() == 2
@@ -66,7 +66,7 @@ class TrailerParkStorageTest extends Specification {
         thugExtra.fullName == 'Thug'
         thugExtra.persona.name == 'thug'
         thugExtra.quantity == 5
-        thugExtra.room.id == 'dump'
+        thugExtra.room.modelId == 'dump'
 
         and: 'thug extras in entrance'
         ExtrasTemplate thugExtra2 = world.extras.findAll { it.persona.name == 'thug' }[1]
@@ -74,69 +74,69 @@ class TrailerParkStorageTest extends Specification {
         thugExtra2.fullName == 'Thug'
         thugExtra2.persona.name == 'thug'
         thugExtra2.quantity == 3
-        thugExtra2.room.id == 'entrance'
+        thugExtra2.room.modelId == 'entrance'
 
         and: 'room count'
         world.rooms.size() == 6
 
         and: 'room entrance'
-        Room rEntrance = world.rooms.find { it.id == 'entrance' }
-        rEntrance.id == 'entrance'
+        Room rEntrance = world.rooms.find { it.modelId == 'entrance' }
+        rEntrance.modelId == 'entrance'
         rEntrance.description == 'The entrance to the trailer park has a broken gate and a cluster of mail boxes.'
         rEntrance.getNeighbors().size() == 1
         Room rEntranceNorth = rEntrance.getNeighbors().get(Direction.NORTH.name().toLowerCase())
-        rEntranceNorth.id == 'trailer_2'
+        rEntranceNorth.modelId == 'trailer_2'
 
         and: 'room trailer_1'
-        Room rTrailer1 = world.rooms.find { it.id == 'trailer_1' }
-        rTrailer1.id == 'trailer_1'
+        Room rTrailer1 = world.rooms.find { it.modelId == 'trailer_1' }
+        rTrailer1.modelId == 'trailer_1'
         rTrailer1.description == 'Trailer 1'
         rTrailer1.getNeighbors().size() == 1
         Room rTrailer2From1 = rTrailer1.getNeighbors().get(Direction.EAST.name().toLowerCase())
-        rTrailer2From1.id == 'trailer_2'
+        rTrailer2From1.modelId == 'trailer_2'
 
         and: 'room trailer_2'
-        Room rTrailer2 = world.rooms.find { it.id == 'trailer_2' }
-        rTrailer2.id == 'trailer_2'
+        Room rTrailer2 = world.rooms.find { it.modelId == 'trailer_2' }
+        rTrailer2.modelId == 'trailer_2'
         rTrailer2.name == 'Trailer 2'
         rTrailer2.description == 'Trailer 2'
         rTrailer2.getNeighbors().size() == 3
         Room rEntranceFrom2 = rTrailer2.getNeighbors().get(Direction.SOUTH.name().toLowerCase())
-        rEntranceFrom2.id == 'entrance'
+        rEntranceFrom2.modelId == 'entrance'
         Room rTrailer1From2 = rTrailer2.getNeighbors().get(Direction.WEST.name().toLowerCase())
-        rTrailer1From2.id == 'trailer_1'
+        rTrailer1From2.modelId == 'trailer_1'
         Room rTrailer3From2 = rTrailer2.getNeighbors().get(Direction.EAST.name().toLowerCase())
-        rTrailer3From2.id == 'trailer_3'
+        rTrailer3From2.modelId == 'trailer_3'
 
         and: 'room trailer_3'
-        Room rTrailer3 = world.rooms.find { it.id == 'trailer_3' }
-        rTrailer3.id == 'trailer_3'
+        Room rTrailer3 = world.rooms.find { it.modelId == 'trailer_3' }
+        rTrailer3.modelId == 'trailer_3'
         rTrailer3.description == 'Trailer 3'
         rTrailer3.getNeighbors().size() == 2
         Room rTrailer2From3 = rTrailer3.getNeighbors().get(Direction.WEST.name().toLowerCase())
-        rTrailer2From3.id == 'trailer_2'
+        rTrailer2From3.modelId == 'trailer_2'
         Room rTrailer4From3 = rTrailer3.getNeighbors().get(Direction.EAST.name().toLowerCase())
-        rTrailer4From3.id == 'trailer_4'
+        rTrailer4From3.modelId == 'trailer_4'
 
         and: 'room trailer_4'
-        Room rTrailer4 = world.rooms.find { it.id == 'trailer_4' }
-        rTrailer4.id == 'trailer_4'
+        Room rTrailer4 = world.rooms.find { it.modelId == 'trailer_4' }
+        rTrailer4.modelId == 'trailer_4'
         rTrailer4.description == 'Trailer 4'
         rTrailer4.getNeighbors().size() == 2
         Room rTrailer3From4 = rTrailer4.getNeighbors().get(Direction.WEST.name().toLowerCase())
-        rTrailer3From4.id == 'trailer_3'
+        rTrailer3From4.modelId == 'trailer_3'
         Room rDumpFrom4 = rTrailer4.getNeighbors().get(Direction.NORTH.name().toLowerCase())
-        rDumpFrom4.id == 'dump'
+        rDumpFrom4.modelId == 'dump'
 
         and: 'room dump'
-        Room rDump = world.rooms.find { it.id == 'dump' }
-        rDump.id == 'dump'
+        Room rDump = world.rooms.find { it.modelId == 'dump' }
+        rDump.modelId == 'dump'
         rDump.description == 'Trash Dump'
         rDump.getNeighbors().size() == 2
         Room rTrailer4FromDump = rDump.getNeighbors().get(Direction.DOWN.name().toLowerCase())
-        rTrailer4FromDump.id == 'trailer_4'
+        rTrailer4FromDump.modelId == 'trailer_4'
         Room rTrailer3FromDump = rDump.getNeighbors().get('dive')
-        rTrailer3FromDump.id == 'trailer_3'
+        rTrailer3FromDump.modelId == 'trailer_3'
 
         and: 'Goals are present'
         world.goals.size() == 3

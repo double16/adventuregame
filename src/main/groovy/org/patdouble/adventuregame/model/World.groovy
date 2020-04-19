@@ -51,6 +51,6 @@ class World {
     List<Goal> goals = []
 
     Optional<Room> findRoomById(String id) {
-        getRooms().stream().filter { it.id == id }.findFirst()
+        getRooms().stream().filter { it.modelId == id }.findFirst()
     }
 }

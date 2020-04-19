@@ -5,8 +5,6 @@ import groovy.transform.CompileDynamic
 import groovy.transform.ToString
 
 import javax.persistence.Entity
-import javax.persistence.GeneratedValue
-import javax.persistence.GenerationType
 import javax.persistence.Id
 import javax.persistence.Lob
 import javax.persistence.ManyToMany
@@ -16,13 +14,13 @@ import javax.validation.constraints.NotNull
  * A place of non-deterministic size that can hold objects and players.
  */
 @Entity
-@ToString(excludes = ['dbId', 'neighbors'])
+@ToString(excludes = ['id', 'neighbors'], includePackage = false)
 @CompileDynamic
 class Room {
-    @Id @GeneratedValue(strategy = GenerationType.AUTO)
-    UUID dbId
+    @Id
+    UUID id = UUID.randomUUID()
 
-    String id
+    String modelId
     String name
     @Lob
     String description
@@ -50,7 +48,7 @@ class Room {
 
     @Override
     int hashCode() {
-        Objects.hash(id, name)
+        Objects.hash(modelId, name)
     }
 
     @Override
@@ -60,7 +58,7 @@ class Room {
             return false
         }
         Room r2 = (Room) obj
-        if (id != r2.id) {
+        if (modelId != r2.modelId) {
             return false
         }
         if (name != r2.name) {
@@ -72,6 +70,6 @@ class Room {
         if (neighbors.keySet() != r2.neighbors.keySet()) {
             return false
         }
-        return !neighbors.any { k, v -> v.id != r2.neighbors.get(k).id }
+        return !neighbors.any { k, v -> v.modelId != r2.neighbors.get(k).modelId }
     }
 }

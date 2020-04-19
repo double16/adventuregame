@@ -33,13 +33,13 @@ class AIPlayerTest extends AbstractPlayerTest {
         engine.start()
 
         then:
-        story.cast.findAll { it.persona.name == 'thug' && it.room.id == 'entrance' }.size() == 3
-        story.cast.findAll { it.persona.name == 'thug' && it.room.id == 'dump' }.size() == 5
+        story.cast.findAll { it.persona.name == 'thug' && it.room.modelId == 'entrance' }.size() == 3
+        story.cast.findAll { it.persona.name == 'thug' && it.room.modelId == 'dump' }.size() == 5
 
         and:
-        story.roomSummary(story.world.rooms.find { it.id == 'entrance' }, warrior, engine.bundles).occupants == 'Victor the thief and 3 thugs are here with you.'
-        story.roomSummary(story.world.rooms.find { it.id == 'dump' }, warrior, engine.bundles).occupants == '5 thugs are here with you.'
-        !story.roomSummary(story.world.rooms.find { it.id == 'trailer_1' }, warrior, engine.bundles).occupants
+        story.roomSummary(story.world.rooms.find { it.modelId == 'entrance' }, warrior, engine.bundles).occupants == 'Victor the thief and 3 thugs are here with you.'
+        story.roomSummary(story.world.rooms.find { it.modelId == 'dump' }, warrior, engine.bundles).occupants == '5 thugs are here with you.'
+        !story.roomSummary(story.world.rooms.find { it.modelId == 'trailer_1' }, warrior, engine.bundles).occupants
     }
 
     def "roomSummary ai players no extras"() {
@@ -48,7 +48,7 @@ class AIPlayerTest extends AbstractPlayerTest {
         engine.start()
 
         when:
-        RoomSummary roomSummary = story.roomSummary(story.world.rooms.find { it.id == 'entrance' }, warrior, engine.bundles)
+        RoomSummary roomSummary = story.roomSummary(story.world.rooms.find { it.modelId == 'entrance' }, warrior, engine.bundles)
 
         then:
         roomSummary.name == 'Entrance'

@@ -5,6 +5,7 @@ import ch.qos.logback.classic.Logger
 import org.patdouble.adventuregame.engine.DroolsConfiguration
 import org.patdouble.adventuregame.engine.Engine
 import org.patdouble.adventuregame.state.Motivator
+import org.patdouble.adventuregame.state.Player
 import org.patdouble.adventuregame.state.Story
 import org.patdouble.adventuregame.state.request.PlayerRequest
 import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
@@ -84,7 +85,7 @@ class StoryRepositoryTest extends Specification {
         Story saveResult = storyRepository.saveAndFlush(s)
         then:
         s.id
-        saveResult.is(s)
+        saveResult == s
         s.cast.count { it.id } == 0
 
         when:

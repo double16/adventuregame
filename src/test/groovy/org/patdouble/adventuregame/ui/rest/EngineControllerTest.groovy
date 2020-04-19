@@ -208,7 +208,7 @@ class EngineControllerTest extends Specification {
 
         then:
         wait {
-            assert warrior.room.id == 'trailer_2'
+            assert warrior.room.modelId == 'trailer_2'
         }
         and:
         wait {

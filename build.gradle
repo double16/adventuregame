@@ -4,7 +4,7 @@ plugins {
     id 'groovy'
     id 'idea'
     id 'com.github.ben-manes.versions' version '0.28.0'
-    id 'ru.vyarus.quality' version '4.1.0'
+    id 'ru.vyarus.quality' version '4.2.1'
     id 'com.bmuschko.clover' version '2.2.5'
     id 'org.owasp.dependencycheck' version '5.3.2.1'
     id 'com.patdouble.cucumber-jvm' version '0.19'
@@ -52,7 +52,7 @@ dependencies {
     implementation 'org.webjars.npm:dagre:0.8.+'
     implementation 'org.webjars.npm:dagre-d3:0.6.+'
     implementation 'org.webjars.npm:axios:0.19.+'
-    implementation 'org.webjars:font-awesome:5.12.+'
+    implementation 'org.webjars:font-awesome:5.13.+'
     implementation 'org.webjars.npm:github-com-stomp-js-stompjs:5.4.+'
     implementation "org.kie:kie-spring:${droolsVersion}"
     implementation "org.kie:kie-ci:${droolsVersion}"

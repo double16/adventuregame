@@ -6,8 +6,6 @@ import org.patdouble.adventuregame.storage.jpa.Constants
 
 import javax.persistence.CascadeType
 import javax.persistence.Entity
-import javax.persistence.GeneratedValue
-import javax.persistence.GenerationType
 import javax.persistence.Id
 import javax.persistence.OneToMany
 
@@ -18,13 +16,13 @@ import javax.persistence.OneToMany
 @EqualsAndHashCode(excludes = [Constants.COL_ID])
 @CompileDynamic
 class Event {
-    @Id @GeneratedValue(strategy = GenerationType.AUTO)
-    UUID id
+    @Id
+    UUID id = UUID.randomUUID()
 
     /** Tied to the {@link Chronos} value. */
     long when
     @OneToMany(cascade = CascadeType.ALL)
-    Collection<Player> cast
+    List<Player> cast = []
 
     Event() { }
 
