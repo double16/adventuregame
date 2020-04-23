@@ -37,7 +37,6 @@ import org.patdouble.adventuregame.state.request.PlayerRequest
 import org.patdouble.adventuregame.state.request.Request
 
 import java.time.Duration
-import java.time.temporal.ChronoUnit
 import java.util.concurrent.Executor
 import java.util.concurrent.Flow
 import java.util.concurrent.ForkJoinPool
@@ -74,7 +73,7 @@ class Engine implements Closeable {
     private KieSession kieSession
     private FactHandle chronosHandle
     private FactHandle storyStateHandle
-    private Map<UUID, FactHandle> handles = [:]
+    private final Map<UUID, FactHandle> handles = [:]
 
     Engine(Story story, Executor executor = null) {
         this.story = story
@@ -100,6 +99,23 @@ class Engine implements Closeable {
         createGoalStatus()
 
         checkInitComplete()
+    }
+
+    /**
+     * Replace story object, which is expected to happen due to persistence behavior. This is NOT intended to change the
+     * content of the story, only the objects involved.
+     */
+    void setStory(Story story) {
+        Objects.requireNonNull(story)
+        if (story.is(this.story)) {
+            return
+        }
+        // FIXME: lock the engine
+        this.story = story
+        if (kieSession != null) {
+            populateKieSession()
+            syncStoryState()
+        }
     }
 
     /**
@@ -130,7 +146,7 @@ class Engine implements Closeable {
         }
         story.cast.add(player)
         Objects.requireNonNull(player.id)
-        publisher.submit(new PlayerChanged(player.clone(), 0))
+        publisher.submit(new PlayerChanged(player.cloneKeepId(), 0))
         checkInitComplete()
     }
 
@@ -161,8 +177,11 @@ class Engine implements Closeable {
             Collection<PlayerRequest> pendingPlayers = story.requests
                     .findAll { it instanceof PlayerRequest && !it.optional }
             if (!pendingPlayers.empty) {
-                String msg = bundles.requiredPlayersTemplate.make([ names: pendingPlayers*.template*.fullName ]) as String
-                publisher.submit(new Notification(bundles.text.getString('state.players_required.subject'), msg))
+                String msg = bundles.requiredPlayersTemplate
+                        .make([ names: pendingPlayers*.template*.fullName ]) as String
+                publisher.submit(new Notification(
+                        bundles.text.getString('state.players_required.subject'),
+                        msg))
                 throw new IllegalStateException(msg)
             }
         }
@@ -311,7 +330,7 @@ class Engine implements Closeable {
                     story.requests.remove(actionRequest)
                     removeKieObject(actionRequest)
                     Objects.requireNonNull(actionRequest.id)
-                    publisher.submit(new RequestSatisfied(actionRequest))
+                    publisher.submit(new RequestSatisfied(actionRequest, action))
                 }
             }
         } else {
@@ -341,23 +360,7 @@ class Engine implements Closeable {
         kieSession = kContainer.newKieSession(ksConfig)
     }
 
-    /**
-     * Replace story object, which is expected to happen due to persistence behavior. This is NOT intended to change the
-     * content of the story, only the objects involved.
-     */
-    void setStory(Story story) {
-        Objects.requireNonNull(story)
-        if (story.is(this.story)) {
-            return
-        }
-        // FIXME: lock the engine
-        this.story = story
-        if (kieSession != null) {
-            populateKieSession()
-            syncStoryState()
-        }
-    }
-
+    @SuppressWarnings(['MethodParameterTypeRequired', 'NoDef'])
     private void addOrReplaceKieObject(object) {
         Objects.requireNonNull(kieSession, 'KIE session not initialized')
         try {
@@ -381,6 +384,7 @@ class Engine implements Closeable {
         objects.flatten().each { addOrReplaceKieObject(it) }
     }
 
+    @SuppressWarnings(['MethodParameterTypeRequired', 'NoDef'])
     private void removeKieObject(object) {
         if (kieSession == null) {
             return
@@ -448,7 +452,7 @@ class Engine implements Closeable {
             story.cast.addAll(players)
             players.each {
                 Objects.requireNonNull(it.id)
-                publisher.submit(new PlayerChanged(it.clone(), 0))
+                publisher.submit(new PlayerChanged(it.cloneKeepId(), 0))
             }
         }
     }
@@ -551,7 +555,7 @@ class Engine implements Closeable {
 
         player.room = player.room.neighbors.get(candidates.first())
         Objects.requireNonNull(player.id)
-        publisher.submit(new PlayerChanged(player.clone(), story.chronos.current))
+        publisher.submit(new PlayerChanged(player.cloneKeepId(), story.chronos.current))
 
         true
     }

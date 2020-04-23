@@ -2,6 +2,7 @@ package org.patdouble.adventuregame.state
 
 import groovy.transform.CompileDynamic
 import groovy.transform.EqualsAndHashCode
+import org.hibernate.Hibernate
 import org.hibernate.annotations.CreationTimestamp
 import org.hibernate.annotations.UpdateTimestamp
 import org.patdouble.adventuregame.flow.RoomSummary
@@ -95,5 +96,21 @@ class Story {
                     .append(FULL_STOP)
         }
         new RoomSummary(chronos.current, room.name, description as String, occupants)
+    }
+
+    /**
+     * Fully initialize the entity.
+     * @param story attached entity to initialize
+     * @return the story instance
+     */
+    Story initialize() {
+        Hibernate.initialize(world)
+        world.initialize()
+        Hibernate.initialize(cast)
+        cast*.initialize()
+        Hibernate.initialize(goals)
+        Hibernate.initialize(requests)
+        requests*.initialize()
+        this
     }
 }

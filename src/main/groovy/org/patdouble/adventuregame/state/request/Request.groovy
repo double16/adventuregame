@@ -17,4 +17,8 @@ class Request {
     UUID id = UUID.randomUUID()
 
     protected Request() { }
+
+    Request initialize() {
+        this
+    }
 }

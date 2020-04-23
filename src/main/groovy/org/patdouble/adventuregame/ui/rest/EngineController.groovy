@@ -2,7 +2,8 @@ package org.patdouble.adventuregame.ui.rest
 
 import groovy.transform.CompileDynamic
 import org.patdouble.adventuregame.engine.Engine
-import org.patdouble.adventuregame.flow.PlayerNotification
+import org.patdouble.adventuregame.flow.ErrorMessage
+import org.patdouble.adventuregame.flow.PlayerChanged
 import org.patdouble.adventuregame.flow.RequestCreated
 import org.patdouble.adventuregame.flow.StoryMessage
 import org.patdouble.adventuregame.model.World
@@ -14,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.messaging.handler.annotation.DestinationVariable
+import org.springframework.messaging.handler.annotation.MessageExceptionHandler
 import org.springframework.messaging.handler.annotation.MessageMapping
 import org.springframework.messaging.handler.annotation.Payload
 import org.springframework.messaging.handler.annotation.SendTo
@@ -25,6 +27,8 @@ import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 
+import javax.transaction.Transactional
+
 /**
  * REST controller for the lifecycle of an Engine.
  */
@@ -33,6 +37,7 @@ import org.springframework.web.server.ResponseStatusException
 @RequestMapping('/api/engine')
 @MessageMapping//('/engine')
 @SuppressWarnings('Instanceof')
+@Transactional
 class EngineController {
     @Autowired
     EngineCache engineCache
@@ -40,6 +45,16 @@ class EngineController {
     WorldRepository worldRepository
     @Autowired
     SimpMessageSendingOperations simpMessagingTemplate
+
+    @SuppressWarnings('Unused')
+    @MessageExceptionHandler
+    ErrorMessage handleException(Exception e) {
+        if (e instanceof ResponseStatusException) {
+            ResponseStatusException rse = (ResponseStatusException) e
+            return new ErrorMessage(httpCode: rse.status.value(), message: rse.reason ?: rse.status.reasonPhrase)
+        }
+        return new ErrorMessage(httpCode: HttpStatus.INTERNAL_SERVER_ERROR.value(), message: e.message)
+    }
 
     @MessageMapping('/createstory')
     @SendTo('/topic/storyurl')
@@ -66,7 +81,7 @@ class EngineController {
     @SubscribeMapping('/story.{storyId}')
     List<StoryMessage> subscribe(@DestinationVariable('storyId') String storyId) {
         Engine engine = requireEngine(storyId)
-        engine.story.requests.collect { new RequestCreated(it) } + engine.story.cast.collect { new PlayerNotification(it) }
+        engine.story.requests.collect { new RequestCreated(it) } + engine.story.cast.collect { new PlayerChanged(it) }
     }
 
     @MessageMapping('/action')

@@ -3,6 +3,7 @@ package org.patdouble.adventuregame.model
 import com.fasterxml.jackson.annotation.JsonIgnore
 import groovy.transform.CompileDynamic
 import groovy.transform.ToString
+import org.hibernate.Hibernate
 
 import javax.persistence.Entity
 import javax.persistence.Id
@@ -71,5 +72,10 @@ class Room {
             return false
         }
         return !neighbors.any { k, v -> v.modelId != r2.neighbors.get(k).modelId }
+    }
+
+    Room initialize() {
+        Hibernate.initialize(neighbors)
+        this
     }
 }

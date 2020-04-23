@@ -3,6 +3,7 @@ package org.patdouble.adventuregame.ui.rest
 import org.patdouble.adventuregame.engine.Engine
 import org.patdouble.adventuregame.engine.RecordingSimpMessageTemplate
 import org.patdouble.adventuregame.flow.ChronosChanged
+import org.patdouble.adventuregame.flow.ErrorMessage
 import org.patdouble.adventuregame.flow.PlayerChanged
 import org.patdouble.adventuregame.flow.RequestSatisfied
 import org.patdouble.adventuregame.model.PersonaMocks
@@ -12,7 +13,9 @@ import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.http.HttpStatus
 import org.springframework.test.context.ContextConfiguration
+import org.springframework.web.server.ResponseStatusException
 import spock.lang.Specification
 import spock.lang.Unroll
 import static org.patdouble.adventuregame.SpecHelper.wait
@@ -220,5 +223,25 @@ class EngineControllerTest extends Specification {
                         it.second.headers['type'] == 'PlayerChanged'
             }
         }
+    }
+
+    def "handleException"() {
+        when:
+        ErrorMessage err1 = controller.handleException(new ResponseStatusException(HttpStatus.NOT_FOUND, 'Story not found'))
+        then:
+        err1.httpCode == 404
+        err1.message == 'Story not found'
+
+        when:
+        ErrorMessage err2 = controller.handleException(new ResponseStatusException(HttpStatus.CONFLICT))
+        then:
+        err2.httpCode == 409
+        err2.message == 'Conflict'
+
+        when:
+        ErrorMessage err3 = controller.handleException(new IllegalStateException('Something is not right'))
+        then:
+        err3.httpCode == 500
+        err3.message == 'Something is not right'
     }
 }

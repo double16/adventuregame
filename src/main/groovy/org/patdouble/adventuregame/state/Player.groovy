@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import groovy.transform.AutoClone
 import groovy.transform.AutoCloneStyle
 import groovy.transform.CompileDynamic
+import org.hibernate.Hibernate
 import org.patdouble.adventuregame.model.Persona
 import org.patdouble.adventuregame.model.Room
 import org.patdouble.adventuregame.storage.jpa.Constants
@@ -77,5 +78,17 @@ class Player implements Temporal {
     @Override
     int hashCode() {
         Objects.hash(persona.name, siblingNumber, nickName, motivator)
+    }
+
+    Player initialize() {
+        Hibernate.initialize(persona)
+        Hibernate.initialize(room)
+        this
+    }
+
+    Player cloneKeepId() {
+        Player p = clone()
+        p.id = this.id
+        p
     }
 }

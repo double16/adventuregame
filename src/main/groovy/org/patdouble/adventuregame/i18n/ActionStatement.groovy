@@ -25,14 +25,18 @@ class ActionStatement {
         }
     }
 
+    String getText() {
+        if (indirectObject) {
+            "${verb} ${directObject} with ${indirectObject}"
+        } else if (directObject) {
+            "${verb} ${directObject}"
+        } else {
+            verb
+        }
+    }
+
     @Override
     String toString() {
-        if (indirectObject) {
-            "${getClass().simpleName} '${verb} ${directObject} with ${indirectObject}'"
-        } else if (directObject) {
-            "${getClass().simpleName} '${verb} ${directObject}'"
-        } else {
-            "${getClass().simpleName} '${verb}'"
-        }
+        "${getClass().simpleName} '${text}'"
     }
 }

@@ -80,14 +80,6 @@ class EngineCache {
         }
     }
 
-    private Engine configure(Engine engine) {
-        if (simpMessagingTemplate != null) {
-            engine.subscribe(new EngineFlowToSpringMessagingAdapter(engine.story.id, simpMessagingTemplate))
-        }
-        engine.autoLifecycle = this.autoLifecycle
-        engine
-    }
-
     /**
      * Get an engine for the story.
      * @param storyId the ID of the story.
@@ -101,7 +93,7 @@ class EngineCache {
             if (story.get().ended) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, 'Story is ended')
             }
-            Engine engine = configure(new Engine(story.get()))
+            Engine engine = configure(new Engine(story.get().initialize()))
             engine.init()
             if (engine.story.chronos.current > 0) {
                 engine.start()
@@ -116,7 +108,7 @@ class EngineCache {
      * Create a new story.
      */
     Engine create(World world) {
-        Story story = storyRepository.save(new Story(world))
+        Story story = storyRepository.save(new Story(world)).initialize()
         Objects.requireNonNull(story.id)
         Engine engine = configure(new Engine(story))
         engine.init()
@@ -138,14 +130,24 @@ class EngineCache {
 
     void sweep() {
         map.values().each { Value v ->
-//            entityManager.merge(v.engine.story)
-            v.engine.story = storyRepository.save(v.engine.story)
+            Story s = v.engine.story
+            if (!entityManager.contains(s)) {
+                s = entityManager.merge(s)
+            }
+            v.engine.story = storyRepository.saveAndFlush(s).initialize()
         }
-        storyRepository.flush()
     }
 
     int size() {
         map.size()
+    }
+
+    private Engine configure(Engine engine) {
+        if (simpMessagingTemplate != null) {
+            engine.subscribe(new EngineFlowToSpringMessagingAdapter(engine.story.id, simpMessagingTemplate))
+        }
+        engine.autoLifecycle = this.autoLifecycle
+        engine
     }
 
     /**
@@ -158,11 +160,14 @@ class EngineCache {
             Value v = i.next()
             // remove it before we start closing so no one else will use it
             i.remove()
-//            entityManager.merge(v.engine.story)
-            v.engine.story = storyRepository.save(v.engine.story)
+
+            Story s = v.engine.story
+            if (!entityManager.contains(v.engine.story)) {
+                s = entityManager.merge(s)
+            }
+            storyRepository.saveAndFlush(s)
             v.engine.close()
         }
-        storyRepository.flush()
     }
 
     private void scheduleSweep() {

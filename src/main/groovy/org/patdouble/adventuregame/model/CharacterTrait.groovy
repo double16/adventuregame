@@ -3,6 +3,7 @@ package org.patdouble.adventuregame.model
 import com.fasterxml.jackson.annotation.JsonIgnore
 import groovy.transform.CompileDynamic
 import groovy.transform.EqualsAndHashCode
+import org.hibernate.Hibernate
 import org.patdouble.adventuregame.state.Motivator
 import org.patdouble.adventuregame.state.Player
 
@@ -31,5 +32,11 @@ trait CharacterTrait {
         p.fullName = fullName
         p.room = room
         p
+    }
+
+    CharacterTrait initialize() {
+        Hibernate.initialize(persona)
+        Hibernate.initialize(room)
+        this
     }
 }

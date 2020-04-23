@@ -2,6 +2,7 @@ package org.patdouble.adventuregame.model
 
 import groovy.transform.CompileDynamic
 import groovy.transform.EqualsAndHashCode
+import org.hibernate.Hibernate
 import org.patdouble.adventuregame.storage.jpa.Constants
 
 import javax.persistence.CascadeType
@@ -52,5 +53,17 @@ class World {
 
     Optional<Room> findRoomById(String id) {
         getRooms().stream().filter { it.modelId == id }.findFirst()
+    }
+
+    World initialize() {
+        Hibernate.initialize(personas)
+        Hibernate.initialize(players)
+        players*.initialize()
+        Hibernate.initialize(extras)
+        extras*.initialize()
+        Hibernate.initialize(rooms)
+        rooms*.initialize()
+        Hibernate.initialize(goals)
+        this
     }
 }

@@ -6,7 +6,9 @@ import groovy.util.logging.Slf4j
 import org.patdouble.adventuregame.engine.Engine
 import org.patdouble.adventuregame.flow.ChronosChanged
 import org.patdouble.adventuregame.flow.PlayerChanged
+import org.patdouble.adventuregame.flow.RequestCreated
 import org.patdouble.adventuregame.flow.RequestSatisfied
+import org.patdouble.adventuregame.flow.StoryMessage
 import org.patdouble.adventuregame.model.PersonaMocks
 import org.patdouble.adventuregame.state.Player
 import org.patdouble.adventuregame.state.request.PlayerRequest
@@ -221,12 +223,37 @@ class EngineControllerStompTest extends Specification {
                 playerId: warrior.id as String,
                 statement: 'go north'
         ))
+        Collection<Object> messages = pollMessages(POLL_TIMEOUT, TimeUnit.SECONDS)
+                .collect { it.second }
 
         then:
         warrior.room.modelId == 'trailer_2'
         and:
-        pollMessages(POLL_TIMEOUT, TimeUnit.SECONDS)
-                .collect { it.second }
-                .find { it instanceof PlayerChanged && it.player.nickName == 'Shadowblow' && it.chronos == 1 }
+        messages.find { it instanceof PlayerChanged && it.player.nickName == 'Shadowblow' && it.chronos == 1 }
+        and:
+        messages.find { it instanceof RequestSatisfied &&
+                it.request instanceof org.patdouble.adventuregame.state.request.ActionRequest &&
+                it.request.player.id == warrior.id &&
+                it.action.text == 'go north' }
     }
+
+    def "Subscribe"() {
+        given:
+        Engine engine = controller.engineCache.get(UUID.fromString(storyId))
+        engine.story.requests.findAll { it instanceof PlayerRequest }.each {
+            controller.addToCast(new AddToCastRequest(
+                    storyId: storyId,
+                    playerTemplateId: it.template.id as String,
+                    motivator: 'human'))
+        }
+        controller.start(new StartRequest(storyId: storyId))
+        when:
+        List<StoryMessage> messages = controller.subscribe(storyId)
+
+        then:
+        messages.size() == 32
+        messages.count { it instanceof RequestCreated } == 12
+        messages.count { it instanceof PlayerChanged } == 20
+    }
+
 }

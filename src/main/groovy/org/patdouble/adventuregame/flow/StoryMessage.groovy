@@ -7,5 +7,7 @@ import groovy.transform.CompileStatic
  */
 @CompileStatic
 class StoryMessage {
+    @SuppressWarnings('Unused')
+    final String type = getClass().simpleName
     protected StoryMessage() { }
 }

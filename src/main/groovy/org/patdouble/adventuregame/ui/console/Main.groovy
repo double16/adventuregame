@@ -27,6 +27,20 @@ class Main {
     Story story
     Engine engine
 
+    static void main(String[] args) {
+        Main main = new Main()
+        main.configureViaCommandLine(args)
+        main.applyConfiguration()
+        main.chooseWorld()
+        main.start()
+
+        while (!main.engine.closed) {
+            synchronized (WAIT_LOCK) {
+                WAIT_LOCK.wait()
+            }
+        }
+    }
+
     void configureViaCommandLine(String[] args) {
         for (String arg : args) {
             switch (arg) {
@@ -69,19 +83,5 @@ class Main {
         engine.subscribe(new EngineCloseOnStoryEnd(engine))
 //        engine.subscribe(new StoryMessageOutput())
         engine.init()
-    }
-
-    static void main(String[] args) {
-        Main main = new Main()
-        main.configureViaCommandLine(args)
-        main.applyConfiguration()
-        main.chooseWorld()
-        main.start()
-
-        while (!main.engine.closed) {
-            synchronized (WAIT_LOCK) {
-                WAIT_LOCK.wait()
-            }
-        }
     }
 }

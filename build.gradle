@@ -4,7 +4,7 @@ plugins {
     id 'groovy'
     id 'idea'
     id 'com.github.ben-manes.versions' version '0.28.0'
-    id 'ru.vyarus.quality' version '4.2.1'
+    id 'ru.vyarus.quality' version '4.1.0'
     id 'com.bmuschko.clover' version '2.2.5'
     id 'org.owasp.dependencycheck' version '5.3.2.1'
     id 'com.patdouble.cucumber-jvm' version '0.19'
@@ -42,7 +42,7 @@ dependencies {
 //    implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation 'org.springframework.data:spring-data-rest-hal-explorer'
-    implementation 'com.github.yingzhuo:carnival-spring-boot-starter-gravatar:1.4.+'
+//    implementation 'com.github.yingzhuo:carnival-spring-boot-starter-gravatar:1.4.+'
     implementation 'org.yaml:snakeyaml:1.26'
     implementation 'org.webjars:webjars-locator-core'
     implementation 'org.webjars:bootstrap:4.4.+'
@@ -166,7 +166,7 @@ clover {
 afterEvaluate {
     codenarc {
         maxPriority1Violations = 0
-        maxPriority2Violations = 0
+        maxPriority2Violations = 50
         maxPriority3Violations = 200
     }
 }

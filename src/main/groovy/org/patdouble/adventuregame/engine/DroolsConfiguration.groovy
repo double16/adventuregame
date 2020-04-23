@@ -27,6 +27,7 @@ class DroolsConfiguration {
      * @param worldRulesDrl rules in DRL format
      * @param worldRulesDslr rules in DSLR format
      */
+    @SuppressWarnings(['UnnecessaryGetter', 'UnnecessarySetter'])
     KieContainer kieContainer(String worldRulesDrl = null, String worldRulesDslr = null) {
         KieServices kieServices = KieServices.Factory.get()
         Objects.requireNonNull(kieServices, 'could not load factory KieServices')

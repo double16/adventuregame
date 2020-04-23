@@ -6,6 +6,7 @@ import org.patdouble.adventuregame.storage.jpa.Constants
 
 import javax.persistence.ElementCollection
 import javax.persistence.Entity
+import javax.persistence.FetchType
 import javax.persistence.Id
 
 /**
@@ -24,6 +25,6 @@ class Goal {
     /** If this goal is met, end the story regardless of other goals. */
     boolean theEnd
     /** The rules for fulfilling the goal, written using the DSL (rules/default.dsl). */
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     List<String> rules = []
 }

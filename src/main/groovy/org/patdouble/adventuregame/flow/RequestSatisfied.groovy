@@ -3,6 +3,7 @@ package org.patdouble.adventuregame.flow
 import groovy.transform.Canonical
 import groovy.transform.CompileStatic
 import groovy.transform.ToString
+import org.patdouble.adventuregame.i18n.ActionStatement
 import org.patdouble.adventuregame.state.request.Request
 
 /**
@@ -13,4 +14,5 @@ import org.patdouble.adventuregame.state.request.Request
 @CompileStatic
 class RequestSatisfied extends StoryMessage {
     Request request
+    ActionStatement action
 }

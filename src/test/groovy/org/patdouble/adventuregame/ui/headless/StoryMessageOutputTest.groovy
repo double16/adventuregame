@@ -22,7 +22,7 @@ class StoryMessageOutputTest extends Specification {
         when:
         output.onNext(new Notification('subject', 'text'))
         then:
-        byteout.toString() == 'Notification(subject:subject, text:text)\n'
+        byteout.toString() == 'Notification(subject:subject, text:text, type:Notification)\n'
     }
 
     def "OnError"() {

@@ -2,6 +2,7 @@ package org.patdouble.adventuregame.state.request
 
 import groovy.transform.Canonical
 import groovy.transform.CompileDynamic
+import org.hibernate.Hibernate
 import org.patdouble.adventuregame.model.PlayerTemplate
 
 import javax.persistence.Entity
@@ -21,5 +22,13 @@ class PlayerRequest extends Request {
     @Override
     String toString() {
         "${getClass().simpleName}(${template}${optional ? ' optional' : ''})"
+    }
+
+    @Override
+    PlayerRequest initialize() {
+        super.initialize()
+        Hibernate.initialize(template)
+        template.initialize()
+        this
     }
 }

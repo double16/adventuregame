@@ -3,6 +3,7 @@ package org.patdouble.adventuregame.state.request
 import groovy.transform.Canonical
 import groovy.transform.CompileDynamic
 import groovy.transform.ToString
+import org.hibernate.Hibernate
 import org.patdouble.adventuregame.flow.RoomSummary
 import org.patdouble.adventuregame.state.Player
 
@@ -33,4 +34,14 @@ class ActionRequest extends Request {
     /** The visible directions to neighbors. */
     @ElementCollection
     List<String> directions = []
+
+    @Override
+    ActionRequest initialize() {
+        super.initialize()
+        Hibernate.initialize(player)
+        player.initialize()
+        Hibernate.initialize(actions)
+        Hibernate.initialize(directions)
+        this
+    }
 }

@@ -7,6 +7,7 @@ import org.patdouble.adventuregame.model.Goal
 import org.patdouble.adventuregame.storage.jpa.Constants
 
 import javax.persistence.Entity
+import javax.persistence.FetchType
 import javax.persistence.Id
 import javax.persistence.ManyToOne
 
@@ -20,7 +21,7 @@ import javax.persistence.ManyToOne
 class GoalStatus {
     @Id
     UUID id = UUID.randomUUID()
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     Goal goal
     boolean fulfilled
 }
