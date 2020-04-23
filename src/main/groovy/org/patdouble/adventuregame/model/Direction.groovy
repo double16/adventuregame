@@ -1,17 +1,21 @@
 package org.patdouble.adventuregame.model
 
+import groovy.transform.CompileStatic
+
 /**
  * Common directions used to describe relationships between rooms. The relationship is stored as a String and is not
  * restricted to the values here.
  */
+@CompileStatic
 enum Direction {
     NORTH,
     SOUTH,
     EAST,
     WEST,
     UP,
-    DOWN;
+    DOWN
 
+    @SuppressWarnings('EmptyCatchBlock')
     static Optional<Direction> opposite(String direction) {
         if (direction == null) {
             return Optional.empty()
@@ -26,7 +30,7 @@ enum Direction {
                 case DOWN: return Optional.of(UP)
             }
         } catch (IllegalArgumentException e) {
-            return Optional.empty()
+            // fall thru expected
         }
         return Optional.empty()
     }

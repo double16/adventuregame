@@ -1,20 +1,22 @@
 package org.patdouble.adventuregame.storage.yaml
 
+import groovy.transform.CompileDynamic
 import org.patdouble.adventuregame.model.UniverseRegistry
 import org.patdouble.adventuregame.model.World
 
 /**
  * Maintains a list of worlds.
  */
+@CompileDynamic
 class YamlUniverseRegistry implements UniverseRegistry {
     static final String TRAILER_PARK = 'Trailer Park'
-    static final String MIDDLE_EARTH = 'Middle Earth'
+    static final String THE_HOBBIT = 'The Hobbit'
 
-    private List<World> worlds
+    private final List<World> worlds
 
     YamlUniverseRegistry() {
-        worlds = ['/worlds/middle-earth.yml', '/worlds/trailer-park.yml'].collect { String path ->
-            InputStream is = YamlUniverseRegistry.class.getResourceAsStream(path)
+        worlds = ['/worlds/the-hobbit.yml', '/worlds/trailer-park.yml'].collect { String path ->
+            InputStream is = YamlUniverseRegistry.getResourceAsStream(path)
             new WorldYamlStorage().load(is)
         }.asImmutable()
     }

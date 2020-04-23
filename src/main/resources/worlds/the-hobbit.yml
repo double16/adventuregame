@@ -1,0 +1,43 @@
+name: The Hobbit
+description: The Hobbit by J.R.R. Tolkien
+author: double16
+
+personas:
+  warrior:
+    health: 100
+    wealth: 50
+  thief:
+    health: 60
+    wealth: 100
+  elf:
+    health: 100
+    wealth: 100
+  hobbit:
+    health: 80
+    wealth: 30
+  wizard:
+    health: 100
+    wealth: 30
+
+players:
+  - nickname: Bilbo
+    fullname: Bilbo Baggins
+    persona: hobbit
+    room: bag_end
+  - nickname: Gandalf
+    fullname: Gandalf the Grey
+    persona: wizard
+    room: bag_end
+
+#extras:
+#  - fullname: Orc
+#    persona: orc
+#    quantity: 50
+#    rooms:
+#      - blackgate
+#    goals: []
+
+rooms:
+  bag_end:
+    description: Baggins' Hobbit Hole
+

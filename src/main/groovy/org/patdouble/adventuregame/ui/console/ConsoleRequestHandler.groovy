@@ -1,5 +1,6 @@
 package org.patdouble.adventuregame.ui.console
 
+import groovy.transform.CompileDynamic
 import org.fusesource.jansi.Ansi
 import org.jline.reader.EndOfFileException
 import org.jline.reader.UserInterruptException
@@ -18,17 +19,25 @@ import java.util.concurrent.Flow
 /**
  * All requests must be handled through a single subscriber because of the single use nature of the Console.
  */
+@CompileDynamic
 class ConsoleRequestHandler implements Flow.Subscriber<StoryMessage>, AutoCloseable {
     private Flow.Subscription subscription
     private final Console console
     private final Engine engine
-    private Set<PlayerTemplate> skippedPlayerTemplates = new HashSet<>()
+    private final Set<PlayerTemplate> skippedPlayerTemplates = [] as Set
+    private final Closure exitStrategy
 
-    ConsoleRequestHandler(Console console, Engine engine) {
+    @SuppressWarnings('SystemExit')
+    ConsoleRequestHandler(Console console, Engine engine, Closure exitStrategy = null) {
         Objects.requireNonNull(console)
         Objects.requireNonNull(engine)
         this.console = console
         this.engine = engine
+        if (exitStrategy == null) {
+            this.exitStrategy = { System.exit(it as int) }
+        } else {
+            this.exitStrategy = exitStrategy
+        }
     }
 
     @Override
@@ -38,6 +47,7 @@ class ConsoleRequestHandler implements Flow.Subscriber<StoryMessage>, AutoClosea
     }
 
     @Override
+    @SuppressWarnings('Instanceof')
     void onNext(StoryMessage item) {
         if (item instanceof RequestCreated) {
             switch (item['request'].class) {
@@ -58,20 +68,22 @@ class ConsoleRequestHandler implements Flow.Subscriber<StoryMessage>, AutoClosea
     }
 
     @Override
+    @SuppressWarnings('PrintStackTrace')
     void onError(Throwable throwable) {
-        throwable.printStackTrace()
+        throwable.printStackTrace(console.error)
         close()
-        System.exit(2)
+        exitStrategy.call(2)
     }
 
     @Override
     void onComplete() {
-        console.println { newline()
+        console.println {
+            newline()
                 .a(Ansi.Attribute.NEGATIVE_ON).a('--- GAME OVER ---').a(Ansi.Attribute.NEGATIVE_OFF)
                 .newline()
                 .reset() }
         console.close()
-        System.exit(0)
+        exitStrategy.call(0)
     }
 
     @Override
@@ -81,7 +93,7 @@ class ConsoleRequestHandler implements Flow.Subscriber<StoryMessage>, AutoClosea
 
     private void handle(PlayerRequest playerRequest) {
         if (skippedPlayerTemplates.contains(playerRequest.template)) {
-            if (!playerRequest.optional) {
+            if (playerRequest.optional) {
                 engine.addToCast(playerRequest.template.createPlayer(Motivator.AI))
             } else {
                 engine.ignore(playerRequest)
@@ -103,10 +115,10 @@ class ConsoleRequestHandler implements Flow.Subscriber<StoryMessage>, AutoClosea
 
             if (!includePlayer.startsWith('y')) {
                 skippedPlayerTemplates.add(playerRequest.template)
-                if (!playerRequest.optional) {
-                    engine.addToCast(playerRequest.template.createPlayer(Motivator.AI))
-                } else {
+                if (playerRequest.optional) {
                     engine.ignore(playerRequest)
+                } else {
+                    engine.addToCast(playerRequest.template.createPlayer(Motivator.AI))
                 }
                 return
             }
@@ -115,10 +127,10 @@ class ConsoleRequestHandler implements Flow.Subscriber<StoryMessage>, AutoClosea
             String nick = console.readLine('Nick Name? ', playerRequest.template.nickName)
             Player player = playerRequest.template.createPlayer(Motivator.HUMAN)
             if (full) {
-                player.setFullName(full)
+                player.fullName = full
             }
             if (nick) {
-                player.setNickName(nick)
+                player.nickName = nick
             }
             engine.addToCast(player)
         } catch (UserInterruptException | EndOfFileException e) {
@@ -127,24 +139,27 @@ class ConsoleRequestHandler implements Flow.Subscriber<StoryMessage>, AutoClosea
     }
 
     private void handle(ActionRequest actionRequest) {
-        console.println {
-            newline()
-            .bold().a(actionRequest.roomSummary.name).boldOff()
-            .newline()
-            .a(actionRequest.roomSummary.description)
-        }
-
-        if (actionRequest.roomSummary.occupants) {
-            console.println {
-                newline()
-                .a(actionRequest.roomSummary.occupants)
-            }
-        }
-
-        console.println()
-
         try {
-            String command = console.readLine("${actionRequest.player} ? ")
+            String command = null
+            while (!command) {
+                console.println {
+                    newline()
+                            .bold().a(actionRequest.roomSummary.name).boldOff()
+                            .newline()
+                            .a(actionRequest.roomSummary.description)
+                }
+
+                if (actionRequest.roomSummary.occupants) {
+                    console.println {
+                        newline()
+                                .a(actionRequest.roomSummary.occupants)
+                    }
+                }
+
+                console.println()
+
+                command = console.readLine("${actionRequest.player} ? ")
+            }
             engine.action(actionRequest.player, command)
         } catch (UserInterruptException | EndOfFileException e) {
             engine.close()

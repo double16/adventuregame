@@ -1,7 +1,9 @@
 package org.patdouble.adventuregame.state.request
 
 import groovy.transform.Canonical
+import groovy.transform.CompileDynamic
 import groovy.transform.ToString
+import org.hibernate.Hibernate
 import org.patdouble.adventuregame.flow.RoomSummary
 import org.patdouble.adventuregame.state.Player
 
@@ -10,7 +12,6 @@ import javax.persistence.ElementCollection
 import javax.persistence.Embedded
 import javax.persistence.Entity
 import javax.persistence.ManyToOne
-import javax.persistence.OneToMany
 
 /**
  * Requests the player to perform an action, i.e. a single 'move'.
@@ -18,18 +19,29 @@ import javax.persistence.OneToMany
 @Canonical(excludes = ['actions', 'directions'])
 @ToString(includePackage = false, includeNames = true)
 @Entity
+@CompileDynamic
 class ActionRequest extends Request {
     @ManyToOne
-    final Player player
+    Player player
     /** The chronos value that will be fulfilled by the action. */
     @Column(insertable = false, updatable = false)
-    final long chronos
+    long chronos
     @Embedded
-    final RoomSummary roomSummary
+    RoomSummary roomSummary
     /** The valid actions, may be a subset of the total. */
     @ElementCollection
     List<String> actions = []
     /** The visible directions to neighbors. */
     @ElementCollection
     List<String> directions = []
+
+    @Override
+    ActionRequest initialize() {
+        super.initialize()
+        Hibernate.initialize(player)
+        player.initialize()
+        Hibernate.initialize(actions)
+        Hibernate.initialize(directions)
+        this
+    }
 }

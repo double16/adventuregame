@@ -1,0 +1,29 @@
+version: 2
+jobs:
+  build:
+    working_directory: ~/adventuregame
+    environment:
+      - TERM=dumb
+    docker:
+      - image: openjdk:11.0.4-jdk
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - adventuregame-{{ .Branch }}-{{ checksum "build.gradle" }}
+            - adventuregame-{{ .Branch }}
+            - adventuregame-
+
+      - run:
+          name: Run Checks
+          command: ./gradlew check --warning-mode all --stacktrace
+      - store_test_results:
+          path: ./build/test-results
+      - store_artifacts:
+          path: ./build/reports/clover
+          destination: coverage
+
+      - save_cache:
+          key: adventuregame-{{ .Branch }}-{{ checksum "build.gradle" }}
+          paths:
+            - "~/.gradle"

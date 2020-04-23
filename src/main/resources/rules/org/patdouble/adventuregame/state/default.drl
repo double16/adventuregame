@@ -1,0 +1,64 @@
+package org.patdouble.adventuregame.state
+
+dialect "mvel"
+
+import java.util.List;
+import org.patdouble.adventuregame.engine.StoryState;
+
+global org.slf4j.Logger log;
+global org.patdouble.adventuregame.engine.EngineFacade engine;
+
+rule "next chronos"
+  activation-group "next-turn"
+  salience 1000
+  when
+    $c : Chronos()
+    exists Player()
+    forall( Player(chronos >= $c.getCurrent()) )
+    forall( StoryState(ended == false) )
+  then
+    engine.incrementChronos();
+end
+
+rule "the end"
+  activation-group "next-turn"
+  salience 2001
+  when
+    GoalStatus(getFulfilled() == true, goal.theEnd == true)
+  then
+    log.info("Goal fulfilled that ends the story");
+    engine.end();
+end
+
+rule "complete"
+  activation-group "next-turn"
+  salience 2000
+  when
+    $c : Chronos(getCurrent() > 0)
+    not (exists (GoalStatus(goal.required == true, getFulfilled() == false)))
+    not (exists (Player(motivator == Motivator.HUMAN)))
+    forall( Player(chronos >= $c.getCurrent()) )
+  then
+    log.info("No required goals left for AI players, ending the story");
+    engine.end();
+end
+
+rule "human player action request"
+  salience 500
+  when
+    $c : Chronos()
+    $player : Player(motivator == Motivator.HUMAN, chronos < $c.getCurrent())
+  then
+    log.info("human player "+$player.getTitle()+" action needed");
+    engine.createActionRequest($player);
+end
+
+rule "ai player turn"
+  salience 200
+  when
+    $c : Chronos()
+    $player : Player(motivator == Motivator.AI, chronos < $c.getCurrent())
+  then
+    log.info("AI player "+$player.getTitle()+" waits");
+    engine.action($player, "wait", null, null);
+end

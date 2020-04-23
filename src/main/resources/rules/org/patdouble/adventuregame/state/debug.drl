@@ -1,0 +1,30 @@
+package org.patdouble.adventuregame.state
+
+global org.slf4j.Logger log;
+
+dialect "mvel"
+
+rule "log chronos"
+  salience 10000
+  when
+    $c : Chronos()
+  then
+    log.info("Chronos is now "+$c.getCurrent());
+end
+
+rule "log only ai"
+  salience 10000
+  when
+    not (exists (Player(motivator == Motivator.HUMAN)))
+  then
+    log.info("only AI players");
+end
+
+rule "log unfulfilled required goals"
+  salience 1000
+  when
+    Chronos(getCurrent() > 0)
+    not (exists (GoalStatus(goal.required == true, getFulfilled() == false)))
+  then
+    log.info("No required goals left");
+end

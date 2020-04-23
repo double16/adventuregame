@@ -1,6 +1,7 @@
 package org.patdouble.adventuregame.flow
 
 import groovy.transform.Canonical
+import groovy.transform.CompileStatic
 import groovy.transform.ToString
 import org.patdouble.adventuregame.state.Player
 
@@ -9,8 +10,9 @@ import org.patdouble.adventuregame.state.Player
  */
 @Canonical
 @ToString(includePackage = false, includeNames = true)
+@CompileStatic
 class PlayerNotification extends StoryMessage {
-    final Player player
-    final String subject
-    final String text
+    Player player
+    String subject
+    String text
 }

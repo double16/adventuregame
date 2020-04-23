@@ -1,6 +1,8 @@
 package org.patdouble.adventuregame.state.request
 
 import groovy.transform.Canonical
+import groovy.transform.CompileDynamic
+import org.hibernate.Hibernate
 import org.patdouble.adventuregame.model.PlayerTemplate
 
 import javax.persistence.Entity
@@ -11,13 +13,22 @@ import javax.persistence.ManyToOne
  */
 @Canonical
 @Entity
+@CompileDynamic
 class PlayerRequest extends Request {
     @ManyToOne
-    final PlayerTemplate template
-    final boolean optional = false
+    PlayerTemplate template
+    boolean optional = false
 
     @Override
     String toString() {
         "${getClass().simpleName}(${template}${optional ? ' optional' : ''})"
+    }
+
+    @Override
+    PlayerRequest initialize() {
+        super.initialize()
+        Hibernate.initialize(template)
+        template.initialize()
+        this
     }
 }

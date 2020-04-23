@@ -1,15 +1,17 @@
 plugins {
-    id 'org.springframework.boot' version '2.2.0.RELEASE'
+    id 'org.springframework.boot' version '2.2.6.RELEASE'
     id 'java'
     id 'groovy'
-    id 'com.github.ben-manes.versions' version '0.27.0'
-    id 'ru.vyarus.quality' version '3.4.0'
-    id 'com.bmuschko.clover' version '2.2.4'
-    id 'org.owasp.dependencycheck' version '5.2.2'
-    id 'com.patdouble.cucumber-jvm' version '0.16'
+    id 'idea'
+    id 'com.github.ben-manes.versions' version '0.28.0'
+    id 'ru.vyarus.quality' version '4.1.0'
+    id 'com.bmuschko.clover' version '2.2.5'
+    id 'org.owasp.dependencycheck' version '5.3.2.1'
+    id 'com.patdouble.cucumber-jvm' version '0.19'
     id 'org.sonarqube' version '2.8'
-    id 'com.github.johnrengelman.shadow' version '5.1.0'
-    id 'com.bmuschko.docker-spring-boot-application' version '5.3.0'
+    id 'com.github.johnrengelman.shadow' version '5.2.0'
+    id 'com.bmuschko.docker-spring-boot-application' version '6.4.0'
+    id 'info.solidsoft.pitest' version '1.4.8'
 }
 
 apply plugin: 'io.spring.dependency-management'
@@ -18,18 +20,19 @@ group = 'org.patdouble.adventuregame'
 version = '0.0.1-SNAPSHOT'
 sourceCompatibility = '11'
 
-configurations {
-    compileOnly {
-        extendsFrom annotationProcessor
-    }
+repositories {
+    jcenter()
 }
 
-repositories {
-    mavenCentral()
+ext {
+    droolsVersion = '7.28.0.Final'
+    groovyVersion = '2.5.+'
+//    groovyVersion = '3.0.+'
 }
 
 dependencies {
-    implementation 'org.codehaus.groovy:groovy-all:2.5.+'
+    implementation "org.codehaus.groovy:groovy:${project.groovyVersion}"
+    implementation "org.codehaus.groovy:groovy-templates:${project.groovyVersion}"
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-cache'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -37,39 +40,62 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-hateoas'
 //    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
 //    implementation 'org.springframework.boot:spring-boot-starter-security'
-    implementation 'org.springframework.boot:spring-boot-starter-webflux'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
-    implementation 'org.springframework.data:spring-data-rest-hal-browser'
-    implementation 'com.github.yingzhuo:carnival-spring-boot-starter-gravatar:1.2.2'
-    implementation 'org.yaml:snakeyaml:1.25'
+    implementation 'org.springframework.data:spring-data-rest-hal-explorer'
+//    implementation 'com.github.yingzhuo:carnival-spring-boot-starter-gravatar:1.4.+'
+    implementation 'org.yaml:snakeyaml:1.26'
     implementation 'org.webjars:webjars-locator-core'
-    implementation 'org.webjars:bootstrap:4.3.1'
-    implementation 'org.webjars.npm:vue:2.6.10'
-    implementation 'org.webjars.npm:rxjs:6.5.3'
-    implementation 'org.webjars.npm:dagre:0.8.4'
-    implementation 'org.webjars.npm:dagre-d3:0.6.3'
-    implementation 'org.webjars.npm:axios:0.19.0'
-    implementation 'org.webjars:font-awesome:5.11.2'
-    implementation 'org.webjars:sockjs-client:1.1.2'
-    implementation 'org.webjars:stomp-websocket:2.3.3-1'
-    implementation 'org.kie:kie-api:7.28.0.Final'
-    implementation 'org.drools:drools-compiler:7.28.0.Final'
+    implementation 'org.webjars:bootstrap:4.4.+'
+    implementation 'org.webjars.npm:vue:2.6.+'
+    implementation 'org.webjars.npm:vue-router:3.1.+'
+    implementation 'org.webjars.npm:rxjs:6.5.+'
+    implementation 'org.webjars.npm:dagre:0.8.+'
+    implementation 'org.webjars.npm:dagre-d3:0.6.+'
+    implementation 'org.webjars.npm:axios:0.19.+'
+    implementation 'org.webjars:font-awesome:5.13.+'
+    implementation 'org.webjars.npm:github-com-stomp-js-stompjs:5.4.+'
+    implementation "org.kie:kie-spring:${droolsVersion}"
+    implementation "org.kie:kie-ci:${droolsVersion}"
+    implementation "org.drools:drools-core:${droolsVersion}"
+    implementation "org.drools:drools-compiler:${droolsVersion}"
+    implementation 'org.luaj:luaj-jse:3.0.1' // github.com/luaj/luaj
     implementation 'org.fusesource.jansi:jansi:1.18'
-    implementation 'org.jline:jline:3.13.1'
+    implementation 'org.jline:jline:3.14.+'
     runtimeOnly 'org.springframework.boot:spring-boot-devtools'
     runtimeOnly 'org.postgresql:postgresql'
     runtimeOnly 'com.h2database:h2'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'io.projectreactor:reactor-test'
-    testImplementation 'org.springframework.security:spring-security-test'
+//    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.codehaus.gpars:gpars:1.2.1'
 
     // Spock
-    testCompile 'org.springframework.boot:spring-boot-starter-test'
-    testCompile 'org.spockframework:spock-core:1.3-RC1-groovy-2.5'
-    testCompile 'org.spockframework:spock-spring:1.3-RC1-groovy-2.5'
-    testRuntime 'cglib:cglib-nodep:3.3.0'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    if (project.groovyVersion.startsWith('3')) {
+        testImplementation 'org.spockframework:spock-core:2.0-M2-groovy-3.0'
+        testImplementation 'org.spockframework:spock-spring:2.0-M2-groovy-3.0'
+    } else {
+        testImplementation 'org.spockframework:spock-core:1.3-groovy-2.5'
+        testImplementation 'org.spockframework:spock-spring:1.3-groovy-2.5'
+    }
+    testRuntimeOnly 'cglib:cglib-nodep:3.3.0'
 
     clover 'org.openclover:clover:4.4.1'
+}
+
+configurations.all {
+    resolutionStrategy {
+        dependencySubstitution {
+            all { DependencySubstitution dependency ->
+                if (dependency.requested instanceof ModuleComponentSelector
+                        && dependency.requested.group == 'org.codehaus.groovy'
+                        && dependency.requested.module.startsWith('groovy')) {
+                    dependency.useTarget "${dependency.requested.group}:${dependency.requested.module}:${project.groovyVersion}"
+//                    dependency.useTarget "org.codehaus.groovy:groovy-all:${project.groovyVersion}"
+                }
+            }
+        }
+    }
 }
 
 dependencyUpdates.resolutionStrategy {
@@ -85,10 +111,34 @@ dependencyUpdates.resolutionStrategy {
     }
 }
 
+check.dependsOn dependencyCheckAggregate
+
+plugins.withId('groovy') {
+    compileGroovy {
+        groovyOptions.optimizationOptions.indy = true
+    }
+}
+
+idea {
+    project {
+        jdkName = '11'
+        languageLevel = '11'
+        vcs = 'Git'
+    }
+    module {
+        downloadJavadoc = true
+        downloadSources = true
+    }
+}
+
 shadowJar {
+    zip64 = true
     manifest {
         attributes 'Main-Class': 'org.patdouble.adventuregame.ui.console.Main'
     }
+    mergeServiceFiles()
+    mergeGroovyExtensionModules()
+    append 'META-INF/kie.conf'
 }
 
 task trailerPark(type: JavaExec) {
@@ -99,9 +149,10 @@ task trailerPark(type: JavaExec) {
 
 docker {
     springBootApplication {
-        baseImage = 'openjdk:11.0.4-jre-slim'
+        baseImage = 'openjdk:11.0.6-jre-slim'
         maintainer = 'Patrick Double "pat@patdouble.com"'
-        tag = "pdouble16/${project.name}:${project.version}"
+        images = ["pdouble16/${project.name}:${project.version}"]
+        // jvmArgs = ['-Dspring.profiles.active=production', '-Xmx2048m']
     }
 }
 
@@ -110,4 +161,17 @@ clover {
         html = true
         xml = true
     }
+}
+
+afterEvaluate {
+    codenarc {
+        maxPriority1Violations = 0
+        maxPriority2Violations = 50
+        maxPriority3Violations = 200
+    }
+}
+
+pitest {
+    pitestVersion = '1.5.0'
+    timestampedReports = false
 }

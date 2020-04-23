@@ -15,8 +15,13 @@ abstract class EngineTest extends Specification {
     Executor executor
     Engine engine
 
+    void modify(World world) {
+        // modify the world for the test case
+    }
+
     def setup() {
         World world = new YamlUniverseRegistry().worlds.find { it.name == YamlUniverseRegistry.TRAILER_PARK }
+        modify(world)
         story = new Story(world)
 
         storySubscriber = Mock()
@@ -24,7 +29,13 @@ abstract class EngineTest extends Specification {
         executor = { it.run() } as Executor
 
         engine = new Engine(story, executor)
+        engine.chronosLimit = 100
+        engine.droolsConfiguration = new DroolsConfiguration()
         engine.subscribe(storySubscriber)
 //        engine.subscribe(new StoryMessageOutput())
+    }
+
+    def cleanup() {
+        engine.close()
     }
 }

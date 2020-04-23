@@ -33,6 +33,6 @@ class JpaWorldLoaderTest extends Specification {
         where:
         worldName                         | _
         YamlUniverseRegistry.TRAILER_PARK | _
-        YamlUniverseRegistry.MIDDLE_EARTH | _
+        YamlUniverseRegistry.THE_HOBBIT | _
     }
 }

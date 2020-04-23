@@ -1,16 +1,26 @@
 package org.patdouble.adventuregame.model
 
+import com.fasterxml.jackson.annotation.JsonIgnore
+import groovy.transform.CompileDynamic
+import groovy.transform.EqualsAndHashCode
+import org.hibernate.Hibernate
 import org.patdouble.adventuregame.state.Motivator
 import org.patdouble.adventuregame.state.Player
 
 import javax.persistence.ManyToOne
 import javax.validation.constraints.NotNull
 
+/**
+ * Common traits for characters.
+ */
+@CompileDynamic
+@EqualsAndHashCode
 trait CharacterTrait {
-    @Delegate
+    @Delegate(excludes = [ 'clone', 'id' ])
     @ManyToOne
     @NotNull
-    Persona persona
+    @JsonIgnore
+    Persona persona = new Persona()
     String nickName
     String fullName
     @ManyToOne
@@ -18,9 +28,15 @@ trait CharacterTrait {
     Room room
 
     Player createPlayer(@NotNull Motivator motivator) {
-        Player p = new Player(motivator, persona.clone(), nickName)
+        Player p = new Player(motivator, persona, nickName)
         p.fullName = fullName
         p.room = room
         p
+    }
+
+    CharacterTrait initialize() {
+        Hibernate.initialize(persona)
+        Hibernate.initialize(room)
+        this
     }
 }

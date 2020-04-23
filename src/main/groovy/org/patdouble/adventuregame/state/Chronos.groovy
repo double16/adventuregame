@@ -1,9 +1,12 @@
 package org.patdouble.adventuregame.state
 
+import groovy.transform.CompileStatic
 import groovy.transform.EqualsAndHashCode
 
 import javax.persistence.Column
 import javax.persistence.Embeddable
+
+import org.kie.api.definition.type.PropertyReactive
 
 /**
  * The time keeper. The unit of time is not related to the clock but relative
@@ -12,6 +15,8 @@ import javax.persistence.Embeddable
  */
 @Embeddable
 @EqualsAndHashCode
+@PropertyReactive
+@CompileStatic
 class Chronos {
     @Column(name = 'chronos')
     long current = 0

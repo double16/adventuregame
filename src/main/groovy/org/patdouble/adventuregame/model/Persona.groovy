@@ -1,11 +1,12 @@
 package org.patdouble.adventuregame.model
 
 import groovy.transform.AutoClone
+import groovy.transform.AutoCloneStyle
 import groovy.transform.Canonical
+import groovy.transform.CompileDynamic
+import org.patdouble.adventuregame.storage.jpa.Constants
 
 import javax.persistence.Entity
-import javax.persistence.GeneratedValue
-import javax.persistence.GenerationType
 import javax.persistence.Id
 import javax.validation.constraints.NotNull
 
@@ -13,15 +14,16 @@ import javax.validation.constraints.NotNull
  * Improvements:
  *
  * Personas could have different results for actions. For example, a thief could be better at fleeing than a warrior.
- * A warrior would take less damage during fighting. The thief could find more wealth on enemies after they are defeated.
- *
+ * A warrior would take less damage during fighting. The thief could find more wealth on enemies after they are
+ * defeated.
  */
-@Canonical(excludes = ['id'])
-@AutoClone
+@Canonical(excludes = [Constants.COL_ID])
+@AutoClone(excludes = [Constants.COL_ID], style = AutoCloneStyle.COPY_CONSTRUCTOR)
 @Entity
+@CompileDynamic
 class Persona {
-    @Id @GeneratedValue(strategy = GenerationType.AUTO)
-    long id
+    @Id
+    UUID id = UUID.randomUUID()
 
     @NotNull
     String name
@@ -40,20 +42,8 @@ class Persona {
     int agility
     /** 0-1000. */
     int speed
-
-    void setHealth(int health) {
-        this.health = health
-        if (health <= 0) {
-            throw new IllegalStateException(toString()+" is dead :X")
-        }
-    }
-
-    void setWealth(BigDecimal wealth) {
-        this.wealth = wealth
-        if (wealth <= BigDecimal.ZERO) {
-            throw new IllegalStateException(toString()+' is broke :$')
-        }
-    }
+    /** 0-1000. */
+    int memory
 
     @Override
     String toString() {

@@ -1,28 +1,30 @@
 package org.patdouble.adventuregame.state
 
+import groovy.transform.CompileDynamic
 import groovy.transform.EqualsAndHashCode
+import org.patdouble.adventuregame.storage.jpa.Constants
 
 import javax.persistence.CascadeType
 import javax.persistence.Entity
-import javax.persistence.GeneratedValue
-import javax.persistence.GenerationType
 import javax.persistence.Id
-import javax.persistence.ManyToOne
 import javax.persistence.OneToMany
 
 /**
- * An event in history. The event only records changes, not the entire current state.
+ * An event in history. The event only records changes, not the entire state.
  */
 @Entity
-@EqualsAndHashCode(excludes = ['id'])
+@EqualsAndHashCode(excludes = [Constants.COL_ID])
+@CompileDynamic
 class Event {
-    @Id @GeneratedValue(strategy = GenerationType.AUTO)
-    long id
+    @Id
+    UUID id = UUID.randomUUID()
 
     /** Tied to the {@link Chronos} value. */
-    final long when
+    long when
     @OneToMany(cascade = CascadeType.ALL)
-    final Collection<Player> cast
+    List<Player> cast = []
+
+    Event() { }
 
     Event(Collection<Player> players, Chronos chronos) {
         when = chronos.current
