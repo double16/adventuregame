@@ -15,14 +15,14 @@ class HumanPlayerGoalTest extends AbstractPlayerTest {
 
     def "fulfilled goal ends story"() {
         given:
-        engine.start()
+        engine.start().join()
 
         when:
-        engine.action(warrior, 'go north')
-        engine.action(thief, 'wait')
-        engine.action(warrior, 'go east')
-        engine.action(thief, 'wait')
-        engine.action(warrior, 'go east')
+        engine.action(warrior, 'go north').join()
+        engine.action(thief, 'wait').join()
+        engine.action(warrior, 'go east').join()
+        engine.action(thief, 'wait').join()
+        engine.action(warrior, 'go east').join()
 
         then:
         warrior.room.modelId == 'trailer_4'

@@ -6,12 +6,14 @@ import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Primary
 import org.springframework.format.FormatterRegistry
+import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 
 /**
  * Entry point for the web app.
  */
 @SpringBootApplication
+@EnableScheduling
 @CompileDynamic
 class AdventuregameApplication implements WebMvcConfigurer {
 

@@ -1,7 +1,9 @@
 package org.patdouble.adventuregame.engine
 
 import groovy.transform.CompileStatic
+import org.patdouble.adventuregame.flow.StoryMessage
 import org.patdouble.adventuregame.i18n.ActionStatement
+import org.patdouble.adventuregame.i18n.Bundles
 import org.patdouble.adventuregame.state.Player
 
 /**
@@ -48,5 +50,18 @@ class EngineFacade {
     @SuppressWarnings('Unused')
     void end() {
         engine.end()
+    }
+
+    /**
+     * Publish a message.
+     * @param storyMessage
+     *  @return the estimated maximum lag among subscribers
+     */
+    int submit(StoryMessage item) {
+        engine.submit(item)
+    }
+
+    Bundles getBundles() {
+        engine.bundles
     }
 }

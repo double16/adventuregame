@@ -15,10 +15,10 @@ class HumanPlayerGoTest extends AbstractPlayerTest {
 
     def "valid go action"() {
         given:
-        engine.start()
+        engine.start().join()
 
         when:
-        boolean success = engine.action(warrior, 'go north')
+        boolean success = engine.action(warrior, 'go north').join()
 
         then:
         success
@@ -32,10 +32,10 @@ class HumanPlayerGoTest extends AbstractPlayerTest {
 
     def "valid go action - abbreviated"() {
         given:
-        engine.start()
+        engine.start().join()
 
         when:
-        boolean success = engine.action(warrior, 'go n')
+        boolean success = engine.action(warrior, 'go n').join()
 
         then:
         success
@@ -49,11 +49,11 @@ class HumanPlayerGoTest extends AbstractPlayerTest {
 
     def "multiple go directions - abbreviated"() {
         given:
-        engine.start()
+        engine.start().join()
         warrior.room = story.world.rooms.find { it.modelId == 'dump' }
 
         when:
-        boolean success = engine.action(warrior, 'go d')
+        boolean success = engine.action(warrior, 'go d').join()
 
         then:
         !success
@@ -68,10 +68,10 @@ class HumanPlayerGoTest extends AbstractPlayerTest {
 
     def "invalid go action"() {
         given:
-        engine.start()
+        engine.start().join()
 
         when: 'no direction'
-        boolean success = engine.action(warrior, 'go')
+        boolean success = engine.action(warrior, 'go').join()
         then:
         !success
         warrior.chronos == 0
@@ -83,7 +83,7 @@ class HumanPlayerGoTest extends AbstractPlayerTest {
         1 * storySubscriber.onNext{ it instanceof RequestCreated && it.request.player == warrior }
 
         when: 'known but invalid direction'
-        success = engine.action(warrior, 'go south')
+        success = engine.action(warrior, 'go south').join()
         then:
         !success
         warrior.chronos == 0
@@ -95,7 +95,7 @@ class HumanPlayerGoTest extends AbstractPlayerTest {
         1 * storySubscriber.onNext{ it instanceof RequestCreated && it.request.player == warrior }
 
         when: 'unknown direction'
-        success = engine.action(warrior, 'go northwest')
+        success = engine.action(warrior, 'go northwest').join()
         then:
         !success
         warrior.chronos == 0
@@ -109,11 +109,11 @@ class HumanPlayerGoTest extends AbstractPlayerTest {
 
     def "valid go actions trigger next"() {
         given:
-        engine.start()
+        engine.start().join()
 
         when:
-        engine.action(warrior, 'go north')
-        engine.action(thief, 'go north')
+        engine.action(warrior, 'go north').join()
+        engine.action(thief, 'go north').join()
 
         then:
         warrior.chronos == 1

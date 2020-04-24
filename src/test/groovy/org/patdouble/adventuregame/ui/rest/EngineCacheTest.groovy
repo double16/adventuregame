@@ -53,7 +53,7 @@ class EngineCacheTest extends Specification {
         given:
         Story story = new Story(worldRepository.findByName(YamlUniverseRegistry.TRAILER_PARK).first())
         Engine engine1 = new Engine(story)
-        engine1.init()
+        engine1.init().join()
         engine1.close()
         storyRepository.save(story)
 
@@ -73,11 +73,11 @@ class EngineCacheTest extends Specification {
         Story story = new Story(worldRepository.findByName(YamlUniverseRegistry.TRAILER_PARK).first())
         Engine engine1 = new Engine(story)
         engine1.chronosLimit = 5
-        engine1.init()
+        engine1.init().join()
         story.requests.findAll { it instanceof PlayerRequest }.each { PlayerRequest request ->
-            engine1.addToCast(request.template.createPlayer(Motivator.HUMAN))
+            engine1.addToCast(request.template.createPlayer(Motivator.HUMAN)).join()
         }
-        engine1.start()
+        engine1.start().join()
         engine1.close()
         storyRepository.save(story)
 
@@ -97,12 +97,12 @@ class EngineCacheTest extends Specification {
         Story story = new Story(worldRepository.findByName(YamlUniverseRegistry.TRAILER_PARK).first())
         Engine engine1 = new Engine(story)
         engine1.chronosLimit = 5
-        engine1.init()
+        engine1.init().join()
         story.requests.findAll { it instanceof PlayerRequest }.each { PlayerRequest request ->
-            engine1.addToCast(request.template.createPlayer(Motivator.HUMAN))
+            engine1.addToCast(request.template.createPlayer(Motivator.HUMAN)).join()
         }
-        engine1.start()
-        engine1.end()
+        engine1.start().join()
+        engine1.end().join()
         engine1.close()
         storyRepository.save(story)
 
@@ -122,7 +122,7 @@ class EngineCacheTest extends Specification {
 
         when:
         engines.each { Engine e ->
-            e.addToCast(e.story.requests.find { it instanceof PlayerRequest }.template.createPlayer(Motivator.HUMAN))
+            e.addToCast(e.story.requests.find { it instanceof PlayerRequest }.template.createPlayer(Motivator.HUMAN)).join()
         }
         cache.clear()
 
@@ -141,7 +141,7 @@ class EngineCacheTest extends Specification {
         List<LocalDateTime> modified = stories.collect { it.modified }
         when:
         cache.get(stories[1].id).with { Engine e ->
-            e.addToCast(e.story.requests.find { it instanceof PlayerRequest }.template.createPlayer(Motivator.HUMAN))
+            e.addToCast(e.story.requests.find { it instanceof PlayerRequest }.template.createPlayer(Motivator.HUMAN)).join()
         }
         cache.expire(System.currentTimeMillis() + 101)
         storyRepository.flush()
@@ -153,6 +153,7 @@ class EngineCacheTest extends Specification {
 
     def "save at intervals"() {
         given:
+        cache.clear()
         List<Engine> engines = []
         engines << cache.get(storyRepository.save(new Story(worldRepository.findByName(YamlUniverseRegistry.TRAILER_PARK).first())).id)
         engines << cache.get(storyRepository.save(new Story(worldRepository.findByName(YamlUniverseRegistry.THE_HOBBIT).first())).id)
@@ -160,7 +161,7 @@ class EngineCacheTest extends Specification {
 
         when:
         engines.each { Engine e ->
-            e.addToCast(e.story.requests.find { it instanceof PlayerRequest }.template.createPlayer(Motivator.HUMAN))
+            e.addToCast(e.story.requests.find { it instanceof PlayerRequest }.template.createPlayer(Motivator.HUMAN)).join()
         }
         cache.sweep()
         cache.storyRepository.flush()
@@ -169,22 +170,5 @@ class EngineCacheTest extends Specification {
         engines[0].story.modified > modified[0]
         engines[1].story.modified > modified[1]
         engines.every { !it.isClosed() }
-    }
-
-    def "sweep interval null"() {
-        when:
-        cache.sweepInterval = null
-        then:
-        thrown(NullPointerException)
-    }
-
-    def "change sweep interval"() {
-        given:
-        def future = cache.scheduledFuture
-        when:
-        cache.sweepInterval = Duration.ofMinutes(60)
-        then:
-        cache.sweepInterval == Duration.ofMinutes(60)
-        !future.is(cache.scheduledFuture)
     }
 }

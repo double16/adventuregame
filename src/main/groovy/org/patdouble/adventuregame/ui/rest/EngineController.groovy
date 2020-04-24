@@ -2,6 +2,7 @@ package org.patdouble.adventuregame.ui.rest
 
 import groovy.transform.CompileDynamic
 import org.patdouble.adventuregame.engine.Engine
+import org.patdouble.adventuregame.flow.ChronosChanged
 import org.patdouble.adventuregame.flow.ErrorMessage
 import org.patdouble.adventuregame.flow.PlayerChanged
 import org.patdouble.adventuregame.flow.RequestCreated
@@ -81,7 +82,11 @@ class EngineController {
     @SubscribeMapping('/story.{storyId}')
     List<StoryMessage> subscribe(@DestinationVariable('storyId') String storyId) {
         Engine engine = requireEngine(storyId)
-        engine.story.requests.collect { new RequestCreated(it) } + engine.story.cast.collect { new PlayerChanged(it) }
+        List<StoryMessage> result = engine.story.requests.collect { new RequestCreated(it) } + engine.story.cast.collect { new PlayerChanged(it) }
+        if (engine.story.chronos.current > 0) {
+            result << new ChronosChanged(engine.story.chronos.current)
+        }
+        result
     }
 
     @MessageMapping('/action')
@@ -120,7 +125,7 @@ class EngineController {
         if (request.nickName) {
             player.nickName = request.nickName
         }
-        engine.addToCast(player)
+        engine.addToCast(player).join()
         Player savedPlayer = engine.story.cast.find { it == player }
         Objects.requireNonNull(savedPlayer?.id)
         new AddToCastResponse(playerUri: "/play/${engine.story.id}/${savedPlayer.id}")

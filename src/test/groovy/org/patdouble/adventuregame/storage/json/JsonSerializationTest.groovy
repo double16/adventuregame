@@ -21,7 +21,7 @@ class JsonSerializationTest extends EngineTest {
 
     @Override
     def setup() {
-        engine.init()
+        engine.init().join()
         mapper = new ObjectMapper()
         mapper.enable(SerializationFeature.INDENT_OUTPUT)
     }

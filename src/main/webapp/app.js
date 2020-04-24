@@ -20,8 +20,34 @@ Vue.component('story-create-item', {
 Vue.component('player-detail', {
     props: ['player'],
     template: `
-<div>
-<h2>{{ player.fullName }}</h2>
+<div class="card-body">
+    <h2 class="card-title">{{ player.fullName }}</h2>
+    <h3 class="card-subtitle mb-2 text-muted">{{ player.name }}</h3>
+    <p class="card-text">\${{ player.wealth }}</p>
+    <div class="progress">
+      health:&nbsp;<div class="progress-bar" role="progressbar" v-bind:style="{ width: (player.health/10)+'%' }" :aria-valuenow="player.health" aria-valuemin="0" aria-valuemax="1000"></div>
+    </div>
+    <div class="progress">
+      virtue:&nbsp;<div class="progress-bar" role="progressbar" v-bind:style="{ width: (player.virtue/10)+'%' }" :aria-valuenow="player.virtue" aria-valuemin="0" aria-valuemax="1000"></div>
+    </div>
+    <div class="progress">
+      memory:&nbsp;<div class="progress-bar" role="progressbar" v-bind:style="{ width: (player.memory/10)+'%' }" :aria-valuenow="player.memory" aria-valuemin="0" aria-valuemax="1000"></div>
+    </div>
+    <div class="progress">
+      bravery:&nbsp;<div class="progress-bar" role="progressbar" v-bind:style="{ width: (player.bravery/10)+'%' }" :aria-valuenow="player.bravery" aria-valuemin="0" aria-valuemax="1000"></div>
+    </div>
+    <div class="progress">
+      leadership:&nbsp;<div class="progress-bar" role="progressbar" v-bind:style="{ width: (player.leadership/10)+'%' }" :aria-valuenow="player.leadership" aria-valuemin="0" aria-valuemax="1000"></div>
+    </div>
+    <div class="progress">
+     experience:&nbsp;<div class="progress-bar" role="progressbar" v-bind:style="{ width: (player.experience/10)+'%' }" :aria-valuenow="player.experience" aria-valuemin="0" aria-valuemax="1000"></div>
+    </div>
+    <div class="progress">
+      agility:&nbsp;<div class="progress-bar" role="progressbar" v-bind:style="{ width: (player.agility/10)+'%' }" :aria-valuenow="player.agility" aria-valuemin="0" aria-valuemax="1000"></div>
+    </div>
+    <div class="progress">
+      speed:&nbsp;<div class="progress-bar" role="progressbar" v-bind:style="{ width: (player.speed/10)+'%' }" :aria-valuenow="player.speed" aria-valuemin="0" aria-valuemax="1000"></div>
+    </div>
 </div>
 `
 })
@@ -180,10 +206,9 @@ const Story = {
             var disposition = message['type']
             var type, id, body
             if (disposition == 'ErrorMessage') {
-                // TODO: better reporting to the user
-                console.log(message.httpCode+': '+message.message)
-                this.$router.push({ name: 'create' })
-                return
+                type = 'ErrorMessage'
+                id = message.httpCode
+                body = message
             } else if (message['request']) {
                 body = message.request
                 type = body['@class']
@@ -223,54 +248,69 @@ const Story = {
             console.log('dist: '+type+' '+id)
 
             switch (type) {
-              case '.PlayerRequest':
-                if (disposition == 'RequestCreated') {
-                    this.addToListById(this.playerRequests, body)
-                } else if (disposition == 'RequestSatisfied') {
-                    this.removeFromListById(this.playerRequests, body)
-                }
-                break
-              case '.ActionRequest':
-                if (disposition == 'RequestCreated') {
-                    this.addToListById(this.actionRequests, body)
-                } else if (disposition == 'RequestSatisfied') {
-                    this.removeFromListById(this.actionRequests, body)
-                    if (body.player.id == this.$route.params.player_id) {
-                        this.removeFromListById(this.notifications, { id: body.player.id })
+                case 'ErrorMessage':
+                    // TODO: better reporting to the user
+                    console.log(body.httpCode+': '+body.message)
+                    if (id == 404) {
+                        this.$router.push({ name: 'create' })
                     } else {
-                        if (message.action && message.action.text) {
-                                var notification = {
-                                    id: id,
-                                    subject: body.player.fullName,
-                                    text: body.player.fullName+': '+message.action.text
-                                }
-                                this.addToListById(this.notifications, notification)
-                           }
+                        var notification = {
+                            id: id,
+                            subject: 'error',
+                            text: body.message
+                        }
+                        this.addToListById(this.notifications, notification)
                     }
-                }
-                break
-              case 'PlayerChanged':
-                this.addToListById(this.players, body)
-                break
-              case 'PlayerNotification':
-                if (body.player.id != this.$route.params.player_id) {
                     break
-                }
-                var notification = {
-                    id: body.player.id,
-                    subject: message.subject,
-                    text: message.text
-                }
-                if (notification.text) {
-                    this.addToListById(this.notifications, notification)
-                } else {
-                    this.removeFromListById(this.notifications, notification)
-                }
-                break
+                case '.PlayerRequest':
+                    if (disposition == 'RequestCreated') {
+                        this.addToListById(this.playerRequests, body)
+                    } else if (disposition == 'RequestSatisfied') {
+                        this.removeFromListById(this.playerRequests, body)
+                    }
+                    break
+                  case '.ActionRequest':
+                    if (disposition == 'RequestCreated') {
+                        this.addToListById(this.actionRequests, body)
+                    } else if (disposition == 'RequestSatisfied') {
+                        this.removeFromListById(this.actionRequests, body)
+                        if (body.player.id == this.$route.params.player_id) {
+                            this.removeFromListById(this.notifications, { id: body.player.id })
+                        } else {
+                            if (message.action && message.action.text) {
+                                    var notification = {
+                                        id: id,
+                                        subject: body.player.fullName,
+                                        text: body.player.fullName+': '+message.action.text
+                                    }
+                                    this.addToListById(this.notifications, notification)
+                               }
+                        }
+                    }
+                    break
+                  case 'PlayerChanged':
+                    this.addToListById(this.players, body)
+                    break
+                  case 'PlayerNotification':
+                    if (body.player.id != this.$route.params.player_id) {
+                        break
+                    }
+                    var notification = {
+                        id: body.player.id,
+                        subject: message.subject,
+                        text: message.text
+                    }
+                    if (notification.text) {
+                        this.addToListById(this.notifications, notification)
+                    } else {
+                        this.removeFromListById(this.notifications, notification)
+                    }
+                    break
             }
         }
     },
     beforeRouteUpdate (to, from, next) {
+        console.log(`beforeRouteUpdate: ${to} => ${from}`)
         // TODO: react to route changes...
         next()
     },
@@ -351,7 +391,7 @@ const StoryInit = {
     <input type="text" class="form-control" v-model="nickName" placeholder="Enter player nick name">
   </div>
   <button type="button" class="btn btn-primary" v-on:click="createPlayer">Submit</button>
-  <div class="alert alert-warning"><p>TODO: full info about character</p></div>
+  <player-detail v-if="request && request.template" v-bind:player="request.template"></player-detail>
 </form>
 </div>
 </div>
@@ -423,7 +463,7 @@ const StoryRun = {
 </div>
 <div class="row">
 <div class="col-8">
-    <player-detail v-if="this.$parent.my_player_obj" v-bind:player="this.$parent.my_player_obj"></player-detail>
+    <div v-if="this.$parent.my_player_obj"><h2>{{ this.$parent.my_player_obj.fullName }}</h2></div>
     <action-request v-if="this.$parent.my_player_actionRequest"
       v-bind:storyId="$parent.$route.params.story_id"
       v-bind:playerId="$parent.$route.params.player_id"
@@ -438,7 +478,7 @@ const StoryRun = {
             <h6 class="card-subtitle mb-2 text-muted">{{ r.room.name }}</h6>
             <p class="card-text">\${{ r.wealth }}</p>
             <div class="progress">
-              <div class="progress-bar" role="progressbar" v-bind:style="{ width: (r.health/10)+'%' }" :aria-valuenow="r.health" aria-valuemin="0" aria-valuemax="1000">health</div>
+              health:&nbsp;<div class="progress-bar" role="progressbar" v-bind:style="{ width: (r.health/10)+'%' }" :aria-valuenow="r.health" aria-valuemin="0" aria-valuemax="1000"></div>
             </div>
         </div>
     </div>
@@ -447,6 +487,7 @@ const StoryRun = {
 </div>
 `,
     beforeRouteUpdate (to, from, next) {
+        console.log(`beforeRouteUpdate: ${to} => ${from}`)
         // TODO: react to route changes...
         next()
     },

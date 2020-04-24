@@ -15,7 +15,7 @@ class HumanPlayerTest extends AbstractPlayerTest {
 
     def "initial actions"() {
         when:
-        engine.start()
+        engine.start().join()
 
         then:
         story.requests.count { it instanceof ActionRequest } == 2
@@ -35,7 +35,7 @@ class HumanPlayerTest extends AbstractPlayerTest {
 
     def "initial extras placement"() {
         when:
-        engine.start()
+        engine.start().join()
 
         then:
         story.cast.findAll { it.persona.name == 'thug' && it.room.modelId == 'entrance' }.size() == 3
@@ -50,9 +50,9 @@ class HumanPlayerTest extends AbstractPlayerTest {
     def "multiple for persona"() {
         when:
         story.requests.findAll { it instanceof PlayerRequest }.each { PlayerRequest r ->
-            engine.addToCast(r.template.createPlayer(Motivator.HUMAN))
+            engine.addToCast(r.template.createPlayer(Motivator.HUMAN)).join()
         }
-        engine.start()
+        engine.start().join()
 
         then:
         story.cast.count { it.motivator == Motivator.HUMAN } == 12
@@ -68,7 +68,7 @@ class HumanPlayerTest extends AbstractPlayerTest {
     def "roomSummary human players no extras"() {
         given:
         story.world.extras.clear()
-        engine.start()
+        engine.start().join()
 
         when:
         RoomSummary roomSummary = ((ActionRequest) story.requests.find { it instanceof ActionRequest && it.player == warrior }).roomSummary
@@ -82,7 +82,7 @@ class HumanPlayerTest extends AbstractPlayerTest {
 
     def "roomSummary human players with extras"() {
         given:
-        engine.start()
+        engine.start().join()
 
         when:
         RoomSummary roomSummary = ((ActionRequest) story.requests.find { it instanceof ActionRequest && it.player == warrior }).roomSummary
@@ -96,13 +96,13 @@ class HumanPlayerTest extends AbstractPlayerTest {
 
     def "roomSummary human players no occupants"() {
         given:
-        engine.start()
+        engine.start().join()
 
         when:
-        engine.action(warrior, 'go north')
-        engine.action(thief, 'go north')
-        engine.action(warrior, 'go west')
-        engine.action(thief, 'go east')
+        engine.action(warrior, 'go north').join()
+        engine.action(thief, 'go north').join()
+        engine.action(warrior, 'go west').join()
+        engine.action(thief, 'go east').join()
 
         then:
         thief.room.modelId == 'trailer_3'
@@ -116,11 +116,11 @@ class HumanPlayerTest extends AbstractPlayerTest {
 
     def "action without request"() {
         given:
-        engine.start()
+        engine.start().join()
 
         when:
-        engine.action(warrior, 'wait')
-        boolean success = engine.action(warrior, 'wait')
+        engine.action(warrior, 'wait').join()
+        boolean success = engine.action(warrior, 'wait').join()
 
         then:
         !success
@@ -134,10 +134,10 @@ class HumanPlayerTest extends AbstractPlayerTest {
 
     def "custom action not implemented"() {
         given:
-        engine.start()
+        engine.start().join()
 
         when:
-        boolean success = engine.action(warrior, 'wait4')
+        boolean success = engine.action(warrior, 'wait4').join()
 
         then:
         !success

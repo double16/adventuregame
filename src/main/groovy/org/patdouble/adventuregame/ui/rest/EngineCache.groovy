@@ -10,19 +10,17 @@ import org.patdouble.adventuregame.storage.jpa.WorldRepository
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.messaging.simp.SimpMessageSendingOperations
+import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.web.server.ResponseStatusException
 
 import javax.persistence.EntityManager
 import javax.persistence.PersistenceContext
+import javax.transaction.Transactional
 import javax.validation.constraints.NotNull
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
-import java.util.concurrent.Executors
-import java.util.concurrent.ScheduledExecutorService
-import java.util.concurrent.ScheduledFuture
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
 /**
@@ -48,13 +46,9 @@ class EngineCache {
         }
     }
 
-    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
-    private ScheduledFuture scheduledFuture
-
     @NotNull
     Duration ttl = Duration.ofMinutes(10)
-    @NotNull
-    Duration sweepInterval = Duration.ofMinutes(20)
+
     /** Automatically move through the lifecycle. */
     boolean autoLifecycle = true
     @Autowired
@@ -67,18 +61,6 @@ class EngineCache {
     SimpMessageSendingOperations simpMessagingTemplate
 
     private final ConcurrentMap<UUID, Value> map = new ConcurrentHashMap<>()
-
-    EngineCache() {
-        scheduleSweep()
-    }
-
-    void setSweepInterval(@NotNull Duration d) {
-        Objects.requireNonNull(d)
-        if (d != sweepInterval) {
-            sweepInterval = d
-            scheduleSweep()
-        }
-    }
 
     /**
      * Get an engine for the story.
@@ -94,9 +76,9 @@ class EngineCache {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, 'Story is ended')
             }
             Engine engine = configure(new Engine(story.get().initialize()))
-            engine.init()
+            engine.init().join()
             if (engine.story.chronos.current > 0) {
-                engine.start()
+                engine.start().join()
             }
             new Value(engine)
         }
@@ -107,12 +89,13 @@ class EngineCache {
     /**
      * Create a new story.
      */
+    @Transactional
     Engine create(World world) {
         Story story = storyRepository.save(new Story(world)).initialize()
         Objects.requireNonNull(story.id)
         Engine engine = configure(new Engine(story))
-        engine.init()
-        engine.story = storyRepository.saveAndFlush(story)
+        engine.init().join()
+        engine.updateStory(storyRepository.saveAndFlush(story))
         map.put(story.id, new Value(engine))
         engine
     }
@@ -125,7 +108,7 @@ class EngineCache {
      * Expire engines that haven't seen activity since the {@link #ttl}.
      */
     void expire(long timeInMillis = System.currentTimeMillis()) {
-        remove(map.values().findAll { it.expires.get() > timeInMillis })
+        remove(map.values().findAll { it.expires.get() < timeInMillis })
     }
 
     void sweep() {
@@ -134,7 +117,8 @@ class EngineCache {
             if (!entityManager.contains(s)) {
                 s = entityManager.merge(s)
             }
-            v.engine.story = storyRepository.saveAndFlush(s).initialize()
+            entityManager.flush()
+            v.engine.updateStory(s.initialize())
         }
     }
 
@@ -162,24 +146,18 @@ class EngineCache {
             i.remove()
 
             Story s = v.engine.story
-            if (!entityManager.contains(v.engine.story)) {
-                s = entityManager.merge(s)
+            if (!entityManager.contains(s)) {
+                entityManager.merge(s)
             }
-            storyRepository.saveAndFlush(s)
+            entityManager.flush()
             v.engine.close()
         }
     }
 
-    private void scheduleSweep() {
-        if (scheduledFuture != null) {
-            scheduledFuture.cancel(false)
-        }
-        scheduledFuture = scheduledExecutorService.scheduleAtFixedRate({
-            sweep()
-            expire()
-        },
-                sweepInterval.toMillis(),
-                sweepInterval.toMillis(),
-                TimeUnit.MILLISECONDS)
+    @Scheduled(fixedDelay = 30000L)
+    @Transactional
+    void scheduleSweep() {
+        sweep()
+        expire()
     }
 }

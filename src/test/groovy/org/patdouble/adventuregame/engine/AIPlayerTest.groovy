@@ -22,7 +22,7 @@ class AIPlayerTest extends AbstractPlayerTest {
 
     def "no initial actions"() {
         when:
-        engine.start()
+        engine.start().join()
 
         then:
         story.requests.count { it instanceof ActionRequest } == 0
@@ -30,7 +30,7 @@ class AIPlayerTest extends AbstractPlayerTest {
 
     def "initial extras placement"() {
         when:
-        engine.start()
+        engine.start().join()
 
         then:
         story.cast.findAll { it.persona.name == 'thug' && it.room.modelId == 'entrance' }.size() == 3
@@ -45,7 +45,7 @@ class AIPlayerTest extends AbstractPlayerTest {
     def "roomSummary ai players no extras"() {
         given:
         story.world.extras.clear()
-        engine.start()
+        engine.start().join()
 
         when:
         RoomSummary roomSummary = story.roomSummary(story.world.rooms.find { it.modelId == 'entrance' }, warrior, engine.bundles)
@@ -59,7 +59,7 @@ class AIPlayerTest extends AbstractPlayerTest {
 
    def "ai action requires no request"() {
         given:
-        engine.start()
+        engine.start().join()
 
         when:
         boolean success = engine.action(warrior, 'wait')

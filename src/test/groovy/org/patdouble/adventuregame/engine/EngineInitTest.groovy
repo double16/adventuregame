@@ -7,10 +7,12 @@ import org.patdouble.adventuregame.state.Motivator
 import org.patdouble.adventuregame.state.Player
 import org.patdouble.adventuregame.state.request.PlayerRequest
 
+import java.util.concurrent.CompletionException
+
 class EngineInitTest extends EngineTest {
     def "Init"() {
         when:
-        engine.init()
+        engine.init().join()
 
         then: 'player requests'
         story.requests.size() == 12
@@ -49,13 +51,13 @@ class EngineInitTest extends EngineTest {
 
     def "addToCast valid"() {
         given:
-        engine.init()
+        engine.init().join()
         PlayerRequest warriorRequest = story.requests.find { it.template.persona.name == 'warrior' } as PlayerRequest
         PlayerRequest thugRequest = story.requests.find { it.template.persona.name == 'thug' } as PlayerRequest
 
         when:
         Player warrior = warriorRequest.template.createPlayer(Motivator.AI)
-        engine.addToCast(warrior)
+        engine.addToCast(warrior).join()
 
         then:
         story.cast.contains(warrior)
@@ -70,7 +72,7 @@ class EngineInitTest extends EngineTest {
 
         when:
         Player thug = thugRequest.template.createPlayer(Motivator.AI)
-        engine.addToCast(thug)
+        engine.addToCast(thug).join()
 
         then:
         story.cast.contains(thug)
@@ -84,29 +86,29 @@ class EngineInitTest extends EngineTest {
 
     def "addToCast invalid"() {
         given:
-        engine.init()
+        engine.init().join()
 
         when:
         PlayerRequest request = story.requests.find { it.template.persona.name == 'warrior' } as PlayerRequest
         Player warrior = request.template.createPlayer(Motivator.AI)
-        engine.addToCast(warrior)
-        engine.addToCast(warrior.clone())
+        engine.addToCast(warrior).join()
+        engine.addToCast(warrior.clone()).join()
 
         then:
-        thrown(IllegalArgumentException)
+        thrown(CompletionException)
         and:
         0 * storySubscriber.onNext(new RequestSatisfied(request))
     }
 
     def "ignore optional"() {
         given:
-        engine.init()
+        engine.init().join()
         PlayerRequest warriorRequest = story.requests.find { it.template.persona.name == 'warrior' } as PlayerRequest
         PlayerRequest thugRequest = story.requests.find { it.template.persona.name == 'thug' } as PlayerRequest
 
         when:
         Player warrior = warriorRequest.template.createPlayer(Motivator.AI)
-        engine.addToCast(warrior)
+        engine.addToCast(warrior).join()
 
         then:
         story.cast.contains(warrior)
@@ -120,7 +122,7 @@ class EngineInitTest extends EngineTest {
         1 * storySubscriber.onNext(new RequestSatisfied(warriorRequest))
 
         when:
-        engine.ignore(thugRequest)
+        engine.ignore(thugRequest).join()
 
         then:
         !story.cast.find { it.persona.name == 'thug' }
@@ -135,14 +137,14 @@ class EngineInitTest extends EngineTest {
 
     def "ignore required"() {
         given:
-        engine.init()
+        engine.init().join()
         PlayerRequest warriorRequest = story.requests.find { it.template.persona.name == 'warrior' } as PlayerRequest
 
         when:
-        engine.ignore(warriorRequest)
+        engine.ignore(warriorRequest).join()
 
         then:
-        thrown(IllegalArgumentException)
+        thrown(CompletionException)
 
         and:
         story.requests.find { it.template.persona.name == 'warrior' }
@@ -155,13 +157,13 @@ class EngineInitTest extends EngineTest {
 
     def "start with pending players"() {
         given:
-        engine.init()
+        engine.init().join()
 
         when:
-        engine.start()
+        engine.start().join()
 
         then:
-        thrown(IllegalStateException)
+        thrown(CompletionException)
 
         and:
         story.requests.find { it.template.persona.name == 'warrior' }
@@ -175,16 +177,16 @@ class EngineInitTest extends EngineTest {
     def "autostart"() {
         given:
         engine.autoLifecycle = true
-        engine.init()
+        engine.init().join()
         engine.story.goals.each { it.goal.required = false }
         PlayerRequest warriorRequest = story.requests.find { it.template.persona.name == 'warrior' } as PlayerRequest
         PlayerRequest thiefRequest = story.requests.find { it.template.persona.name == 'thief' } as PlayerRequest
 
         when:
-        engine.addToCast(warriorRequest.template.createPlayer(Motivator.AI))
-        engine.addToCast(thiefRequest.template.createPlayer(Motivator.AI))
+        engine.addToCast(warriorRequest.template.createPlayer(Motivator.AI)).join()
+        engine.addToCast(thiefRequest.template.createPlayer(Motivator.AI)).join()
         story.requests.findAll { it.template.persona.name == 'thug' }. each {
-            engine.addToCast(it.template.createPlayer(Motivator.AI))
+            engine.addToCast(it.template.createPlayer(Motivator.AI)).join()
         }
 
         then:
@@ -201,13 +203,13 @@ class EngineInitTest extends EngineTest {
 
     def "init idempotency"() {
         given:
-        engine.init()
+        engine.init().join()
         int requestCount = engine.story.requests.size()
         int goalStatusCount = engine.story.goals.size()
         int castCount = engine.story.cast.size()
 
         when:
-        engine.init()
+        engine.init().join()
         then:
         requestCount == engine.story.requests.size()
         goalStatusCount == engine.story.goals.size()
@@ -216,17 +218,17 @@ class EngineInitTest extends EngineTest {
 
     def "start idempotency"() {
         given:
-        engine.init()
+        engine.init().join()
         engine.story.requests
             .findAll { (it instanceof PlayerRequest) && !it.optional }
-            .each { engine.addToCast(it.template.createPlayer(Motivator.HUMAN)) }
-        engine.start()
+            .each { engine.addToCast(it.template.createPlayer(Motivator.HUMAN)).join() }
+        engine.start().join()
         int requestCount = engine.story.requests.size()
         int goalStatusCount = engine.story.goals.size()
         int castCount = engine.story.cast.size()
 
         when:
-        engine.start()
+        engine.start().join()
         then:
         requestCount == engine.story.requests.size()
         goalStatusCount == engine.story.goals.size()
@@ -236,18 +238,18 @@ class EngineInitTest extends EngineTest {
 
     def "end idempotency"() {
         given:
-        engine.init()
+        engine.init().join()
         engine.story.requests
                 .findAll { (it instanceof PlayerRequest) && !it.optional }
-                .each { engine.addToCast(it.template.createPlayer(Motivator.HUMAN)) }
-        engine.start()
-        engine.end()
+                .each { engine.addToCast(it.template.createPlayer(Motivator.HUMAN)).join() }
+        engine.start().join()
+        engine.end().join()
         int requestCount = engine.story.requests.size()
         int goalStatusCount = engine.story.goals.size()
         int castCount = engine.story.cast.size()
 
         when:
-        engine.end()
+        engine.end().join()
         then:
         requestCount == engine.story.requests.size()
         goalStatusCount == engine.story.goals.size()

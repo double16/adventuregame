@@ -126,9 +126,10 @@ class EngineControllerTest extends Specification {
                 playerTemplateId: warriorTemplateId))
 
         then:
-        thrown(IllegalArgumentException)
-        engine.story.requests.size() == 12
-        engine.story.requests.find { (it instanceof PlayerRequest) && it.template.id.toString() == warriorTemplateId }
+        wait {
+            assert engine.story.requests.size() == 12
+            assert engine.story.requests.find { (it instanceof PlayerRequest) && it.template.id.toString() == warriorTemplateId }
+        }
         and:
         !simpMessagingTemplate.messages.find {
             it.first == "/topic/story.${storyId}" as String &&

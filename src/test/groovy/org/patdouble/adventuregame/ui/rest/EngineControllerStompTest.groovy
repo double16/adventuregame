@@ -31,6 +31,7 @@ import org.springframework.web.socket.handler.LoggingWebSocketHandlerDecorator
 import org.springframework.web.socket.messaging.WebSocketStompClient
 import spock.lang.Specification
 import spock.lang.Unroll
+import static org.patdouble.adventuregame.SpecHelper.wait
 
 import javax.transaction.Transactional
 import java.lang.reflect.Type
@@ -155,9 +156,10 @@ class EngineControllerStompTest extends Specification {
                 playerTemplateId: warriorTemplateId))
 
         then:
-        thrown(IllegalArgumentException)
-        engine.story.requests.size() == 12
-        engine.story.requests.find { (it instanceof PlayerRequest) && it.template.id.toString() == warriorTemplateId }
+        wait {
+            assert engine.story.requests.size() == 12
+            assert engine.story.requests.find { (it instanceof PlayerRequest) && it.template.id.toString() == warriorTemplateId }
+        }
         and:
         !messages.poll(POLL_TIMEOUT, TimeUnit.SECONDS)
     }
@@ -251,9 +253,10 @@ class EngineControllerStompTest extends Specification {
         List<StoryMessage> messages = controller.subscribe(storyId)
 
         then:
-        messages.size() == 32
+        messages.size() == 33
         messages.count { it instanceof RequestCreated } == 12
         messages.count { it instanceof PlayerChanged } == 20
+        messages.count { it instanceof ChronosChanged } == 1
     }
 
 }

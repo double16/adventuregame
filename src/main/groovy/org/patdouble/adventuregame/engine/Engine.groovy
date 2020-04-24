@@ -36,7 +36,9 @@ import org.patdouble.adventuregame.state.request.ActionRequest
 import org.patdouble.adventuregame.state.request.PlayerRequest
 import org.patdouble.adventuregame.state.request.Request
 
+import javax.validation.constraints.NotNull
 import java.time.Duration
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
 import java.util.concurrent.Flow
 import java.util.concurrent.ForkJoinPool
@@ -59,6 +61,7 @@ class Engine implements Closeable {
     final Locale locale = Locale.ENGLISH
     final ActionStatementParser actionStatementParser
     final Bundles bundles
+    final EngineFacade facade
     /** Automatically move through the lifecycle. */
     boolean autoLifecycle
     /** Stops the engine if the chronos reaches this value, prevents run away execution. */
@@ -68,54 +71,67 @@ class Engine implements Closeable {
     @Delegate(includeTypes = [Flow.Publisher])
     final private SubmissionPublisher<StoryMessage> publisher
 
-    DroolsConfiguration droolsConfiguration
-    KieContainer kContainer
+    private DroolsConfiguration droolsConfiguration
+    private KieContainer kContainer
     private KieSession kieSession
     private FactHandle chronosHandle
     private FactHandle storyStateHandle
     private final Map<UUID, FactHandle> handles = [:]
 
-    Engine(Story story, Executor executor = null) {
+    Engine(@NotNull Story story, Executor executor = null) {
+        Objects.requireNonNull(story)
+        this.facade = new EngineFacade(this)
         this.story = story
         this.executor = executor ?: ForkJoinPool.commonPool()
         this.publisher = new SubmissionPublisher<>(this.executor, Flow.defaultBufferSize())
         actionStatementParser = new ActionStatementParser(locale)
         bundles = Bundles.get(locale)
         droolsConfiguration = new DroolsConfiguration()
+        newKieSession()
+        Objects.requireNonNull(kieSession)
     }
 
     /**
      * Initialize the story to be ready to play, which includes creating request for players.
      */
-    void init() {
+    CompletableFuture<Void> init() {
         assert story.world
-        if (story.chronos) {
-            return
+
+        final CompletableFuture<Void> future = new CompletableFuture<>()
+        kieSession.submit {
+            if (story.chronos == null) {
+                story.chronos = new Chronos()
+                story.history = new History(story.world)
+                createPlayerRequests()
+                createGoalStatus()
+                checkInitComplete(future)
+            } else {
+                future.complete(null)
+            }
         }
-
-        story.chronos = new Chronos()
-        story.history = new History(story.world)
-        createPlayerRequests()
-        createGoalStatus()
-
-        checkInitComplete()
+        future
     }
 
     /**
      * Replace story object, which is expected to happen due to persistence behavior. This is NOT intended to change the
      * content of the story, only the objects involved.
      */
-    void setStory(Story story) {
+    CompletableFuture<Story> updateStory(Story story) {
         Objects.requireNonNull(story)
-        if (story.is(this.story)) {
-            return
+        final CompletableFuture<Story> future = new CompletableFuture<>()
+        kieSession.submit {
+            if (story.is(this.story)) {
+                future.complete(story)
+            } else {
+                this.story = story
+                if (storyStateHandle != null) {
+                    populateKieSession()
+                    syncStoryState()
+                }
+                future.complete(story)
+            }
         }
-        // FIXME: lock the engine
-        this.story = story
-        if (kieSession != null) {
-            populateKieSession()
-            syncStoryState()
-        }
+        future
     }
 
     /**
@@ -123,46 +139,38 @@ class Engine implements Closeable {
      * @throw IllegalArgumentException if a matching PlayerRequest isn't found.
      */
     @SuppressWarnings('Instanceof')
-    void addToCast(Player player) {
-        boolean removed = false
-        Iterator<Request> iter = story.requests.iterator()
-        while (iter.hasNext()) {
-            Request r = iter.next()
-            if (!(r instanceof PlayerRequest)) {
-                continue
-            }
-            PlayerRequest pr = r as PlayerRequest
-            if (pr.template.persona.name == player.persona.name) {
-                iter.remove()
-                player.siblingNumber = story.cast.count { it.persona.name == player.persona.name } + 1
-                removed = true
-                Objects.requireNonNull(pr.id)
-                publisher.submit(new RequestSatisfied(pr))
-                break
+    CompletableFuture<Void> addToCast(Player player) {
+        final CompletableFuture<Void> future = new CompletableFuture<>()
+        kieSession.submit {
+            try {
+                doAddToCast(player)
+                checkInitComplete(future)
+            } catch (RuntimeException e) {
+                future.completeExceptionally(e)
             }
         }
-        if (!removed) {
-            throw new IllegalArgumentException("Cannot find template matching player ${player}")
-        }
-        story.cast.add(player)
-        Objects.requireNonNull(player.id)
-        publisher.submit(new PlayerChanged(player.cloneKeepId(), 0))
-        checkInitComplete()
+        future
     }
 
     /**
      * Ignore the request.
      * @throws IllegalArgumentException if the request isn't optional
      */
-    void ignore(PlayerRequest request) {
+    CompletableFuture<Void> ignore(PlayerRequest request) {
+        final CompletableFuture<Void> future = new CompletableFuture<>()
         if (!request.optional) {
-            throw new IllegalArgumentException("Can not ignore required player ${request.template}")
+            future.completeExceptionally(new IllegalArgumentException("Can not ignore required player ${request.template}"))
+        } else {
+            kieSession.submit {
+                try {
+                    doIgnore(request)
+                    checkInitComplete(future)
+                } catch (RuntimeException e) {
+                    future.completeExceptionally(e)
+                }
+            }
         }
-        if (story.requests.remove(request)) {
-            Objects.requireNonNull(request.id)
-            publisher.submit(new RequestSatisfied(request))
-        }
-        checkInitComplete()
+        future
     }
 
     /**
@@ -172,37 +180,42 @@ class Engine implements Closeable {
      * @throew IllegalStateException if there are required players not yet cast
      */
     @SuppressWarnings('Instanceof')
-    void start(final Motivator forceMotivator = null) {
-        if (forceMotivator == null) {
-            Collection<PlayerRequest> pendingPlayers = story.requests
-                    .findAll { it instanceof PlayerRequest && !it.optional }
-            if (!pendingPlayers.empty) {
-                String msg = bundles.requiredPlayersTemplate
-                        .make([ names: pendingPlayers*.template*.fullName ]) as String
-                publisher.submit(new Notification(
-                        bundles.text.getString('state.players_required.subject'),
-                        msg))
-                throw new IllegalStateException(msg)
+    CompletableFuture<Void> start(final Motivator forceMotivator = null) {
+        final CompletableFuture<Void> future = new CompletableFuture<>()
+        kieSession.submit {
+            try {
+                if (forceMotivator == null) {
+                    Collection<PlayerRequest> pendingPlayers = story.requests
+                            .findAll { it instanceof PlayerRequest && !it.optional }
+                    if (!pendingPlayers.empty) {
+                        String msg = bundles.requiredPlayersTemplate
+                                .make([names: pendingPlayers*.template*.fullName]) as String
+                        publisher.submit(new Notification(
+                                bundles.text.getString('state.players_required.subject'),
+                                msg))
+                        throw new IllegalStateException(msg)
+                    }
+                }
+
+                story.requests.findAll { it instanceof PlayerRequest }.each { PlayerRequest playerRequest ->
+                    if (playerRequest.optional) {
+                        doIgnore(playerRequest)
+                    } else {
+                        doAddToCast(playerRequest.template.createPlayer(forceMotivator))
+                    }
+                }
+
+                if (story.chronos.current == 0) {
+                    placePlayers()
+                    startRuleEngine()
+                }
+
+                future.complete(null)
+            } catch (RuntimeException e) {
+                future.completeExceptionally(e)
             }
         }
-
-        story.requests.findAll { it instanceof PlayerRequest }.each { PlayerRequest playerRequest ->
-            if (playerRequest.optional) {
-                ignore(playerRequest)
-            } else {
-                addToCast(playerRequest.template.createPlayer(forceMotivator))
-            }
-        }
-
-        if (story.chronos.current == 0) {
-            placePlayers()
-        }
-
-        if (kieSession == null) {
-            startRuleEngine()
-        }
-
-        next()
+        future.thenRun { next() }
     }
 
     /**
@@ -215,16 +228,23 @@ class Engine implements Closeable {
     /**
      * End the story.
      */
-    void end() {
-        if (story.ended) {
-            return
+    CompletableFuture<Void> end() {
+        if (kieSession == null) {
+            return CompletableFuture.completedFuture(null)
         }
 
-        story.ended = true
-        syncStoryState()
-        removeKieObjects(story.requests)
-        story.requests.clear()
-        publisher.submit(new StoryEnded())
+        final CompletableFuture<Void> future = new CompletableFuture<>()
+        kieSession.submit {
+            if (!story.ended) {
+                story.ended = true
+                syncStoryState()
+                removeKieObjects(story.requests)
+                story.requests.clear()
+                publisher.submit(new StoryEnded())
+            }
+            future.complete(null)
+        }
+        future
     }
 
     /**
@@ -265,11 +285,21 @@ class Engine implements Closeable {
         }
     }
 
+
+    /**
+     * Publish a message.
+     * @param storyMessage
+     *  @return the estimated maximum lag among subscribers
+     */
+    int submit(StoryMessage storyMessage) {
+        publisher.submit(storyMessage)
+    }
+
     /**
      * Request the player performs an action.
      * @return true if the action was successful, false otherwise. Any error message will be sent via flow.
      */
-    boolean action(Player player, String statement) {
+    CompletableFuture<Boolean> action(Player player, String statement) {
         action(player, (ActionStatement) actionStatementParser.parse(statement))
     }
 
@@ -278,86 +308,105 @@ class Engine implements Closeable {
      * @return true if the action was successful, false otherwise. Any error message will be sent via flow.
      */
     @SuppressWarnings('Instanceof')
-    boolean action(Player player, ActionStatement action) {
+    CompletableFuture<Boolean> action(Player player, ActionStatement action) {
         log.info('action for player {} - {}', player, action)
-        ActionRequest actionRequest = story.requests.find { it instanceof ActionRequest && it.player == player }
-        if (player.motivator == Motivator.HUMAN) {
-            if (!actionRequest) {
-                log.error('action for player {} without request, action = {}', player, action)
-                Objects.requireNonNull(player.id)
-                publisher.submit(new PlayerNotification(player,
-                        bundles.text.getString('action.norequest.subject'),
-                        bundles.text.getString('action.norequest.text')))
-                return false
-            }
-        }
 
-        boolean success = false
-        boolean validAction = false
+        final CompletableFuture<Boolean> future = new CompletableFuture<>()
 
-        Action builtInAction = action?.getVerbAsAction()
-        if (builtInAction) {
-            switch (builtInAction) {
-                case Action.GO:
-                    validAction = true
-                    success = actionGo(player, action)
-                    break
-                case Action.WAIT:
-                    validAction = true
-                    success = actionWait()
-                    break
-            }
-        } else if (action?.verb) {
-            // TODO: custom actions
-            log.warn('custom actions not yet supported: {}', action.verb)
-        }
+        kieSession.submit {
+            try {
 
-        if (!validAction) {
-            Objects.requireNonNull(player.id)
-            publisher.submit(new PlayerNotification(player,
-                    bundles.text.getString('action.invalid.subject'),
-                    bundles.actionInvalidTextTemplate.make([ actions: actionStatementParser.availableActions ])
-                            .toString()))
-            if (actionRequest) {
-                Objects.requireNonNull(actionRequest.id)
-                publisher.submit(new RequestCreated(actionRequest))
-            }
-        } else if (success) {
-            kieSession.submit { kieSession ->
-                player.chronos = story.chronos.current
-                kieSession.update(kieSession.getFactHandle(player), player)
-                if (actionRequest) {
-                    story.requests.remove(actionRequest)
-                    removeKieObject(actionRequest)
-                    Objects.requireNonNull(actionRequest.id)
-                    publisher.submit(new RequestSatisfied(actionRequest, action))
+                ActionRequest actionRequest = story.requests.find { it instanceof ActionRequest && it.player == player }
+                if (player.motivator == Motivator.HUMAN) {
+                    if (!actionRequest) {
+                        log.error('action for player {} without request, action = {}', player, action)
+                        Objects.requireNonNull(player.id)
+                        publisher.submit(new PlayerNotification(player,
+                                bundles.text.getString('action.norequest.subject'),
+                                bundles.text.getString('action.norequest.text')))
+                        future.complete(false)
+                        return
+                    }
                 }
-            }
-        } else {
-            if (actionRequest) {
-                Objects.requireNonNull(actionRequest.id)
-                publisher.submit(new RequestCreated(actionRequest))
+
+                boolean success = false
+                boolean validAction = false
+
+                Action builtInAction = action?.getVerbAsAction()
+                if (builtInAction) {
+                    ActionExecutor actionInstance = builtInAction.actionClass.getConstructor().newInstance()
+                    try {
+                        success = actionInstance.execute(facade, player, action)
+                        validAction = true
+                    } catch (UnsupportedOperationException e) {
+                        validAction = false
+                    }
+                } else if (action?.verb) {
+                    // TODO: custom actions
+                    log.warn('custom actions not yet supported: {}', action.verb)
+                }
+
+                if (!validAction) {
+                    Objects.requireNonNull(player.id)
+                    publisher.submit(new PlayerNotification(player,
+                            bundles.text.getString('action.invalid.subject'),
+                            bundles.actionInvalidTextTemplate.make([actions: actionStatementParser.availableActions])
+                                    .toString()))
+                    if (actionRequest) {
+                        Objects.requireNonNull(actionRequest.id)
+                        publisher.submit(new RequestCreated(actionRequest))
+                    }
+                } else if (success) {
+                    player.chronos = story.chronos.current
+                    kieSession.update(handles.get(player.id), player)
+                    Objects.requireNonNull(player.id)
+                    publisher.submit(new PlayerChanged(player.cloneKeepId(), story.chronos.current))
+
+                    if (actionRequest) {
+                        story.requests.remove(actionRequest)
+                        removeKieObject(actionRequest)
+                        Objects.requireNonNull(actionRequest.id)
+                        publisher.submit(new RequestSatisfied(actionRequest, action))
+                    }
+                } else {
+                    if (actionRequest) {
+                        Objects.requireNonNull(actionRequest.id)
+                        publisher.submit(new RequestCreated(actionRequest))
+                    }
+                }
+
+                future.complete(success)
+            } catch (RuntimeException e) {
+                future.completeExceptionally(e)
             }
         }
-        next()
-        success
+
+        future.thenApply { s ->
+            next()
+            return s
+        }
     }
 
     /**
      * Create a new KieSession, configured for the story.
      */
     private void newKieSession() {
-        // let caller create KieContainer if desired
-        if (!kContainer) {
-            WorldRuleGenerator worldRuleGenerator = new WorldRuleGenerator(story.world)
-            StringWriter drl = new StringWriter()
-            StringWriter dslr = new StringWriter()
-            worldRuleGenerator.generate(drl, dslr)
-            kContainer = droolsConfiguration.kieContainer(drl.toString(), dslr.toString())
+        assert story?.world
+        if (kieSession != null) {
+            return
         }
+
+        WorldRuleGenerator worldRuleGenerator = new WorldRuleGenerator(story.world)
+        StringWriter drl = new StringWriter(16384)
+        StringWriter dslr = new StringWriter(16384)
+        worldRuleGenerator.generate(drl, dslr)
+        kContainer = droolsConfiguration.kieContainer(drl.toString(), dslr.toString())
+
         KieSessionConfiguration ksConfig = KieServices.Factory.get().newKieSessionConfiguration()
         ksConfig.setOption(ForceEagerActivationOption.YES)
         kieSession = kContainer.newKieSession(ksConfig)
+        kieSession.setGlobal('log', log)
+        kieSession.setGlobal('engine', facade)
     }
 
     @SuppressWarnings(['MethodParameterTypeRequired', 'NoDef'])
@@ -380,7 +429,7 @@ class Engine implements Closeable {
         }
     }
 
-    private void addOrReplaceKieObjects(Object ... objects) {
+    private void addOrReplaceKieObjects(Object... objects) {
         objects.flatten().each { addOrReplaceKieObject(it) }
     }
 
@@ -407,7 +456,7 @@ class Engine implements Closeable {
         }
     }
 
-    private void removeKieObjects(Object ... objects) {
+    private void removeKieObjects(Object... objects) {
         if (kieSession == null) {
             return
         }
@@ -418,8 +467,6 @@ class Engine implements Closeable {
      * Initialize the facts in the KIE session from the story.
      */
     private void initKieSession() {
-        kieSession.setGlobal('log', log)
-        kieSession.setGlobal('engine', new EngineFacade(this))
         chronosHandle = kieSession.insert(story.chronos)
         storyStateHandle = kieSession.insert(new StoryState(story))
         populateKieSession()
@@ -430,8 +477,40 @@ class Engine implements Closeable {
         addOrReplaceKieObjects(story.world.rooms, story.cast, story.requests, story.goals)
     }
 
+    private void doIgnore(PlayerRequest request) {
+        if (story.requests.remove(request)) {
+            Objects.requireNonNull(request.id)
+            publisher.submit(new RequestSatisfied(request))
+        }
+    }
+
+    private void doAddToCast(Player player) {
+        boolean removed = false
+        Iterator<Request> iter = story.requests.iterator()
+        while (iter.hasNext()) {
+            Request r = iter.next()
+            if (!(r instanceof PlayerRequest)) {
+                continue
+            }
+            PlayerRequest pr = r as PlayerRequest
+            if (pr.template.persona.name == player.persona.name) {
+                iter.remove()
+                player.siblingNumber = story.cast.count { it.persona.name == player.persona.name } + 1
+                removed = true
+                Objects.requireNonNull(pr.id)
+                publisher.submit(new RequestSatisfied(pr))
+                break
+            }
+        }
+        if (!removed) {
+            throw new IllegalArgumentException("Cannot find template matching player ${player}")
+        }
+        story.cast.add(player)
+        Objects.requireNonNull(player.id)
+        publisher.submit(new PlayerChanged(player.cloneKeepId(), 0))
+    }
+
     private void startRuleEngine() {
-        newKieSession()
         initKieSession()
         if (autoLifecycle) {
             Thread kieThread = new Thread(KIE_THREAD_GROUP, "kie for ${story.world.name}") {
@@ -483,9 +562,11 @@ class Engine implements Closeable {
         ((StoryState) kieSession.getObject(storyStateHandle))?.update(story)
     }
 
-    private void checkInitComplete() {
+    private void checkInitComplete(final CompletableFuture<Void> future) {
         if (autoLifecycle && story.requests.empty) {
-            start()
+            start().thenApply { s -> future.complete(s) }
+        } else {
+            future.complete(null)
         }
     }
 
@@ -529,38 +610,5 @@ class Engine implements Closeable {
      */
     private Event recordHistory() {
         null
-    }
-
-    private boolean actionGo(Player player, ActionStatement action) {
-        String direction = action.directObject?.toLowerCase()
-        List<String> directions = player.room.neighbors.keySet().sort()
-
-        // match direction
-        List<String> candidates
-        if (!direction) {
-            candidates = Collections.emptyList()
-        } else if (directions.contains(direction)) {
-            candidates = Collections.singletonList(direction)
-        } else {
-            candidates = directions.findAll { it.startsWith(direction) }
-        }
-
-        if (candidates.size() != 1) {
-            Objects.requireNonNull(player.id)
-            publisher.submit(new PlayerNotification(player,
-                    bundles.text.getString('action.go.instructions.subject'),
-                    bundles.goInstructionsTemplate.make([ directions: directions ]).toString()))
-            return false
-        }
-
-        player.room = player.room.neighbors.get(candidates.first())
-        Objects.requireNonNull(player.id)
-        publisher.submit(new PlayerChanged(player.cloneKeepId(), story.chronos.current))
-
-        true
-    }
-
-    private boolean actionWait() {
-        true
     }
 }

@@ -30,7 +30,6 @@ abstract class EngineTest extends Specification {
 
         engine = new Engine(story, executor)
         engine.chronosLimit = 100
-        engine.droolsConfiguration = new DroolsConfiguration()
         engine.subscribe(storySubscriber)
 //        engine.subscribe(new StoryMessageOutput())
     }

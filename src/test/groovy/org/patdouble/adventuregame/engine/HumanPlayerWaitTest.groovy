@@ -13,10 +13,10 @@ class HumanPlayerWaitTest extends AbstractPlayerTest {
 
     def "valid wait action"() {
         given:
-        engine.start()
+        engine.start().join()
 
         when:
-        boolean success = engine.action(warrior, 'wait')
+        boolean success = engine.action(warrior, 'wait').join()
 
         then:
         success
@@ -24,17 +24,17 @@ class HumanPlayerWaitTest extends AbstractPlayerTest {
         warrior.room.modelId == 'entrance'
         !story.requests.find { it instanceof ActionRequest && it.player == warrior }
         and:
-        0 * storySubscriber.onNext(new PlayerChanged(warrior, 1))
+        1 * storySubscriber.onNext(new PlayerChanged(warrior, 1))
         1 * storySubscriber.onNext{ it instanceof RequestSatisfied && it.request.player == warrior }
     }
 
     def "valid wait actions trigger next"() {
         given:
-        engine.start()
+        engine.start().join()
 
         when:
-        engine.action(warrior, 'wait')
-        engine.action(thief, 'wait')
+        engine.action(warrior, 'wait').join()
+        engine.action(thief, 'wait').join()
 
         then:
         warrior.chronos == 1

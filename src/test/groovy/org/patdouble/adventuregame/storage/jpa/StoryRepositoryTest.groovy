@@ -33,11 +33,10 @@ class StoryRepositoryTest extends Specification {
     private Story newStory(String worldName, boolean start = false) {
         Story story = new Story(worldRepository.findByName(worldName).first())
         Engine engine = new Engine(story)
-        engine.kContainer = new DroolsConfiguration().kieContainer()
-        engine.init()
+        engine.init().join()
         if (start) {
             story.requests.clone().each { PlayerRequest req -> engine.addToCast(req.template.createPlayer(Motivator.HUMAN)) }
-            engine.start()
+            engine.start().join()
         }
         engine.close()
         story
