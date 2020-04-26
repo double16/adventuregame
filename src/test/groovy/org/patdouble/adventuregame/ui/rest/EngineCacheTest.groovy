@@ -151,6 +151,25 @@ class EngineCacheTest extends Specification {
         storyRepository.findById(stories[1].id).get().modified > modified[1]
     }
 
+    def "remove ended"() {
+        given:
+        cache.ttl = Duration.of(100, ChronoUnit.MILLIS)
+        List<Story> stories = []
+        stories << storyRepository.saveAndFlush(new Story(worldRepository.findByName(YamlUniverseRegistry.TRAILER_PARK).first()))
+        stories << storyRepository.saveAndFlush(new Story(worldRepository.findByName(YamlUniverseRegistry.THE_HOBBIT).first()))
+        List<LocalDateTime> modified = stories.collect { it.modified }
+        when:
+        cache.get(stories[1].id).with { Engine e ->
+            e.story.ended = true
+            storyRepository.saveAndFlush(e.story)
+        }
+        cache.expire(System.currentTimeMillis() + 101)
+        then:
+        cache.size() == 1
+        and: 'ended story was saved'
+        storyRepository.findById(stories[1].id).get().modified > modified[1]
+    }
+
     def "save at intervals"() {
         given:
         cache.clear()

@@ -41,16 +41,19 @@ extras:
 
 goals:
   one:
+    description: Any player reaches trailer 2.
     rules:
       - player enters room "trailer_2"
     required: false
     the-end: false
   two:
+    description: Any player reaches trailer 4.
     rules:
       - player enters room "trailer_4"
     required: false
     the-end: true
   three:
+    description: Unspecified
     required: true
     the-end: false
 

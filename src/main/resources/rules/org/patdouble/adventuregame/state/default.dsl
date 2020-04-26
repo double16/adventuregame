@@ -9,4 +9,4 @@
 
 [when]Story Goal "{name}"=$goal : GoalStatus(goal.name == "{name}", getFulfilled() == false)
 [when]player enters room "{room_id}"=Player(room.modelId == "{room_id}")
-[then]goal is fulfilled=modify($goal) { setFulfilled(true) }
+[then]goal is fulfilled=engine.fulfill($goal)

@@ -1,11 +1,9 @@
 package org.patdouble.adventuregame.engine
 
+import org.patdouble.adventuregame.flow.GoalFulfilled
 import org.patdouble.adventuregame.flow.StoryEnded
+import org.patdouble.adventuregame.model.Goal
 import org.patdouble.adventuregame.state.Motivator
-
-import java.time.Duration
-
-import static org.patdouble.adventuregame.SpecHelper.wait
 
 class HumanPlayerGoalTest extends AbstractPlayerTest {
     @Override
@@ -16,6 +14,9 @@ class HumanPlayerGoalTest extends AbstractPlayerTest {
     def "fulfilled goal ends story"() {
         given:
         engine.start().join()
+        Goal goal1 = engine.story.goals.find { it.goal.name == 'one' }.goal
+        Goal goal2 = engine.story.goals.find { it.goal.name == 'two' }.goal
+        Goal goal3 = engine.story.goals.find { it.goal.name == 'three' }.goal
 
         when:
         engine.action(warrior, 'go north').join()
@@ -31,6 +32,9 @@ class HumanPlayerGoalTest extends AbstractPlayerTest {
         engine.story.goals.find { it.goal.name == 'two' }.fulfilled
         !engine.story.goals.find { it.goal.name == 'three' }.fulfilled
         and:
+        1 * storySubscriber.onNext(new GoalFulfilled(goal: goal1))
+        1 * storySubscriber.onNext(new GoalFulfilled(goal: goal2))
+        0 * storySubscriber.onNext(new GoalFulfilled(goal: goal3))
         1 * storySubscriber.onNext(new StoryEnded())
     }
 }

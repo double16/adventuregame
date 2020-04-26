@@ -4,6 +4,7 @@ import groovy.transform.CompileStatic
 import org.patdouble.adventuregame.flow.StoryMessage
 import org.patdouble.adventuregame.i18n.ActionStatement
 import org.patdouble.adventuregame.i18n.Bundles
+import org.patdouble.adventuregame.state.GoalStatus
 import org.patdouble.adventuregame.state.Player
 
 /**
@@ -63,5 +64,13 @@ class EngineFacade {
 
     Bundles getBundles() {
         engine.bundles
+    }
+
+    /**
+     * Mark a goal as fulfilled.
+     */
+    @SuppressWarnings('Unused')
+    void fulfill(GoalStatus goal) {
+        engine.fulfill(goal)
     }
 }

@@ -20,6 +20,7 @@ class Goal {
     UUID id = UUID.randomUUID()
 
     String name
+    String description
     /** A required goal must be fulfilled before the story is over. */
     boolean required
     /** If this goal is met, end the story regardless of other goals. */

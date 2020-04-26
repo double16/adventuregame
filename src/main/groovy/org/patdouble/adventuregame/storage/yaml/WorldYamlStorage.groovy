@@ -195,6 +195,7 @@ class WorldYamlStorage {
         for (Map.Entry<String, Object> goalMap : goals.entrySet()) {
             Map<String, Object> data = (Map<String, Object>) goalMap.value
             Goal g = new Goal(name: goalMap.key)
+            g.description = data.get('description')
             g.required = data.getOrDefault('required', false) as Boolean
             g.theEnd = data.getOrDefault('the-end', false) as Boolean
             Collection rules = data.get('rules', []) as Collection

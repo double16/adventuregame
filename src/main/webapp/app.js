@@ -2,7 +2,7 @@ Vue.component('story-create-item', {
     props: ['name', 'description', 'worldId'],
     template:  `
 <div><h2>{{ name }}</h2><p>{{ description }}</p>
-<button v-on:click="createStory" type="submit" class="btn btn-primary">Start</button>
+<button v-on:click="createStory" type="button" class="btn btn-primary">Start</button>
 </div>
 `,
     methods: {
@@ -107,7 +107,7 @@ const StoryCreate = {
         console.log('loading world list')
         axios.get('/api/worlds')
               .then(response => {
-                var result = []
+                let result = []
                 response.data._embedded.worlds.forEach(world => {
                     result.push({
                       name: world.name,
@@ -137,6 +137,7 @@ const Story = {
 `,
     data() {
         return {
+            story_id: null,
             stompClient: null,
             subscription: null,
             world: null,
@@ -156,7 +157,7 @@ const Story = {
             return new URL("#"+this.my_player_path, window.location).toString()
         },
         my_player_obj: function() {
-            for(var i = 0; i < this.players.length; i++) {
+            for(let i = 0; i < this.players.length; i++) {
                 if (this.players[i].id == this.$route.params.player_id) {
                     return this.players[i]
                 }
@@ -164,7 +165,7 @@ const Story = {
             return null
         },
         my_player_actionRequest: function() {
-            for(var i = 0; i < this.actionRequests.length; i++) {
+            for(let i = 0; i < this.actionRequests.length; i++) {
                 if (this.actionRequests[i].player.id == this.$route.params.player_id) {
                     return this.actionRequests[i]
                 }
@@ -175,7 +176,7 @@ const Story = {
     methods: {
         addToListById: function(list, message) {
             if (message.id) {
-                for(var i = 0; i < list.length; i++) {
+                for(let i = 0; i < list.length; i++) {
                     if (list[i].id == message.id) {
                         list[i] = message
                         return
@@ -186,7 +187,7 @@ const Story = {
         },
         removeFromListById: function(list, message) {
             if (message.id) {
-                for(var i = 0; i < list.length; i++) {
+                for(let i = 0; i < list.length; i++) {
                     if (list[i].id == message.id) {
                         list.splice(i, 1)
                         return
@@ -195,7 +196,7 @@ const Story = {
             }
         },
         waiting: function(playerId) {
-            for(var i = 0; i < this.actionRequests.length; i++) {
+            for(let i = 0; i < this.actionRequests.length; i++) {
                 if (this.actionRequests[i].player.id == playerId) {
                     return true
                 }
@@ -203,9 +204,9 @@ const Story = {
             return false
         },
         distributor: function(message) {
-            var disposition = message['type']
-            var type, id, body
-            if (disposition == 'ErrorMessage') {
+            let disposition = message['type']
+            let type, id, body
+            if (disposition === 'ErrorMessage') {
                 type = 'ErrorMessage'
                 id = message.httpCode
                 body = message
@@ -213,23 +214,23 @@ const Story = {
                 body = message.request
                 type = body['@class']
                 id = body['id']
-            } else if (disposition == 'PlayerChanged') {
+            } else if (disposition === 'PlayerChanged') {
                 body = message.player
                 type = disposition
                 id = body['id']
                 if (body.motivator != 'HUMAN') {
                     return
                 }
-            } else if (disposition == 'PlayerNotification') {
+            } else if (disposition === 'PlayerNotification') {
                 body = message
                 type = disposition
                 id = body.player.id
-            } else if (disposition == 'StoryEnded') {
-                var endUrl = this.my_player_path.replace('play', 'end')
+            } else if (disposition === 'StoryEnded') {
+                let endUrl = this.my_player_path.replace('play', 'end')
                 console.log('Story ended: '+endUrl)
                 this.$router.push(endUrl)
                 return
-            } else if (disposition == 'ChronosChanged') {
+            } else if (disposition === 'ChronosChanged') {
                 if (message['current'] == 1) {
                     if (this.$route.name != 'run') {
                         if (this.my_player_path) {
@@ -239,8 +240,12 @@ const Story = {
                         }
                     }
                 } else {
-                    this.notifications.splice(0, this.notifications.length)
+                    this.notifications.splice(0)
                 }
+            } else if (disposition === 'GoalFulfilled') {
+                type = disposition
+                body = message.goal
+                id = body.id
             } else {
                 console.log('unknown message: '+message)
                 return
@@ -254,18 +259,17 @@ const Story = {
                     if (id == 404) {
                         this.$router.push({ name: 'create' })
                     } else {
-                        var notification = {
+                        this.addToListById(this.notifications, {
                             id: id,
                             subject: 'error',
                             text: body.message
-                        }
-                        this.addToListById(this.notifications, notification)
+                        })
                     }
                     break
                 case '.PlayerRequest':
-                    if (disposition == 'RequestCreated') {
+                    if (disposition === 'RequestCreated') {
                         this.addToListById(this.playerRequests, body)
-                    } else if (disposition == 'RequestSatisfied') {
+                    } else if (disposition === 'RequestSatisfied') {
                         this.removeFromListById(this.playerRequests, body)
                     }
                     break
@@ -278,12 +282,11 @@ const Story = {
                             this.removeFromListById(this.notifications, { id: body.player.id })
                         } else {
                             if (message.action && message.action.text) {
-                                    var notification = {
+                                    this.addToListById(this.notifications, {
                                         id: id,
                                         subject: body.player.fullName,
                                         text: body.player.fullName+': '+message.action.text
-                                    }
-                                    this.addToListById(this.notifications, notification)
+                                    })
                                }
                         }
                     }
@@ -295,7 +298,7 @@ const Story = {
                     if (body.player.id != this.$route.params.player_id) {
                         break
                     }
-                    var notification = {
+                    let notification = {
                         id: body.player.id,
                         subject: message.subject,
                         text: message.text
@@ -306,58 +309,91 @@ const Story = {
                         this.removeFromListById(this.notifications, notification)
                     }
                     break
+                case 'GoalFulfilled':
+                    this.addToListById(this.notifications, {
+                        id: id,
+                        subject: 'Goal met',
+                        text: body.description
+                    })
+                    break
             }
-        }
-    },
-    beforeRouteUpdate (to, from, next) {
-        console.log(`beforeRouteUpdate: ${to} => ${from}`)
-        // TODO: react to route changes...
-        next()
-    },
-    mounted() {
-        const storyId = this.$route.params.story_id
-        var vue = this
+        },
+        reset: function() {
+            if (this.subscription) {
+                this.subscription.unsubscribe()
+                this.subscription = null
+            }
+            this.story_id = null
+            this.world = null
+            this.playerRequests.splice(0)
+            this.actionRequests.splice(0)
+            this.story_url = null
+            this.my_player_path = null
+            this.players.splice(0)
+            this.notifications.splice(0)
+        },
+        init: function() {
+            const storyId = this.story_id
+            const vue = this
 
-        axios.get('/api/stories/'+storyId+'/world')
-            .then(response => {
-                vue.world = {
-                  name: response.data.name,
-                  description: response.data.description,
-                  author: response.data.author,
-                }
-            })
-
-        var stompClient = vue.stompClient
-        stompClient = new StompJs.Client({
-          brokerURL: "ws://"+window.location.host+"/socket",
-          debug: function (str) {
-            console.log(str);
-          }
-        })
-
-        stompClient.onConnect =  function(frame) {
-            vue.subscription = stompClient.subscribe("/topic/story."+storyId, function(message) {
+            axios.get('/api/stories/'+storyId+'/world')
+                .then(response => {
+                    vue.world = {
+                        name: response.data.name,
+                        description: response.data.description,
+                        author: response.data.author,
+                    }
+                })
+        },
+        subscribe: function() {
+            const storyId = this.story_id
+            const vue = this
+            if (vue.subscription) {
+                return
+            }
+            vue.subscription = vue.stompClient.subscribe("/topic/story."+storyId, function(message) {
                 console.log('MSG: '+message.body)
-                var json = JSON.parse(message.body)
+                let json = JSON.parse(message.body)
                 if (Array.isArray(json)) {
                     json.forEach(el => vue.distributor(el))
                 } else {
                     vue.distributor(json)
                 }
             })
-        }
+        },
+    },
+    beforeRouteUpdate (to, from, next) {
+        this.reset()
+        this.story_id = to.params.story_id
+        this.init()
+        // assumption: stomp is connected
+        this.subscribe()
+        next()
+    },
+    mounted() {
+        this.story_id = this.$route.params.story_id
+        const vue = this
+        vue.stompClient = new StompJs.Client({
+          brokerURL: "ws://"+window.location.host+"/socket",
+          debug: function (str) {
+            console.log(str);
+          }
+        })
 
-        stompClient.onStompError = function (frame) {
+        vue.stompClient.onStompError = function (frame) {
           console.log('Broker reported error: ' + frame.headers['message'])
           console.log('Additional details: ' + frame.body)
         }
 
-        stompClient.activate()
+        vue.stompClient.onConnect =  function(frame) {
+            vue.subscribe()
+        }
+
+        vue.stompClient.activate()
+        vue.init()
     },
     destroyed() {
-        if (this.subscription) {
-            this.subscription.unsubscribe()
-        }
+        this.reset()
         if (this.stompClient) {
             this.stompClient.deactivate()
         }
@@ -407,7 +443,7 @@ const StoryInit = {
     },
     methods: {
         selectPlayer: function(request) {
-            this.request = request,
+            this.request = request
             this.fullName = request.template.fullName
             this.nickName = request.template.nickName
         },
@@ -415,7 +451,7 @@ const StoryInit = {
             console.log("Creating player "+this.fullName)
             axios.post('/api/engine/addtocast',
                 {
-                    storyId: this.$parent.$route.params.story_id,
+                    storyId: this.$parent.story_id,
                     playerTemplateId: this.request.template.id,
                     motivator: 'HUMAN',
                     fullName: this.fullName,
@@ -429,14 +465,23 @@ const StoryInit = {
         },
         startStory: function() {
             const vue = this
-            axios.post('/api/engine/start', { storyId: this.$parent.$route.params.story_id } )
+            axios.post('/api/engine/start', { storyId: this.$parent.story_id } )
                 .then(response => {
                     console.log('Starting story, redirecting player to: '+this.$parent.my_player_path)
-                    if (vue.$parent.$route.name != 'run') {
+                    if (vue.$parent.$route.name !== 'run') {
                         vue.$parent.$router.push(this.$parent.my_player_path)
                     }
                 })
-        }
+        },
+        reset: function() {
+            this.players.splice(0)
+            this.request = null
+            this.fullName = null
+            this.nickName = null
+        },
+        init: function() {
+            this.$parent.story_url = window.location
+        },
     },
     data() {
         return {
@@ -446,8 +491,13 @@ const StoryInit = {
             nickName: null,
         }
     },
+    beforeRouteUpdate(to, from, next) {
+        this.reset()
+        this.init()
+        next()
+    },
     mounted() {
-        this.$parent.story_url = window.location
+        this.init()
     }
 }
 
@@ -486,15 +536,19 @@ const StoryRun = {
 </div>
 </div>
 `,
+    methods: {
+        init: function(route) {
+            if (!this.$parent.my_player_path) {
+                this.$parent.my_player_path = '/play/'+route.params.story_id+'/'+route.params.player_id
+            }
+        },
+    },
     beforeRouteUpdate (to, from, next) {
-        console.log(`beforeRouteUpdate: ${to} => ${from}`)
-        // TODO: react to route changes...
+        this.init(to)
         next()
     },
     mounted() {
-        if (!this.$parent.my_player_path) {
-            this.$parent.my_player_path = '/play/'+this.$route.params.story_id+'/'+this.$route.params.player_id
-        }
+        this.init(this.$route)
     }
 }
 
@@ -506,8 +560,56 @@ const StoryEnd = {
             Story has ended.
         </div>
     </div>
+    <div class="row" v-if="name">
+        <h1>{{ name }}</h1>
+    </div>
+    <div class="row" v-if="description">
+        <p>{{ description }}</p>
+    </div>
+    <div class="row" v-if="goals.length > 0">
+        <h3>Goals met:</h3>
+        <ul>
+            <li v-for="g in goals">{{ g }}</li>
+        </ul>
+    </div>
 </div>
-`
+`,
+    data() {
+        return {
+            name: null,
+            description: null,
+            author: null,
+            goals: [],
+        }
+    },
+    methods: {
+        populate: function(route) {
+            const storyId = route.params.story_id
+            const vue = this
+
+            axios.get('/api/stories/'+storyId+'/world')
+                .then(response => {
+                    vue.name = response.data.name
+                    vue.description = response.data.description
+                    vue.author = response.data.author
+                })
+            axios.get('/api/stories/'+storyId)
+                .then(response => {
+                    for(let i = 0; i < response.data.goals.length; i++) {
+                        if (response.data.goals[i].fulfilled) {
+                            vue.goals.push(response.data.goals[i].goal.description)
+                        }
+                    }
+                })
+        }
+    },
+    beforeRouteUpdate(to, from, next) {
+        this.populate(to)
+        next()
+    },
+    mounted() {
+        this.populate(this.$route)
+    }
 }
 
 const StoryNotPlaying = {

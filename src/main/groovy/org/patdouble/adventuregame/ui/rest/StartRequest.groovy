@@ -12,4 +12,6 @@ import groovy.transform.ToString
 @CompileStatic
 class StartRequest {
     String storyId
+    /** true if the call should not return until the Engine start has finished. */
+    Boolean waitForComplete
 }

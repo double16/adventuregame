@@ -108,7 +108,7 @@ class EngineCache {
      * Expire engines that haven't seen activity since the {@link #ttl}.
      */
     void expire(long timeInMillis = System.currentTimeMillis()) {
-        remove(map.values().findAll { it.expires.get() < timeInMillis })
+        remove(map.values().findAll { it.expires.get() < timeInMillis || it.engine.story.ended })
     }
 
     void sweep() {

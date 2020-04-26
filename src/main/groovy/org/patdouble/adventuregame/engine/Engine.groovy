@@ -11,6 +11,7 @@ import org.kie.api.runtime.KieSessionConfiguration
 import org.kie.api.runtime.rule.FactHandle
 import org.kie.internal.runtime.conf.ForceEagerActivationOption
 import org.patdouble.adventuregame.flow.ChronosChanged
+import org.patdouble.adventuregame.flow.GoalFulfilled
 import org.patdouble.adventuregame.flow.Notification
 import org.patdouble.adventuregame.flow.StoryEnded
 import org.patdouble.adventuregame.flow.PlayerChanged
@@ -118,6 +119,9 @@ class Engine implements Closeable {
      */
     CompletableFuture<Story> updateStory(Story story) {
         Objects.requireNonNull(story)
+        if (kieSession == null ) { // ended
+            return CompletableFuture.completedFuture(story)
+        }
         final CompletableFuture<Story> future = new CompletableFuture<>()
         kieSession.submit {
             if (story.is(this.story)) {
@@ -293,6 +297,26 @@ class Engine implements Closeable {
      */
     int submit(StoryMessage storyMessage) {
         publisher.submit(storyMessage)
+    }
+
+    /**
+     * Mark a goal as fulfilled.
+     */
+    CompletableFuture<Void> fulfill(GoalStatus goal) {
+        final CompletableFuture<Void> future = new CompletableFuture<>()
+        kieSession.submit {
+            try {
+                if (!goal.fulfilled) {
+                    goal.fulfilled = true
+                    kieSession.update(handles.get(goal.id), goal)
+                    publisher.submit(new GoalFulfilled(goal.goal))
+                }
+                future.complete(null)
+            } catch (Exception e) {
+                future.completeExceptionally(e)
+            }
+        }
+        future
     }
 
     /**

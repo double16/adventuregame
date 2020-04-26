@@ -4,8 +4,10 @@ import groovy.transform.CompileDynamic
 import org.patdouble.adventuregame.engine.Engine
 import org.patdouble.adventuregame.flow.ChronosChanged
 import org.patdouble.adventuregame.flow.ErrorMessage
+import org.patdouble.adventuregame.flow.GoalFulfilled
 import org.patdouble.adventuregame.flow.PlayerChanged
 import org.patdouble.adventuregame.flow.RequestCreated
+import org.patdouble.adventuregame.flow.StoryEnded
 import org.patdouble.adventuregame.flow.StoryMessage
 import org.patdouble.adventuregame.model.World
 import org.patdouble.adventuregame.state.Motivator
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 
 import javax.transaction.Transactional
+import java.util.concurrent.CompletableFuture
 
 /**
  * REST controller for the lifecycle of an Engine.
@@ -82,9 +85,16 @@ class EngineController {
     @SubscribeMapping('/story.{storyId}')
     List<StoryMessage> subscribe(@DestinationVariable('storyId') String storyId) {
         Engine engine = requireEngine(storyId)
-        List<StoryMessage> result = engine.story.requests.collect { new RequestCreated(it) } + engine.story.cast.collect { new PlayerChanged(it) }
-        if (engine.story.chronos.current > 0) {
-            result << new ChronosChanged(engine.story.chronos.current)
+        List<? extends StoryMessage> result = []
+        result.addAll(engine.story.goals.findAll { it.fulfilled }.collect { new GoalFulfilled(it.goal) })
+        if (engine.story.ended) {
+            result << new StoryEnded()
+        } else {
+            result.addAll(engine.story.requests.collect { new RequestCreated(it) })
+            result.addAll(engine.story.cast.collect { new PlayerChanged(it) })
+            if (engine.story.chronos.current > 0) {
+                result << new ChronosChanged(engine.story.chronos.current)
+            }
         }
         result
     }
@@ -154,7 +164,10 @@ class EngineController {
             produces = MediaType.APPLICATION_JSON_VALUE)
     void start(@Payload @RequestBody StartRequest request) {
         Engine engine = requireEngine(request.storyId)
-        engine.start(Motivator.AI)
+        CompletableFuture<Void> future = engine.start(Motivator.AI)
+        if (request.waitForComplete) {
+            future.join()
+        }
     }
 
     private Engine requireEngine(storyId) throws ResponseStatusException {

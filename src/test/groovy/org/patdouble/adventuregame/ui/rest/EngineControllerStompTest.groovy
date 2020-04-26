@@ -5,6 +5,7 @@ import ch.qos.logback.classic.Logger
 import groovy.util.logging.Slf4j
 import org.patdouble.adventuregame.engine.Engine
 import org.patdouble.adventuregame.flow.ChronosChanged
+import org.patdouble.adventuregame.flow.GoalFulfilled
 import org.patdouble.adventuregame.flow.PlayerChanged
 import org.patdouble.adventuregame.flow.RequestCreated
 import org.patdouble.adventuregame.flow.RequestSatisfied
@@ -248,15 +249,17 @@ class EngineControllerStompTest extends Specification {
                     playerTemplateId: it.template.id as String,
                     motivator: 'human'))
         }
-        controller.start(new StartRequest(storyId: storyId))
+        engine.story.goals.find { it.goal.name == 'one' }.fulfilled = true
+        controller.start(new StartRequest(storyId: storyId, waitForComplete: true))
         when:
         List<StoryMessage> messages = controller.subscribe(storyId)
 
         then:
-        messages.size() == 33
+        messages.size() == 34
         messages.count { it instanceof RequestCreated } == 12
         messages.count { it instanceof PlayerChanged } == 20
         messages.count { it instanceof ChronosChanged } == 1
+        messages.count { it instanceof GoalFulfilled } == 1
     }
 
 }
