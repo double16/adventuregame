@@ -6,6 +6,7 @@ import groovy.transform.EqualsAndHashCode
 import org.hibernate.Hibernate
 import org.patdouble.adventuregame.state.Motivator
 import org.patdouble.adventuregame.state.Player
+import org.patdouble.adventuregame.storage.jpa.Constants
 
 import javax.persistence.ManyToOne
 import javax.validation.constraints.NotNull
@@ -16,7 +17,7 @@ import javax.validation.constraints.NotNull
 @CompileDynamic
 @EqualsAndHashCode
 trait CharacterTrait {
-    @Delegate(excludes = [ 'clone', 'id' ])
+    @Delegate(excludes = [ 'clone', Constants.COL_DBID, Constants.COL_ID ])
     @ManyToOne
     @NotNull
     @JsonIgnore

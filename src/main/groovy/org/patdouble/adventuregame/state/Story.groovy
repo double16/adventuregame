@@ -111,6 +111,10 @@ class Story {
         Hibernate.initialize(goals)
         Hibernate.initialize(requests)
         requests*.initialize()
+        if (history) {
+            Hibernate.initialize(history)
+            history.initialize()
+        }
         this
     }
 }

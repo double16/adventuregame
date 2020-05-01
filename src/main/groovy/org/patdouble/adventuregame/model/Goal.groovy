@@ -11,6 +11,7 @@ import javax.persistence.FetchType
 import javax.persistence.GeneratedValue
 import javax.persistence.GenerationType
 import javax.persistence.Id
+import javax.persistence.Lob
 
 /**
  * Identifies a condition to be met to guide actions of players and signal the end of the story.
@@ -26,6 +27,7 @@ class Goal {
     UUID id = UUID.randomUUID()
 
     String name
+    @Lob
     String description
     /** A required goal must be fulfilled before the story is over. */
     boolean required

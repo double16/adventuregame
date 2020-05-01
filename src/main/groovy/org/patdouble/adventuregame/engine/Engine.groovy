@@ -32,6 +32,7 @@ import org.patdouble.adventuregame.state.GoalStatus
 import org.patdouble.adventuregame.state.History
 import org.patdouble.adventuregame.state.Motivator
 import org.patdouble.adventuregame.state.Player
+import org.patdouble.adventuregame.state.PlayerEvent
 import org.patdouble.adventuregame.state.Story
 import org.patdouble.adventuregame.state.request.ActionRequest
 import org.patdouble.adventuregame.state.request.PlayerRequest
@@ -76,6 +77,13 @@ class Engine implements Closeable {
     private FactHandle chronosHandle
     private FactHandle storyStateHandle
     private final Map<UUID, FactHandle> handles = [:]
+
+    /**
+     * Holds the actions that have occurred during this chronos. After all processing is done, these actions will be
+     * recorded in history with the resulting player state. It's likely the actions of other players will affect this
+     * player so we need to wait until all actions are processed before creating an event.
+     */
+    private Map<UUID, ActionStatement> currentActions = [:]
 
     Engine(@NotNull Story story, Executor executor = null) {
         Objects.requireNonNull(story)
@@ -188,7 +196,7 @@ class Engine implements Closeable {
         kieSession.submit {
             try {
                 if (forceMotivator == null) {
-                    Collection<PlayerRequest> pendingPlayers = story.requests
+                    List<PlayerRequest> pendingPlayers = story.requests
                             .findAll { it instanceof PlayerRequest && !it.optional }
                     if (!pendingPlayers.empty) {
                         String msg = bundles.requiredPlayersTemplate
@@ -240,6 +248,7 @@ class Engine implements Closeable {
         kieSession.submit {
             if (!story.ended) {
                 story.ended = true
+                recordHistory()
                 syncStoryState()
                 removeKieObjects(story.requests)
                 story.requests.clear()
@@ -385,7 +394,9 @@ class Engine implements Closeable {
                 } else if (success) {
                     player.chronos = story.chronos.current
                     kieSession.update(handles.get(player.id), player)
-                    Objects.requireNonNull(player.id)
+                    if (action.getVerbAsAction() && action.getVerbAsAction().chronosCost > 0) {
+                        currentActions.put(player.id, action)
+                    }
                     publisher.submit(new PlayerChanged(player.cloneKeepId(), story.chronos.current))
 
                     if (actionRequest) {
@@ -501,6 +512,11 @@ class Engine implements Closeable {
     private void populateKieSession() {
         syncStoryState()
         addOrReplaceKieObjects(story.world.rooms, story.cast, story.requests, story.goals)
+        populateKieSessionHistory(story.history.events)
+    }
+
+    private void populateKieSessionHistory(Collection<Event> events) {
+        addOrReplaceKieObjects(events*.players)
     }
 
     private void doIgnore(PlayerRequest request) {
@@ -611,9 +627,10 @@ class Engine implements Closeable {
         if (chronosLimit && story.chronos.current >= chronosLimit) {
             throw new IllegalStateException("Chronos exceeded limit of ${chronosLimit}")
         }
-        recordHistory()
+        Event event = recordHistory()
         story.chronos++
         kieSession.update(chronosHandle, story.chronos)
+        populateKieSessionHistory([event])
         publisher.submit(new ChronosChanged(story.chronos.current))
     }
 
@@ -638,6 +655,10 @@ class Engine implements Closeable {
      * @return the new event
      */
     private Event recordHistory() {
-        null
+        Event event = new Event(story.chronos)
+        event.players.addAll(story.cast.collect { new PlayerEvent(event: event, player: it.clone(), action: currentActions.get(it.id)) })
+        story.history.addEvent(event)
+        currentActions.clear()
+        event
     }
 }

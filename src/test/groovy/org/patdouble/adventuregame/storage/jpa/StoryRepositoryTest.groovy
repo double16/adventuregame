@@ -15,6 +15,7 @@ import org.springframework.test.context.ContextConfiguration
 import spock.lang.Specification
 import spock.lang.Unroll
 
+import javax.persistence.EntityManager
 import javax.transaction.Transactional
 
 @SpringBootTest
@@ -27,6 +28,8 @@ class StoryRepositoryTest extends Specification {
     WorldRepository worldRepository
     @Autowired
     StoryRepository storyRepository
+    @Autowired
+    EntityManager entityManager
 
     private Story newStory(String worldName, boolean start = false) {
         Story story = new Story(worldRepository.findByName(worldName).first())
@@ -50,9 +53,10 @@ class StoryRepositoryTest extends Specification {
 
     def "save and load #worldName"() {
         given:
-        Story s1 = newStory(worldName, start)
+        Story s1 = storyRepository.saveAndFlush(newStory(worldName, start))
+        entityManager.detach(s1)
         when:
-        Story s2 = storyRepository.findAll().find { it.world.name == s1.world.name } as Story
+        Story s2 = storyRepository.findById(s1.id).get() as Story
         then:
         s2
         !s1.is(s2)

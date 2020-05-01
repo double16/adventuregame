@@ -17,7 +17,7 @@ import javax.persistence.ManyToOne
 /**
  * Tracks fulfillment of a {@link Goal}.
  */
-@Canonical(excludes = [Constants.COL_ID, Constants.COL_DBID], includePackage = false)
+@Canonical(excludes = [Constants.COL_DBID], includePackage = false)
 @Entity
 @PropertyReactive
 @CompileDynamic

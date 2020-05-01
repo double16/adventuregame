@@ -24,11 +24,11 @@ class JpaWorldLoaderTest extends Specification {
 
     def "world save #worldName"() {
         given:
-        World yamlWorld = universeRegistry.worlds.find { it.name == worldName }
+        World luaWorld = universeRegistry.worlds.find { it.name == worldName }
         when:
         World jpaWorld = worldRepository.findByName(worldName).first()
         then:
-        jpaWorld == yamlWorld
+        jpaWorld == luaWorld
 
         where:
         worldName                         | _

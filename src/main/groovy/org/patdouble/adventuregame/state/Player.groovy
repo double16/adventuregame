@@ -20,7 +20,7 @@ import javax.persistence.OneToOne
 /**
  * Models the player's attributes and current state.
  */
-@AutoClone(excludes = [Constants.COL_ID, Constants.COL_DBID], style = AutoCloneStyle.COPY_CONSTRUCTOR)
+@AutoClone(excludes = [Constants.COL_DBID], style = AutoCloneStyle.COPY_CONSTRUCTOR)
 @Entity
 @CompileDynamic
 class Player implements Temporal {
@@ -31,7 +31,7 @@ class Player implements Temporal {
     UUID id = UUID.randomUUID()
 
     Motivator motivator
-    @Delegate(excludes = [ 'clone', 'id' ])
+    @Delegate(excludes = [ 'clone', Constants.COL_DBID, Constants.COL_ID ])
     @OneToOne(cascade = CascadeType.ALL)
     @JsonIgnore
     Persona persona = new Persona()

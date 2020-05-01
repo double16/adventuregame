@@ -1,26 +1,28 @@
 package org.patdouble.adventuregame.state
 
 import com.fasterxml.jackson.annotation.JsonIgnore
+import groovy.transform.Canonical
 import groovy.transform.CompileDynamic
-import groovy.transform.EqualsAndHashCode
 import org.hibernate.Hibernate
+import org.patdouble.adventuregame.i18n.ActionStatement
 import org.patdouble.adventuregame.storage.jpa.Constants
 
 import javax.persistence.CascadeType
+import javax.persistence.Embedded
 import javax.persistence.Entity
 import javax.persistence.GeneratedValue
 import javax.persistence.GenerationType
 import javax.persistence.Id
 import javax.persistence.ManyToOne
-import javax.persistence.OneToMany
+import javax.persistence.OneToOne
 
 /**
- * An event in history. The event only records changes, not the entire state.
+ * Record the state of a player and the action taken during a chronos.
  */
+@Canonical(excludes = [Constants.COL_DBID, 'event'], includePackage = false)
 @Entity
-@EqualsAndHashCode(excludes = [Constants.COL_DBID, 'history'])
 @CompileDynamic
-class Event {
+class PlayerEvent {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
     @JsonIgnore
     UUID dbId
@@ -29,23 +31,14 @@ class Event {
 
     @ManyToOne
     @JsonIgnore
-    History history
+    Event event
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    Player player
+    @Embedded
+    ActionStatement action
 
-    /** Tied to the {@link Chronos} value. */
-    long when
-
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    List<PlayerEvent> players = []
-
-    Event() { }
-
-    Event(Chronos chronos) {
-        when = chronos.current
-    }
-
-    Event initialize() {
-        Hibernate.initialize(players)
-        players*.initialize()
+    PlayerEvent initialize() {
+        Hibernate.initialize(player)
         this
     }
 }

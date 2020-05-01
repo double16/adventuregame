@@ -36,5 +36,9 @@ class HumanPlayerGoalTest extends AbstractPlayerTest {
         1 * storySubscriber.onNext(new GoalFulfilled(goal: goal2))
         0 * storySubscriber.onNext(new GoalFulfilled(goal: goal3))
         1 * storySubscriber.onNext(new StoryEnded())
+        and:
+        engine.story.history.events.size() == 4
+        !engine.story.history.events[0].players[0].player.is(engine.story.history.events[1].players[0].player)
+        engine.story.history.events*.players*.action.flatten().size() == 40
     }
 }
