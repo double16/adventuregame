@@ -1,4 +1,4 @@
-package org.patdouble.adventuregame.storage.yaml
+package org.patdouble.adventuregame.storage.lua
 
 import org.patdouble.adventuregame.model.Direction
 import org.patdouble.adventuregame.model.ExtrasTemplate
@@ -6,18 +6,20 @@ import org.patdouble.adventuregame.model.Persona
 import org.patdouble.adventuregame.model.PlayerTemplate
 import org.patdouble.adventuregame.model.Room
 import org.patdouble.adventuregame.model.World
+import org.patdouble.adventuregame.storage.lua.LuaUniverseRegistry
+import org.patdouble.adventuregame.storage.lua.WorldLuaStorage
 import spock.lang.Specification
 
 class TrailerParkStorageTest extends Specification {
 
     def "load"() {
-        when: 'trailer-park.yml is loaded'
-        InputStream is = getClass().getResourceAsStream('/worlds/trailer-park.yml')
+        when: 'trailer-park.lua is loaded'
+        InputStream is = getClass().getResourceAsStream('/worlds/trailer-park.lua')
         assert is
-        World world = new WorldYamlStorage().load(is)
+        World world = new WorldLuaStorage().load(is)
 
         then: 'World meta-data is present'
-        world.name == YamlUniverseRegistry.TRAILER_PARK
+        world.name == LuaUniverseRegistry.TRAILER_PARK
         world.author == 'double16'
         world.description == 'A testing environment'
 

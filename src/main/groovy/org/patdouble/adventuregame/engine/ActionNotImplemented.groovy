@@ -4,6 +4,9 @@ import groovy.transform.CompileStatic
 import org.patdouble.adventuregame.i18n.ActionStatement
 import org.patdouble.adventuregame.state.Player
 
+/**
+ * Place holder for unimplemented actions.
+ */
 @CompileStatic
 class ActionNotImplemented implements ActionExecutor {
     @Override

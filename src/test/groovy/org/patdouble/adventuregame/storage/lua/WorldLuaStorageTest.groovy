@@ -1,19 +1,20 @@
-package org.patdouble.adventuregame.storage.yaml
+package org.patdouble.adventuregame.storage.lua
 
 import org.patdouble.adventuregame.model.Persona
 import org.patdouble.adventuregame.model.PlayerTemplate
 import org.patdouble.adventuregame.model.World
+import org.patdouble.adventuregame.storage.lua.LuaUniverseRegistry
 import spock.lang.Specification
 
-class WorldYamlStorageTest extends Specification {
-    YamlUniverseRegistry registry = new YamlUniverseRegistry()
+class WorldLuaStorageTest extends Specification {
+    LuaUniverseRegistry registry = new LuaUniverseRegistry()
 
     private World loadTheHobbit() {
-        registry.worlds.find { it.name == YamlUniverseRegistry.THE_HOBBIT }
+        registry.worlds.find { it.name == LuaUniverseRegistry.THE_HOBBIT }
     }
 
     private World loadTrailerPark() {
-        registry.worlds.find { it.name == YamlUniverseRegistry.TRAILER_PARK }
+        registry.worlds.find { it.name == LuaUniverseRegistry.TRAILER_PARK }
     }
 
     def "load"() {
@@ -21,12 +22,12 @@ class WorldYamlStorageTest extends Specification {
         World world = loadTheHobbit()
 
         then: 'World meta-data is present'
-        world.name == YamlUniverseRegistry.THE_HOBBIT
+        world.name == LuaUniverseRegistry.THE_HOBBIT
         world.author == 'double16'
         world.description == 'The Hobbit by J.R.R. Tolkien'
 
         and: 'personas are loaded'
-        world.personas.size() == 5
+        world.personas.size() == 6
 
         and: 'warrior persona'
         Persona warrior = world.personas.find { it.name == 'warrior' }

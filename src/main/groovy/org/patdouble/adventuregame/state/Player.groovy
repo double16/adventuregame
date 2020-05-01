@@ -11,6 +11,8 @@ import org.patdouble.adventuregame.storage.jpa.Constants
 
 import javax.persistence.CascadeType
 import javax.persistence.Entity
+import javax.persistence.GeneratedValue
+import javax.persistence.GenerationType
 import javax.persistence.Id
 import javax.persistence.ManyToOne
 import javax.persistence.OneToOne
@@ -18,11 +20,14 @@ import javax.persistence.OneToOne
 /**
  * Models the player's attributes and current state.
  */
-@AutoClone(excludes = [Constants.COL_ID], style = AutoCloneStyle.COPY_CONSTRUCTOR)
+@AutoClone(excludes = [Constants.COL_ID, Constants.COL_DBID], style = AutoCloneStyle.COPY_CONSTRUCTOR)
 @Entity
 @CompileDynamic
 class Player implements Temporal {
-    @Id
+    @Id @GeneratedValue(strategy = GenerationType.AUTO)
+    @JsonIgnore
+    UUID dbId
+    /** 'business' id */
     UUID id = UUID.randomUUID()
 
     Motivator motivator

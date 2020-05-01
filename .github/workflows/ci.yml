@@ -37,8 +37,12 @@ jobs:
         key: ${{ runner.os }}-gradle-zap-${{ hashFiles('**/*.gradle') }}
         restore-keys: |
           ${{ runner.os }}-gradle-zap-
-    - name: check
-      run: ./gradlew check --warning-mode all --stacktrace
+    - name: codenarc
+      run: ./gradlew codenarcMain --stacktrace
+    - name: Open Source Vuln
+      run: ./gradlew dependencyCheckAggregate --stacktrace
+    - name: Unit Tests
+      run: ./gradlew test cloverGenerateReport --stacktrace
     - name: Archvie check reports
       uses: actions/upload-artifact@v1
       if: failure()

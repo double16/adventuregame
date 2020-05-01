@@ -13,7 +13,7 @@ import org.patdouble.adventuregame.flow.StoryMessage
 import org.patdouble.adventuregame.model.PersonaMocks
 import org.patdouble.adventuregame.state.Player
 import org.patdouble.adventuregame.state.request.PlayerRequest
-import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
+import org.patdouble.adventuregame.storage.lua.LuaUniverseRegistry
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
@@ -57,12 +57,12 @@ class EngineControllerStompTest extends Specification {
     String storyId
     WebSocketStompClient stompClient
     CompletableFuture<Boolean> subscribed = new CompletableFuture<>()
-    BlockingQueue<Tuple2<StompHeaders, Object>> messages = new ArrayBlockingQueue<>(100)
+    BlockingQueue<Tuple2<StompHeaders, Object>> messages = new ArrayBlockingQueue<>(1000)
 
     void setup() {
         ((Logger) LoggerFactory.getLogger(LoggingWebSocketHandlerDecorator.class.name)).setLevel(Level.TRACE)
 
-        CreateStoryRequest request = new CreateStoryRequest(worldName: YamlUniverseRegistry.TRAILER_PARK)
+        CreateStoryRequest request = new CreateStoryRequest(worldName: LuaUniverseRegistry.TRAILER_PARK)
         CreateStoryResponse response = controller.createStory(request)
         storyId = response.storyUri.split('/').last()
 
@@ -98,6 +98,7 @@ class EngineControllerStompTest extends Specification {
     }
 
     void cleanup() {
+        log.info 'Cleaning up engine cache'
         controller.engineCache.clear()
     }
 
@@ -112,7 +113,7 @@ class EngineControllerStompTest extends Specification {
 
     def "CreateStory"() {
         given:
-        CreateStoryRequest request = new CreateStoryRequest(worldName: YamlUniverseRegistry.TRAILER_PARK)
+        CreateStoryRequest request = new CreateStoryRequest(worldName: LuaUniverseRegistry.TRAILER_PARK)
 
         when:
         CreateStoryResponse response = controller.createStory(request)
@@ -196,7 +197,7 @@ class EngineControllerStompTest extends Specification {
                     motivator: 'human'))
         }
         when:
-        controller.start(new StartRequest(storyId: storyId))
+        controller.start(new StartRequest(storyId: storyId, waitForComplete: true))
 
         then:
         notThrown(Exception)
@@ -217,7 +218,7 @@ class EngineControllerStompTest extends Specification {
                     playerTemplateId: it.template.id as String,
                     motivator: 'human'))
         }
-        controller.start(new StartRequest(storyId: storyId))
+        controller.start(new StartRequest(storyId: storyId, waitForComplete: true))
         Player warrior = engine.story.cast.find { it.persona.name == PersonaMocks.WARRIOR.name }
 
         when:

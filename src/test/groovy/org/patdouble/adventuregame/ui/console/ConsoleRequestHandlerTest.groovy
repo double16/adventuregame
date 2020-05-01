@@ -1,7 +1,7 @@
 package org.patdouble.adventuregame.ui.console
 
 import ch.qos.logback.classic.Level
-import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
+import org.patdouble.adventuregame.storage.lua.LuaUniverseRegistry
 
 import java.util.concurrent.Flow
 
@@ -14,7 +14,7 @@ class ConsoleRequestHandlerTest extends AbstractConsoleTest {
         main.console = console
         main.logLevel = Level.INFO
         main.applyConfiguration()
-        main.world = main.registry.worlds.find { it.name == YamlUniverseRegistry.TRAILER_PARK }
+        main.world = main.registry.worlds.find { it.name == LuaUniverseRegistry.TRAILER_PARK }
     }
 
     def cleanup() {

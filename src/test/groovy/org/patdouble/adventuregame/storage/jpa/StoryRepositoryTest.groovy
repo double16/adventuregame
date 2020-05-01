@@ -2,13 +2,11 @@ package org.patdouble.adventuregame.storage.jpa
 
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.Logger
-import org.patdouble.adventuregame.engine.DroolsConfiguration
 import org.patdouble.adventuregame.engine.Engine
 import org.patdouble.adventuregame.state.Motivator
-import org.patdouble.adventuregame.state.Player
 import org.patdouble.adventuregame.state.Story
 import org.patdouble.adventuregame.state.request.PlayerRequest
-import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
+import org.patdouble.adventuregame.storage.lua.LuaUniverseRegistry
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
@@ -35,7 +33,7 @@ class StoryRepositoryTest extends Specification {
         Engine engine = new Engine(story)
         engine.init().join()
         if (start) {
-            story.requests.clone().each { PlayerRequest req -> engine.addToCast(req.template.createPlayer(Motivator.HUMAN)) }
+            story.requests.clone().each { PlayerRequest req -> engine.addToCast(req.template.createPlayer(Motivator.HUMAN)).join() }
             engine.start().join()
         }
         engine.close()
@@ -46,8 +44,8 @@ class StoryRepositoryTest extends Specification {
         ((Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME)).setLevel(Level.INFO)
         ((Logger) LoggerFactory.getLogger('org.hibernate.SQL')).setLevel(Level.DEBUG)
 
-        storyRepository.saveAndFlush(newStory(YamlUniverseRegistry.TRAILER_PARK, false))
-        storyRepository.saveAndFlush(newStory(YamlUniverseRegistry.THE_HOBBIT, true))
+        storyRepository.saveAndFlush(newStory(LuaUniverseRegistry.TRAILER_PARK, false))
+        storyRepository.saveAndFlush(newStory(LuaUniverseRegistry.THE_HOBBIT, true))
     }
 
     def "save and load #worldName"() {
@@ -72,13 +70,13 @@ class StoryRepositoryTest extends Specification {
 
         where:
         worldName                         | start
-        YamlUniverseRegistry.TRAILER_PARK | false
-        YamlUniverseRegistry.THE_HOBBIT | true
+        LuaUniverseRegistry.TRAILER_PARK | false
+        LuaUniverseRegistry.THE_HOBBIT   | true
     }
 
     def "cast added later"() {
         given:
-        Story s = newStory(YamlUniverseRegistry.TRAILER_PARK, false)
+        Story s = newStory(LuaUniverseRegistry.TRAILER_PARK, false)
 
         when:
         Story saveResult = storyRepository.saveAndFlush(s)
@@ -99,7 +97,7 @@ class StoryRepositoryTest extends Specification {
 
     def "timestamps"() {
         given:
-        Story s = newStory(YamlUniverseRegistry.TRAILER_PARK, true)
+        Story s = newStory(LuaUniverseRegistry.TRAILER_PARK, true)
 
         when:
         storyRepository.saveAndFlush(s)

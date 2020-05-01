@@ -174,33 +174,6 @@ class EngineInitTest extends EngineTest {
         1 * storySubscriber.onNext(new Notification('Required Players Missing', 'Required Players: Shadowblow the Hammer, Victor the Spider'))
     }
 
-    def "autostart"() {
-        given:
-        engine.autoLifecycle = true
-        engine.init().join()
-        engine.story.goals.each { it.goal.required = false }
-        PlayerRequest warriorRequest = story.requests.find { it.template.persona.name == 'warrior' } as PlayerRequest
-        PlayerRequest thiefRequest = story.requests.find { it.template.persona.name == 'thief' } as PlayerRequest
-
-        when:
-        engine.addToCast(warriorRequest.template.createPlayer(Motivator.AI)).join()
-        engine.addToCast(thiefRequest.template.createPlayer(Motivator.AI)).join()
-        story.requests.findAll { it.template.persona.name == 'thug' }. each {
-            engine.addToCast(it.template.createPlayer(Motivator.AI)).join()
-        }
-
-        then:
-        story.requests.isEmpty()
-        !engine.isClosed()
-        !story.goals.isEmpty()
-
-        when:
-        engine.close()
-
-        then:
-        engine.isClosed()
-    }
-
     def "init idempotency"() {
         given:
         engine.init().join()

@@ -3,7 +3,7 @@ package org.patdouble.adventuregame.engine
 import org.patdouble.adventuregame.flow.StoryMessage
 import org.patdouble.adventuregame.model.World
 import org.patdouble.adventuregame.state.Story
-import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
+import org.patdouble.adventuregame.storage.lua.LuaUniverseRegistry
 import spock.lang.Specification
 
 import java.util.concurrent.Executor
@@ -20,7 +20,7 @@ abstract class EngineTest extends Specification {
     }
 
     def setup() {
-        World world = new YamlUniverseRegistry().worlds.find { it.name == YamlUniverseRegistry.TRAILER_PARK }
+        World world = new LuaUniverseRegistry().worlds.find { it.name == LuaUniverseRegistry.TRAILER_PARK }
         modify(world)
         story = new Story(world)
 

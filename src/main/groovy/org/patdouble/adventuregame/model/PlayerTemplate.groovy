@@ -15,17 +15,22 @@ import org.patdouble.adventuregame.storage.json.IntRangeJsonSerializer
 
 import javax.persistence.Column
 import javax.persistence.Entity
+import javax.persistence.GeneratedValue
+import javax.persistence.GenerationType
 import javax.persistence.Id
 import javax.validation.constraints.NotNull
 
 /**
  * Template for players in the story. Players can either be human or AI.
  */
-@Canonical(includes = [Constants.COL_ID])
+@Canonical(includes = [Constants.COL_ID, Constants.COL_DBID])
 @Entity
 @CompileDynamic
 class PlayerTemplate implements CharacterTrait {
-    @Id
+    @Id @GeneratedValue(strategy = GenerationType.AUTO)
+    @JsonIgnore
+    UUID dbId
+    /** 'business' id */
     UUID id = UUID.randomUUID()
 
     /** The allowed quantity of this type of player. */

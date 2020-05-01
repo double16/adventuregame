@@ -131,6 +131,10 @@ idea {
     }
 }
 
+processResources {
+    from('src/main/webapp') {into 'static'}
+}
+
 shadowJar {
     zip64 = true
     manifest {
@@ -147,11 +151,17 @@ task trailerPark(type: JavaExec) {
     standardInput = System.in
 }
 
+bootRun {
+    // Allow html/js resources to be reloaded, from:
+    // https://docs.spring.io/spring-boot/docs/2.2.6.RELEASE/gradle-plugin/reference/html/#running-your-application-reloading-resources
+    sourceResources sourceSets.main
+}
+
 docker {
     springBootApplication {
         baseImage = 'openjdk:11.0.6-jre-slim'
         maintainer = 'Patrick Double "pat@patdouble.com"'
-        images = ["pdouble16/${project.name}:${project.version}"]
+        images = ["pdouble16/${project.name}:${project.version}", "pdouble16/${project.name}:latest"]
         // jvmArgs = ['-Dspring.profiles.active=production', '-Xmx2048m']
     }
 }

@@ -2,12 +2,15 @@ package org.patdouble.adventuregame.ui.rest
 
 import groovy.transform.CompileDynamic
 import groovy.transform.CompileStatic
+import groovy.util.logging.Slf4j
 import org.patdouble.adventuregame.engine.Engine
 import org.patdouble.adventuregame.model.World
 import org.patdouble.adventuregame.state.Story
 import org.patdouble.adventuregame.storage.jpa.StoryRepository
 import org.patdouble.adventuregame.storage.jpa.WorldRepository
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.core.task.AsyncTaskExecutor
 import org.springframework.http.HttpStatus
 import org.springframework.messaging.simp.SimpMessageSendingOperations
 import org.springframework.scheduling.annotation.Scheduled
@@ -15,6 +18,8 @@ import org.springframework.stereotype.Component
 import org.springframework.web.server.ResponseStatusException
 
 import javax.persistence.EntityManager
+import javax.persistence.EntityManagerFactory
+import javax.persistence.EntityTransaction
 import javax.persistence.PersistenceContext
 import javax.transaction.Transactional
 import javax.validation.constraints.NotNull
@@ -28,6 +33,7 @@ import java.util.concurrent.atomic.AtomicLong
  * This class is thread-safe.
  */
 @Component
+@Slf4j
 @CompileDynamic
 class EngineCache {
 
@@ -57,8 +63,13 @@ class EngineCache {
     StoryRepository storyRepository
     @PersistenceContext
     EntityManager entityManager
+    @Autowired
+    private EntityManagerFactory entityManagerFactory
     @Autowired(required = false)
     SimpMessageSendingOperations simpMessagingTemplate
+    @Autowired
+    @Qualifier('application')
+    AsyncTaskExecutor executor
 
     private final ConcurrentMap<UUID, Value> map = new ConcurrentHashMap<>()
 
@@ -75,7 +86,7 @@ class EngineCache {
             if (story.get().ended) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, 'Story is ended')
             }
-            Engine engine = configure(new Engine(story.get().initialize()))
+            Engine engine = configure(new Engine(story.get().initialize(), executor))
             engine.init().join()
             if (engine.story.chronos.current > 0) {
                 engine.start().join()
@@ -93,32 +104,46 @@ class EngineCache {
     Engine create(World world) {
         Story story = storyRepository.save(new Story(world)).initialize()
         Objects.requireNonNull(story.id)
-        Engine engine = configure(new Engine(story))
+        Engine engine = configure(new Engine(story, executor))
         engine.init().join()
-        engine.updateStory(storyRepository.saveAndFlush(story))
+        engine.updateStory { storyRepository.saveAndFlush(story) }
         map.put(story.id, new Value(engine))
         engine
     }
 
     void clear() {
-        remove(map.values())
+        remove({true})
     }
 
     /**
      * Expire engines that haven't seen activity since the {@link #ttl}.
      */
     void expire(long timeInMillis = System.currentTimeMillis()) {
-        remove(map.values().findAll { it.expires.get() < timeInMillis || it.engine.story.ended })
+        remove({ v -> v.expires.get() < timeInMillis || v.engine.story.ended })
     }
 
     void sweep() {
         map.values().each { Value v ->
-            Story s = v.engine.story
-            if (!entityManager.contains(s)) {
-                s = entityManager.merge(s)
+            v.engine.updateStory {
+                EntityManager em = entityManagerFactory.createEntityManager()
+                EntityTransaction tx = em.getTransaction()
+                Story result = null
+                boolean success = false
+                try {
+                    tx.begin()
+                    result = em.merge(v.engine.story).initialize()
+                    em.flush()
+                    success = true
+                } finally {
+                    if (success) {
+                        tx.commit()
+                    } else {
+                        tx.rollback()
+                    }
+                    em.close()
+                }
+                result
             }
-            entityManager.flush()
-            v.engine.updateStory(s.initialize())
         }
     }
 
@@ -135,22 +160,26 @@ class EngineCache {
     }
 
     /**
-     * Remove the engines contained in the Iterable. This method is thread-safe.
-     * The Iterable should also be thread-safe.
+     * Remove the engines matching the condition. The argument to the closure is the Value. This method is thread-safe.
      */
-    private void remove(Iterable<Value> engines) {
-        Iterator<Value> i = engines.iterator()
+    private void remove(Closure<Boolean> condition) {
+        Iterator<Value> i = map.values().iterator()
         while (i.hasNext()) {
             Value v = i.next()
+            if (!condition.call(v)) {
+                continue
+            }
+
             // remove it before we start closing so no one else will use it
             i.remove()
+            v.engine.close()
 
             Story s = v.engine.story
             if (!entityManager.contains(s)) {
                 entityManager.merge(s)
             }
             entityManager.flush()
-            v.engine.close()
+            log.info('Removed Engine for story {}, age {}, ended {}, {}', s.id, System.currentTimeMillis() - v.expires.get(), s.ended)
         }
     }
 

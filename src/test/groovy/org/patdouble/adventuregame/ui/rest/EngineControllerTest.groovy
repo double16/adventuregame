@@ -9,7 +9,7 @@ import org.patdouble.adventuregame.flow.RequestSatisfied
 import org.patdouble.adventuregame.model.PersonaMocks
 import org.patdouble.adventuregame.state.Player
 import org.patdouble.adventuregame.state.request.PlayerRequest
-import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
+import org.patdouble.adventuregame.storage.lua.LuaUniverseRegistry
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.context.SpringBootTest
@@ -39,7 +39,7 @@ class EngineControllerTest extends Specification {
         simpMessagingTemplate = new RecordingSimpMessageTemplate()
         controller.simpMessagingTemplate = simpMessagingTemplate
         controller.engineCache.simpMessagingTemplate = simpMessagingTemplate
-        CreateStoryRequest request = new CreateStoryRequest(worldName: YamlUniverseRegistry.TRAILER_PARK)
+        CreateStoryRequest request = new CreateStoryRequest(worldName: LuaUniverseRegistry.TRAILER_PARK)
         CreateStoryResponse response = controller.createStory(request)
         storyId = response.storyUri.split('/').last()
     }
@@ -51,7 +51,7 @@ class EngineControllerTest extends Specification {
 
     def "CreateStory by name"() {
         given:
-        CreateStoryRequest request = new CreateStoryRequest(worldName: YamlUniverseRegistry.TRAILER_PARK)
+        CreateStoryRequest request = new CreateStoryRequest(worldName: LuaUniverseRegistry.TRAILER_PARK)
 
         when:
         CreateStoryResponse response = controller.createStory(request)
@@ -62,7 +62,7 @@ class EngineControllerTest extends Specification {
 
     def "CreateStory by id"() {
         given:
-        String id = controller.worldRepository.findByName(YamlUniverseRegistry.TRAILER_PARK).first().id.toString()
+        String id = controller.worldRepository.findByName(LuaUniverseRegistry.TRAILER_PARK).first().id.toString()
         System.out.println "worldId = ${id}"
         CreateStoryRequest request = new CreateStoryRequest(worldId: id)
 
@@ -75,7 +75,7 @@ class EngineControllerTest extends Specification {
 
     def "CreateStory by URI"() {
         given:
-        String id = "http://localhost:8080/api/worlds/"+controller.worldRepository.findByName(YamlUniverseRegistry.TRAILER_PARK).first().id.toString()
+        String id = "http://localhost:8080/api/worlds/"+controller.worldRepository.findByName(LuaUniverseRegistry.TRAILER_PARK).first().id.toString()
         System.out.println "worldId = ${id}"
         CreateStoryRequest request = new CreateStoryRequest(worldId: id)
 

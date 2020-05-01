@@ -6,7 +6,7 @@ import org.patdouble.adventuregame.state.Story
 import org.patdouble.adventuregame.state.request.PlayerRequest
 import org.patdouble.adventuregame.storage.jpa.StoryRepository
 import org.patdouble.adventuregame.storage.jpa.WorldRepository
-import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
+import org.patdouble.adventuregame.storage.lua.LuaUniverseRegistry
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.context.SpringBootTest
@@ -35,7 +35,7 @@ class EngineCacheTest extends Specification {
 
     def "get new story"() {
         given:
-        Story story = new Story(worldRepository.findByName(YamlUniverseRegistry.TRAILER_PARK).first())
+        Story story = new Story(worldRepository.findByName(LuaUniverseRegistry.TRAILER_PARK).first())
         storyRepository.save(story)
 
         when:
@@ -51,7 +51,7 @@ class EngineCacheTest extends Specification {
 
     def "get init story"() {
         given:
-        Story story = new Story(worldRepository.findByName(YamlUniverseRegistry.TRAILER_PARK).first())
+        Story story = new Story(worldRepository.findByName(LuaUniverseRegistry.TRAILER_PARK).first())
         Engine engine1 = new Engine(story)
         engine1.init().join()
         engine1.close()
@@ -70,7 +70,7 @@ class EngineCacheTest extends Specification {
 
     def "get started story"() {
         given:
-        Story story = new Story(worldRepository.findByName(YamlUniverseRegistry.TRAILER_PARK).first())
+        Story story = new Story(worldRepository.findByName(LuaUniverseRegistry.TRAILER_PARK).first())
         Engine engine1 = new Engine(story)
         engine1.chronosLimit = 5
         engine1.init().join()
@@ -94,7 +94,7 @@ class EngineCacheTest extends Specification {
 
     def "get ended story"() {
         given:
-        Story story = new Story(worldRepository.findByName(YamlUniverseRegistry.TRAILER_PARK).first())
+        Story story = new Story(worldRepository.findByName(LuaUniverseRegistry.TRAILER_PARK).first())
         Engine engine1 = new Engine(story)
         engine1.chronosLimit = 5
         engine1.init().join()
@@ -116,8 +116,8 @@ class EngineCacheTest extends Specification {
     def "clear"() {
         given:
         List<Engine> engines = []
-        engines << cache.get(storyRepository.save(new Story(worldRepository.findByName(YamlUniverseRegistry.TRAILER_PARK).first())).id)
-        engines << cache.get(storyRepository.save(new Story(worldRepository.findByName(YamlUniverseRegistry.THE_HOBBIT).first())).id)
+        engines << cache.get(storyRepository.save(new Story(worldRepository.findByName(LuaUniverseRegistry.TRAILER_PARK).first())).id)
+        engines << cache.get(storyRepository.save(new Story(worldRepository.findByName(LuaUniverseRegistry.THE_HOBBIT).first())).id)
         List<LocalDateTime> modified = engines.collect { it.story.modified }
 
         when:
@@ -134,16 +134,16 @@ class EngineCacheTest extends Specification {
 
     def "expire"() {
         given:
-        cache.ttl = Duration.of(100, ChronoUnit.MILLIS)
+        cache.ttl = Duration.of(10000, ChronoUnit.MILLIS)
         List<Story> stories = []
-        stories << storyRepository.saveAndFlush(new Story(worldRepository.findByName(YamlUniverseRegistry.TRAILER_PARK).first()))
-        stories << storyRepository.saveAndFlush(new Story(worldRepository.findByName(YamlUniverseRegistry.THE_HOBBIT).first()))
+        stories << storyRepository.saveAndFlush(new Story(worldRepository.findByName(LuaUniverseRegistry.TRAILER_PARK).first()))
+        stories << storyRepository.saveAndFlush(new Story(worldRepository.findByName(LuaUniverseRegistry.THE_HOBBIT).first()))
         List<LocalDateTime> modified = stories.collect { it.modified }
         when:
         cache.get(stories[1].id).with { Engine e ->
             e.addToCast(e.story.requests.find { it instanceof PlayerRequest }.template.createPlayer(Motivator.HUMAN)).join()
         }
-        cache.expire(System.currentTimeMillis() + 101)
+        cache.expire()
         storyRepository.flush()
         then:
         cache.size() == 1
@@ -153,17 +153,17 @@ class EngineCacheTest extends Specification {
 
     def "remove ended"() {
         given:
-        cache.ttl = Duration.of(100, ChronoUnit.MILLIS)
+        cache.ttl = Duration.of(100000, ChronoUnit.MILLIS)
         List<Story> stories = []
-        stories << storyRepository.saveAndFlush(new Story(worldRepository.findByName(YamlUniverseRegistry.TRAILER_PARK).first()))
-        stories << storyRepository.saveAndFlush(new Story(worldRepository.findByName(YamlUniverseRegistry.THE_HOBBIT).first()))
+        stories << storyRepository.saveAndFlush(new Story(worldRepository.findByName(LuaUniverseRegistry.TRAILER_PARK).first()))
+        stories << storyRepository.saveAndFlush(new Story(worldRepository.findByName(LuaUniverseRegistry.THE_HOBBIT).first()))
         List<LocalDateTime> modified = stories.collect { it.modified }
         when:
         cache.get(stories[1].id).with { Engine e ->
             e.story.ended = true
             storyRepository.saveAndFlush(e.story)
         }
-        cache.expire(System.currentTimeMillis() + 101)
+        cache.expire()
         then:
         cache.size() == 1
         and: 'ended story was saved'
@@ -174,8 +174,8 @@ class EngineCacheTest extends Specification {
         given:
         cache.clear()
         List<Engine> engines = []
-        engines << cache.get(storyRepository.save(new Story(worldRepository.findByName(YamlUniverseRegistry.TRAILER_PARK).first())).id)
-        engines << cache.get(storyRepository.save(new Story(worldRepository.findByName(YamlUniverseRegistry.THE_HOBBIT).first())).id)
+        engines << cache.get(storyRepository.save(new Story(worldRepository.findByName(LuaUniverseRegistry.TRAILER_PARK).first())).id)
+        engines << cache.get(storyRepository.save(new Story(worldRepository.findByName(LuaUniverseRegistry.THE_HOBBIT).first())).id)
         List<LocalDateTime> modified = engines.collect { it.story.modified }
 
         when:

@@ -35,15 +35,16 @@ class EngineFlowToSpringMessagingAdapter implements Flow.Subscriber<StoryMessage
     void onNext(StoryMessage item) {
         log.info 'Forwarding to {}: {}', destination, item
         simpMessagingTemplate.convertAndSend(destination, item, [type: item.class.simpleName])
+        subscription.request(Long.MAX_VALUE)
     }
 
     @Override
     void onError(Throwable throwable) {
-        // nothing to do
+        log.error 'Eventing error', throwable
     }
 
     @Override
     void onComplete() {
-        // nothing to do
+        log.info 'Subscription completed'
     }
 }

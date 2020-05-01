@@ -1,0 +1,19 @@
+version: '3'
+
+volumes:
+  data:
+
+services:
+  app:
+    restart: on-failure
+    image: pdouble16/adventuregame:latest
+    environment:
+      SPRING_PROFILES_ACTIVE: "stage"
+      SERVER_PORT: 10222
+    expose:
+    - "10222"
+    ports:
+    - 10222:10222
+    volumes:
+    - data:/data
+

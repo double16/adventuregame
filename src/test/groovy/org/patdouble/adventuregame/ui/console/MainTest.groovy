@@ -1,7 +1,7 @@
 package org.patdouble.adventuregame.ui.console
 
 import ch.qos.logback.classic.Level
-import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
+import org.patdouble.adventuregame.storage.lua.LuaUniverseRegistry
 import spock.lang.Specification
 
 class MainTest extends Specification {
@@ -37,6 +37,6 @@ class MainTest extends Specification {
         main.applyConfiguration()
         main.chooseWorld()
         then:
-        main.world.name == YamlUniverseRegistry.TRAILER_PARK
+        main.world.name == LuaUniverseRegistry.TRAILER_PARK
     }
 }

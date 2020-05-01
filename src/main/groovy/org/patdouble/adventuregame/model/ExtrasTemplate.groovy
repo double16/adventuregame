@@ -8,17 +8,22 @@ import org.patdouble.adventuregame.state.Player
 import org.patdouble.adventuregame.storage.jpa.Constants
 
 import javax.persistence.Entity
+import javax.persistence.GeneratedValue
+import javax.persistence.GenerationType
 import javax.persistence.Id
 
 /**
  * Template for extras in the story. Extras are always controlled by AI. An extra may be an important role, such as a
  * villain to defeat.
  */
-@Canonical(excludes = [Constants.COL_ID])
+@Canonical(excludes = [Constants.COL_ID, Constants.COL_DBID])
 @Entity
 @CompileDynamic
 class ExtrasTemplate implements CharacterTrait {
-    @Id
+    @Id @GeneratedValue(strategy = GenerationType.AUTO)
+    @JsonIgnore
+    UUID dbId
+    /** 'business' id */
     UUID id = UUID.randomUUID()
 
     /** The number of extras. */

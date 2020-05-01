@@ -5,7 +5,7 @@ jobs:
     environment:
       - TERM=dumb
     docker:
-      - image: openjdk:11.0.4-jdk
+      - image: openjdk:11.0.6-jdk
     steps:
       - checkout
       - restore_cache:
@@ -15,8 +15,14 @@ jobs:
             - adventuregame-
 
       - run:
-          name: Run Checks
-          command: ./gradlew check --warning-mode all --stacktrace
+          name: codenarc
+          command: ./gradlew codenarcMain --stacktrace
+      - run:
+          name: Open Source Vuln
+          command: ./gradlew dependencyCheckAggregate --stacktrace
+      - run:
+          name: Unit Tests
+          command: ./gradlew test cloverGenerateReport --stacktrace
       - store_test_results:
           path: ./build/test-results
       - store_artifacts:

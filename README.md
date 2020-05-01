@@ -6,6 +6,10 @@ Interactive Fiction Game for fun and learning.
 
 ## Worlds
 
+Worlds are defined using a language based on Lua 5.2. For help with Lua see:
+- https://www.lua.org/manual/5.2/manual.html
+- https://www.tutorialspoint.com/lua/index.htm
+
 TODO ...
 
 ## Play

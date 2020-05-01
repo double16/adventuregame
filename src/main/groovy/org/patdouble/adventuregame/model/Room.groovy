@@ -4,8 +4,11 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import groovy.transform.CompileDynamic
 import groovy.transform.ToString
 import org.hibernate.Hibernate
+import org.patdouble.adventuregame.storage.jpa.Constants
 
 import javax.persistence.Entity
+import javax.persistence.GeneratedValue
+import javax.persistence.GenerationType
 import javax.persistence.Id
 import javax.persistence.Lob
 import javax.persistence.ManyToMany
@@ -15,10 +18,13 @@ import javax.validation.constraints.NotNull
  * A place of non-deterministic size that can hold objects and players.
  */
 @Entity
-@ToString(excludes = ['id', 'neighbors'], includePackage = false)
+@ToString(excludes = [Constants.COL_ID, Constants.COL_DBID, 'neighbors'], includePackage = false)
 @CompileDynamic
 class Room {
-    @Id
+    @Id @GeneratedValue(strategy = GenerationType.AUTO)
+    @JsonIgnore
+    UUID dbId
+    /** 'business' id */
     UUID id = UUID.randomUUID()
 
     String modelId

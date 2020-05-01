@@ -55,9 +55,6 @@ import java.util.concurrent.SubmissionPublisher
 @Slf4j
 @CompileDynamic
 class Engine implements Closeable {
-    @SuppressWarnings('ThreadGroup')
-    final static ThreadGroup KIE_THREAD_GROUP = new ThreadGroup('kie-sessions')
-
     Story story
     final Locale locale = Locale.ENGLISH
     final ActionStatementParser actionStatementParser
@@ -75,6 +72,7 @@ class Engine implements Closeable {
     private DroolsConfiguration droolsConfiguration
     private KieContainer kContainer
     private KieSession kieSession
+    private CompletableFuture<Boolean> firingComplete
     private FactHandle chronosHandle
     private FactHandle storyStateHandle
     private final Map<UUID, FactHandle> handles = [:]
@@ -117,13 +115,14 @@ class Engine implements Closeable {
      * Replace story object, which is expected to happen due to persistence behavior. This is NOT intended to change the
      * content of the story, only the objects involved.
      */
-    CompletableFuture<Story> updateStory(Story story) {
-        Objects.requireNonNull(story)
+    CompletableFuture<Story> updateStory(Closure<Story> storyProducer) {
+        Objects.requireNonNull(storyProducer)
         if (kieSession == null ) { // ended
             return CompletableFuture.completedFuture(story)
         }
         final CompletableFuture<Story> future = new CompletableFuture<>()
         kieSession.submit {
+            Story story = storyProducer.call()
             if (story.is(this.story)) {
                 future.complete(story)
             } else {
@@ -256,13 +255,16 @@ class Engine implements Closeable {
      */
     @Override
     void close() throws IOException {
-        if (!publisher.isClosed()) {
-            publisher.close()
-        }
+        log.info 'Closing Engine for story {}', story.id
         if (kieSession) {
+            log.info 'Halting rule engine'
             kieSession.halt()
+            firingComplete?.join()
             kieSession.dispose()
             kieSession = null
+        }
+        if (!publisher.isClosed()) {
+            publisher.close()
         }
     }
 
@@ -537,15 +539,18 @@ class Engine implements Closeable {
     private void startRuleEngine() {
         initKieSession()
         if (autoLifecycle) {
-            Thread kieThread = new Thread(KIE_THREAD_GROUP, "kie for ${story.world.name}") {
-                @Override
-                void run() {
+            firingComplete = new CompletableFuture<>()
+            executor.execute {
+                boolean success = false
+                try {
+                    log.info 'Rule engine firing until halt'
                     kieSession.fireUntilHalt()
-                    kieSession?.dispose()
+                    log.info 'Halted rule engine'
+                    success = true
+                } finally {
+                    firingComplete.complete(success)
                 }
             }
-            kieThread.daemon = true
-            kieThread.start()
         }
     }
 

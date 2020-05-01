@@ -4,7 +4,7 @@ import groovy.transform.CompileDynamic
 import groovy.util.logging.Slf4j
 import org.patdouble.adventuregame.model.World
 import org.patdouble.adventuregame.storage.jpa.WorldRepository
-import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
+import org.patdouble.adventuregame.storage.lua.LuaUniverseRegistry
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.CommandLineRunner
 import org.springframework.context.annotation.Bean
@@ -22,7 +22,7 @@ class JpaWorldLoader {
 
     @Bean
     CommandLineRunner initDatabase() {
-        YamlUniverseRegistry yamlUniverseRegistry = new YamlUniverseRegistry()
+        LuaUniverseRegistry yamlUniverseRegistry = new LuaUniverseRegistry()
 
         return { args ->
             yamlUniverseRegistry.worlds.each { World world ->

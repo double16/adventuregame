@@ -5,6 +5,9 @@ import org.patdouble.adventuregame.flow.PlayerNotification
 import org.patdouble.adventuregame.i18n.ActionStatement
 import org.patdouble.adventuregame.state.Player
 
+/**
+ * Implements {@link org.patdouble.adventuregame.model.Action#GO}.
+ */
 @CompileDynamic
 class ActionGo implements ActionExecutor {
     @Override

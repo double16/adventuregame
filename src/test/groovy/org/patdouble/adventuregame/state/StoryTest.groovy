@@ -1,10 +1,10 @@
 package org.patdouble.adventuregame.state
 
-import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
+import org.patdouble.adventuregame.storage.lua.LuaUniverseRegistry
 import spock.lang.Specification
 
 class StoryTest extends Specification {
-    YamlUniverseRegistry registry = new YamlUniverseRegistry()
+    LuaUniverseRegistry registry = new LuaUniverseRegistry()
 
     private Story newStory(String worldName) {
         new Story(registry.worlds.find { it.name == worldName })
@@ -12,13 +12,13 @@ class StoryTest extends Specification {
 
     def "Equals"() {
         expect:
-        newStory(YamlUniverseRegistry.TRAILER_PARK) == newStory(YamlUniverseRegistry.TRAILER_PARK)
-        newStory(YamlUniverseRegistry.TRAILER_PARK) != newStory(YamlUniverseRegistry.THE_HOBBIT)
+        newStory(LuaUniverseRegistry.TRAILER_PARK) == newStory(LuaUniverseRegistry.TRAILER_PARK)
+        newStory(LuaUniverseRegistry.TRAILER_PARK) != newStory(LuaUniverseRegistry.THE_HOBBIT)
     }
 
     def "Hashcode"() {
         expect:
-        newStory(YamlUniverseRegistry.TRAILER_PARK).hashCode() == newStory(YamlUniverseRegistry.TRAILER_PARK).hashCode()
-        newStory(YamlUniverseRegistry.TRAILER_PARK).hashCode() != newStory(YamlUniverseRegistry.THE_HOBBIT).hashCode()
+        newStory(LuaUniverseRegistry.TRAILER_PARK).hashCode() == newStory(LuaUniverseRegistry.TRAILER_PARK).hashCode()
+        newStory(LuaUniverseRegistry.TRAILER_PARK).hashCode() != newStory(LuaUniverseRegistry.THE_HOBBIT).hashCode()
     }
 }

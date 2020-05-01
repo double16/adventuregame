@@ -6,7 +6,7 @@ import groovy.transform.CompileDynamic
 import org.fusesource.jansi.Ansi
 import org.patdouble.adventuregame.engine.Engine
 import org.patdouble.adventuregame.flow.EngineCloseOnStoryEnd
-import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
+import org.patdouble.adventuregame.storage.lua.LuaUniverseRegistry
 import org.patdouble.adventuregame.model.World
 import org.patdouble.adventuregame.model.UniverseRegistry
 import org.patdouble.adventuregame.state.Story
@@ -61,12 +61,12 @@ class Main {
             console = new Console()
         }
         if (registry == null) {
-            registry = new YamlUniverseRegistry()
+            registry = new LuaUniverseRegistry()
         }
     }
 
     void chooseWorld() {
-        world = registry.worlds.find { it.name == YamlUniverseRegistry.TRAILER_PARK }
+        world = registry.worlds.find { it.name == LuaUniverseRegistry.TRAILER_PARK }
     }
 
     void start(Closure exitStrategy = null) {

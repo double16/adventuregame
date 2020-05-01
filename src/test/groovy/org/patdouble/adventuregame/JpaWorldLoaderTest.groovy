@@ -2,7 +2,7 @@ package org.patdouble.adventuregame
 
 import org.patdouble.adventuregame.model.World
 import org.patdouble.adventuregame.storage.jpa.WorldRepository
-import org.patdouble.adventuregame.storage.yaml.YamlUniverseRegistry
+import org.patdouble.adventuregame.storage.lua.LuaUniverseRegistry
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.context.SpringBootTest
@@ -20,7 +20,7 @@ import javax.transaction.Transactional
 class JpaWorldLoaderTest extends Specification {
     @Autowired
     WorldRepository worldRepository
-    YamlUniverseRegistry universeRegistry = new YamlUniverseRegistry()
+    LuaUniverseRegistry universeRegistry = new LuaUniverseRegistry()
 
     def "world save #worldName"() {
         given:
@@ -32,7 +32,7 @@ class JpaWorldLoaderTest extends Specification {
 
         where:
         worldName                         | _
-        YamlUniverseRegistry.TRAILER_PARK | _
-        YamlUniverseRegistry.THE_HOBBIT | _
+        LuaUniverseRegistry.TRAILER_PARK | _
+        LuaUniverseRegistry.THE_HOBBIT   | _
     }
 }
