@@ -4,6 +4,7 @@ jobs:
     working_directory: ~/adventuregame
     environment:
       - TERM=dumb
+      - GRADLE_OPTS="--no-daemon"
     docker:
       - image: openjdk:11.0.6-jdk
     steps:

@@ -27,6 +27,15 @@ class ActionStatement {
         }
     }
 
+    long getChronosCost() {
+        long cost = 1
+        Action a = getVerbAsAction()
+        if (a) {
+            cost = a.chronosCost
+        }
+        cost
+    }
+
     String getText() {
         if (indirectObject) {
             "${verb} ${directObject} with ${indirectObject}"

@@ -26,7 +26,7 @@ class AbstractSubscriber implements Flow.Subscriber<StoryMessage>, AutoCloseable
 
     @Override
     void onError(Throwable throwable) {
-        subscription.request(1)
+        // nothing to do
     }
 
     @Override

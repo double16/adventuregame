@@ -1,6 +1,7 @@
-package org.patdouble.adventuregame.engine
+package org.patdouble.adventuregame.engine.action
 
 import groovy.transform.CompileStatic
+import org.patdouble.adventuregame.engine.EngineFacade
 import org.patdouble.adventuregame.i18n.ActionStatement
 import org.patdouble.adventuregame.state.Player
 

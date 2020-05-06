@@ -38,11 +38,11 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-gradle-zap-
     - name: codenarc
-      run: ./gradlew codenarcMain --stacktrace
+      run: ./gradlew codenarcMain --stacktrace --no-daemon
     - name: Open Source Vuln
-      run: ./gradlew dependencyCheckAggregate --stacktrace
+      run: ./gradlew dependencyCheckAggregate --stacktrace --no-daemon
     - name: Unit Tests
-      run: ./gradlew test cloverGenerateReport --stacktrace
+      run: ./gradlew test cloverGenerateReport --stacktrace --no-daemon
     - name: Archvie check reports
       uses: actions/upload-artifact@v1
       if: failure()

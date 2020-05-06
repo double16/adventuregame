@@ -1,8 +1,12 @@
 Vue.component('story-create-item', {
     props: ['name', 'description', 'worldId'],
     template:  `
-<div><h2>{{ name }}</h2><p>{{ description }}</p>
+<div class="card">
+<div class="card-body">
+<h5 class="card-title">{{ name }}</h5>
+<p class="card-text">{{ description }}</p>
 <button v-on:click="createStory" type="button" class="btn btn-primary">Start</button>
+</div>
 </div>
 `,
     methods: {
@@ -20,6 +24,7 @@ Vue.component('story-create-item', {
 Vue.component('player-detail', {
     props: ['player'],
     template: `
+<div class="card">
 <div class="card-body">
     <h2 class="card-title">{{ player.fullName }}</h2>
     <h3 class="card-subtitle mb-2 text-muted">{{ player.name }}</h3>
@@ -49,6 +54,7 @@ Vue.component('player-detail', {
       speed:&nbsp;<div class="progress-bar" role="progressbar" v-bind:style="{ width: (player.speed/10)+'%' }" :aria-valuenow="player.speed" aria-valuemin="0" aria-valuemax="1000"></div>
     </div>
 </div>
+</div>
 `
 })
 
@@ -72,10 +78,12 @@ Vue.component('action-request', {
     },
     methods: {
         performAction: function() {
+            const vue = this
             console.log("Performing action "+this.statement)
             axios.post('/api/engine/action', { storyId: this.storyId, playerId: this.playerId, statement: this.statement })
                 .then(response => {
                     console.log("Action complete")
+                    vue.statement = ''
                 })
         },
         populateAction: function(action) {
@@ -83,6 +91,55 @@ Vue.component('action-request', {
             document.getElementById('statement').focus()
         }
     }
+})
+
+Vue.component('world-map', {
+    props: [ 'map' ],
+    template:
+`
+<svg width="300" height="300">
+<g/>
+</svg>
+`,
+    methods: {
+        draw: function(el) {
+            var g = new dagreD3.graphlib.Graph().setGraph({})
+            this.map.rooms.forEach(room => g.setNode(room.id, { label: room.name }))
+            this.map.edges.forEach(edge => g.setEdge(edge.from, edge.to, { label: edge.direction }))
+
+            // Set some general styles
+            g.nodes().forEach(function(v) {
+              var node = g.node(v);
+              node.rx = node.ry = 5;
+            })
+
+            var svg = d3.select(el),
+                inner = svg.select("g")
+
+            // Set up zoom support
+            var zoom = d3.zoom().on("zoom", function() {
+                  inner.attr("transform", d3.event.transform);
+                });
+            svg.call(zoom)
+
+            var render = new dagreD3.render()
+            render(inner, g)
+
+            // Center the graph
+            var initialScale = 0.75
+            svg.call(zoom.transform, d3.zoomIdentity.translate((svg.attr("width") - g.graph().width * initialScale) / 2, 20).scale(initialScale))
+
+            svg.attr('height', g.graph().height * initialScale + 40)
+        }
+    },
+    watch: {
+        map: function(newVal, oldVal) {
+            this.draw(this.$el)
+        }
+    },
+    mounted() {
+        this.draw(this.$el)
+    },
 })
 
 Vue.directive('focus', {
@@ -94,8 +151,14 @@ Vue.directive('focus', {
 const StoryCreate = {
     template: `
 <div class="container">
+<div class="row">
 <h1>Create a New Story</h1>
-<story-create-item v-for="w in worlds" v-bind:key="w.ref" v-bind:name="w.name" v-bind:description="w.description" v-bind:worldId="w.ref"></story-create-item>
+</div>
+    <div class="row">
+        <div class="col" v-for="w in worlds">
+            <story-create-item v-bind:key="w.ref" v-bind:name="w.name" v-bind:description="w.description" v-bind:worldId="w.ref"></story-create-item>
+        </div>
+    </div>
 </div>
 `,
     data() {
@@ -146,7 +209,8 @@ const Story = {
             story_url: null,
             my_player_path: null,
             players: [],
-            notifications: []
+            notifications: [],
+            lastMap: null,
         }
     },
     computed: {
@@ -246,6 +310,12 @@ const Story = {
                 type = disposition
                 body = message.goal
                 id = body.id
+            } else if (disposition === 'MapMessage') {
+                if (message.player.id == this.$route.params.player_id) {
+                    type = disposition
+                    body = message
+                    id = body.player.id
+                }
             } else {
                 console.log('unknown message: '+message)
                 return
@@ -315,6 +385,9 @@ const Story = {
                         subject: 'Goal met',
                         text: body.description
                     })
+                    break
+                case 'MapMessage':
+                    this.lastMap = body
                     break
             }
         },
@@ -512,7 +585,12 @@ const StoryRun = {
     </div>
 </div>
 <div class="row">
-<div class="col-8">
+    <div class="col-12">
+    <world-map v-if="this.$parent.lastMap" v-bind:map="this.$parent.lastMap"></world-map>
+    </div>
+</div>
+<div class="row">
+<div class="col-6">
     <div v-if="this.$parent.my_player_obj"><h2>{{ this.$parent.my_player_obj.fullName }}</h2></div>
     <action-request v-if="this.$parent.my_player_actionRequest"
       v-bind:storyId="$parent.$route.params.story_id"

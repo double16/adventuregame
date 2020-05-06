@@ -6,6 +6,7 @@ expander default.dsl
 
 dialect "mvel"
 
+/*
 rule "log player has a turn"
   salience 10000
   when
@@ -15,3 +16,4 @@ rule "log player has a turn"
   then
     log "Player has a turn: "+$player.title
 end
+*/

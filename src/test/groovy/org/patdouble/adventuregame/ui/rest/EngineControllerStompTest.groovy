@@ -32,7 +32,7 @@ import org.springframework.web.socket.handler.LoggingWebSocketHandlerDecorator
 import org.springframework.web.socket.messaging.WebSocketStompClient
 import spock.lang.Specification
 import spock.lang.Unroll
-import static org.patdouble.adventuregame.SpecHelper.wait
+import static org.patdouble.adventuregame.SpecHelper.settle
 
 import javax.transaction.Transactional
 import java.lang.reflect.Type
@@ -156,12 +156,11 @@ class EngineControllerStompTest extends Specification {
         controller.ignore(new IgnoreCastRequest(
                 storyId: storyId,
                 playerTemplateId: warriorTemplateId))
+        settle { engine.story.requests.size() }
 
         then:
-        wait {
-            assert engine.story.requests.size() == 12
-            assert engine.story.requests.find { (it instanceof PlayerRequest) && it.template.id.toString() == warriorTemplateId }
-        }
+        engine.story.requests.size() == 12
+        engine.story.requests.find { (it instanceof PlayerRequest) && it.template.id.toString() == warriorTemplateId }
         and:
         !messages.poll(POLL_TIMEOUT, TimeUnit.SECONDS)
     }

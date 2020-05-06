@@ -1,10 +1,11 @@
 package org.patdouble.adventuregame.model
 
 import groovy.transform.CompileStatic
-import org.patdouble.adventuregame.engine.ActionExecutor
-import org.patdouble.adventuregame.engine.ActionGo
-import org.patdouble.adventuregame.engine.ActionNotImplemented
-import org.patdouble.adventuregame.engine.ActionWait
+import org.patdouble.adventuregame.engine.action.ActionExecutor
+import org.patdouble.adventuregame.engine.action.ActionGo
+import org.patdouble.adventuregame.engine.action.ActionNotImplemented
+import org.patdouble.adventuregame.engine.action.ActionMap
+import org.patdouble.adventuregame.engine.action.ActionWait
 
 /**
  * Recommended actions. Any verb can be used but these may come with built in synonyms.
@@ -31,7 +32,9 @@ enum Action {
     /** Capture a player. */
     CAPTURE(1, ActionNotImplemented),
     /** Release a player. */
-    RELEASE(1, ActionNotImplemented)
+    RELEASE(1, ActionNotImplemented),
+    /** Show map from player's knowledge. */
+    MAP(0, ActionMap)
 
     /** How many time units does this action take? */
     final long chronosCost

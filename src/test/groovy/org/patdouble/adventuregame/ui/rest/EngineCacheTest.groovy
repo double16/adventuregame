@@ -1,5 +1,6 @@
 package org.patdouble.adventuregame.ui.rest
 
+import groovy.util.logging.Slf4j
 import org.patdouble.adventuregame.engine.Engine
 import org.patdouble.adventuregame.state.Motivator
 import org.patdouble.adventuregame.state.Story
@@ -25,6 +26,7 @@ import java.time.temporal.ChronoUnit
 @ContextConfiguration
 @Transactional
 @Unroll
+@Slf4j
 class EngineCacheTest extends Specification {
     @Autowired
     WorldRepository worldRepository
@@ -32,6 +34,11 @@ class EngineCacheTest extends Specification {
     StoryRepository storyRepository
     @Autowired
     EngineCache cache
+
+    def cleanup() {
+        log.info 'Clearing EngineCache'
+        cache.clear()
+    }
 
     def "get new story"() {
         given:
@@ -159,6 +166,7 @@ class EngineCacheTest extends Specification {
         stories << storyRepository.saveAndFlush(new Story(worldRepository.findByName(LuaUniverseRegistry.THE_HOBBIT).first()))
         List<LocalDateTime> modified = stories.collect { it.modified }
         when:
+        cache.get(stories[0].id)
         cache.get(stories[1].id).with { Engine e ->
             e.story.ended = true
             storyRepository.saveAndFlush(e.story)

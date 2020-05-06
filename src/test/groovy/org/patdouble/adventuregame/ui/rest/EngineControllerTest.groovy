@@ -18,7 +18,7 @@ import org.springframework.test.context.ContextConfiguration
 import org.springframework.web.server.ResponseStatusException
 import spock.lang.Specification
 import spock.lang.Unroll
-import static org.patdouble.adventuregame.SpecHelper.wait
+import static org.patdouble.adventuregame.SpecHelper.settle
 
 import javax.transaction.Transactional
 
@@ -47,6 +47,10 @@ class EngineControllerTest extends Specification {
     void cleanup() {
         controller.engineCache.clear()
         controller.engineCache.autoLifecycle = true
+    }
+
+    protected void waitForStompMessages() {
+        settle { simpMessagingTemplate.messages.size() }
     }
 
     def "CreateStory by name"() {
@@ -100,16 +104,15 @@ class EngineControllerTest extends Specification {
                 motivator: 'human',
                 fullName: 'First Last',
                 nickName: 'Firstly'))
+        waitForStompMessages()
         then:
         response.playerUri =~ '/play/[A-Fa-f0-9-]+/[A-Fa-f0-9-]+'
         and:
-        wait {
-            simpMessagingTemplate.messages.find {
-                it.first == "/topic/story.${storyId}" as String &&
-                it.second.payload instanceof RequestSatisfied &&
-                it.second.payload.request.template.id.toString() == warriorTemplateId &&
-                it.second.headers['type'] == 'RequestSatisfied'
-            }
+        simpMessagingTemplate.messages.find {
+            it.first == "/topic/story.${storyId}" as String &&
+            it.second.payload instanceof RequestSatisfied &&
+            it.second.payload.request.template.id.toString() == warriorTemplateId &&
+            it.second.headers['type'] == 'RequestSatisfied'
         }
     }
 
@@ -124,12 +127,10 @@ class EngineControllerTest extends Specification {
         controller.ignore(new IgnoreCastRequest(
                 storyId: storyId,
                 playerTemplateId: warriorTemplateId))
-
+        settle { engine.story.requests.size() }
         then:
-        wait {
-            assert engine.story.requests.size() == 12
-            assert engine.story.requests.find { (it instanceof PlayerRequest) && it.template.id.toString() == warriorTemplateId }
-        }
+        engine.story.requests.size() == 12
+        engine.story.requests.find { (it instanceof PlayerRequest) && it.template.id.toString() == warriorTemplateId }
         and:
         !simpMessagingTemplate.messages.find {
             it.first == "/topic/story.${storyId}" as String &&
@@ -150,18 +151,17 @@ class EngineControllerTest extends Specification {
         controller.ignore(new IgnoreCastRequest(
                 storyId: storyId,
                 playerTemplateId: thugTemplateId))
+        waitForStompMessages()
 
         then:
         engine.story.requests.size() == 2
         !engine.story.requests.find { (it instanceof PlayerRequest) && it.template.id.toString() == thugTemplateId }
         and:
-        wait {
-            simpMessagingTemplate.messages.find {
-                it.first == "/topic/story.${storyId}" as String &&
-                        it.second.payload instanceof RequestSatisfied &&
-                        it.second.payload.request.template.id.toString() == thugTemplateId &&
-                        it.second.headers['type'] == 'RequestSatisfied'
-            }
+        simpMessagingTemplate.messages.find {
+            it.first == "/topic/story.${storyId}" as String &&
+                    it.second.payload instanceof RequestSatisfied &&
+                    it.second.payload.request.template.id.toString() == thugTemplateId &&
+                    it.second.headers['type'] == 'RequestSatisfied'
         }
     }
 
@@ -176,18 +176,17 @@ class EngineControllerTest extends Specification {
         }
         when:
         controller.start(new StartRequest(storyId: storyId))
+        waitForStompMessages()
 
         then:
         notThrown(Exception)
         and:
-        wait { assert engine.story.chronos.current > 0 }
+        engine.story.chronos.current > 0
         and:
-        wait {
-            simpMessagingTemplate.messages.find {
-                it.first == "/topic/story.${storyId}" as String &&
-                        it.second.payload instanceof ChronosChanged &&
-                        it.second.headers['type'] == 'ChronosChanged'
-            }
+        simpMessagingTemplate.messages.find {
+            it.first == "/topic/story.${storyId}" as String &&
+                    it.second.payload instanceof ChronosChanged &&
+                    it.second.headers['type'] == 'ChronosChanged'
         }
     }
 
@@ -209,20 +208,17 @@ class EngineControllerTest extends Specification {
                 playerId: warrior.id as String,
                 statement: 'go north'
         ))
+        waitForStompMessages()
 
         then:
-        wait {
-            assert warrior.room.modelId == 'trailer_2'
-        }
+        warrior.room.modelId == 'trailer_2'
         and:
-        wait {
-            simpMessagingTemplate.messages.find {
-                it.first == "/topic/story.${storyId}" as String &&
-                        it.second.payload instanceof PlayerChanged &&
-                        it.second.payload.player.nickName == 'Shadowblow' &&
-                        it.second.payload.chronos == 1 &&
-                        it.second.headers['type'] == 'PlayerChanged'
-            }
+        simpMessagingTemplate.messages.find {
+            it.first == "/topic/story.${storyId}" as String &&
+                    it.second.payload instanceof PlayerChanged &&
+                    it.second.payload.player.nickName == 'Shadowblow' &&
+                    it.second.payload.chronos == 1 &&
+                    it.second.headers['type'] == 'PlayerChanged'
         }
     }
 

@@ -34,22 +34,22 @@ class Persona {
     @NotNull
     String name
     /** 0-1000, 0 is dead. */
-    int health
-    BigDecimal wealth
+    int health = 1000
+    BigDecimal wealth = BigDecimal.ZERO
     /** 0-1000: 500 is neutral, <500 is 'bad', 0 is pure evil. */
-    int virtue
+    int virtue = 500
     /** 0-1000: 500 is neutral, <500 is coward, >500 is courage. */
-    int bravery
+    int bravery = 500
     /** 0-1000. */
-    int leadership
+    int leadership = 500
     /** 0-1000. */
-    int experience
+    int experience = 0
     /** 0-1000. */
-    int agility
+    int agility = 500
     /** 0-1000. */
-    int speed
+    int speed = 500
     /** 0-1000. */
-    int memory
+    int memory = 500
 
     @Override
     String toString() {

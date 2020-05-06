@@ -27,4 +27,11 @@ class ActionStatementTest extends Specification {
         new ActionStatement(verb: 'go', directObject: 'north').text == "go north"
         new ActionStatement(verb: 'attack', directObject: 'bear', indirectObject: 'knife').text == "attack bear with knife"
     }
+
+    def "GetChronosCost"() {
+        expect:
+        new ActionStatement(verb: 'go').chronosCost == 1
+        new ActionStatement(verb: 'map').chronosCost == 0
+        new ActionStatement(verb: 'custom').chronosCost == 1
+    }
 }

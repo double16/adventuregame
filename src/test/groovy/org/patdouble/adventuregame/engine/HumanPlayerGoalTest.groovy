@@ -25,18 +25,18 @@ class HumanPlayerGoalTest extends AbstractPlayerTest {
         engine.action(thief, 'wait').join()
         engine.action(warrior, 'go east').join()
 
-        then:
+        then: 'player is in correct room'
         warrior.room.modelId == 'trailer_4'
-        and:
+        and: 'goals are marked fulfilled correctly'
         engine.story.goals.find { it.goal.name == 'one' }.fulfilled
         engine.story.goals.find { it.goal.name == 'two' }.fulfilled
         !engine.story.goals.find { it.goal.name == 'three' }.fulfilled
-        and:
+        and: 'goal events sent'
         1 * storySubscriber.onNext(new GoalFulfilled(goal: goal1))
         1 * storySubscriber.onNext(new GoalFulfilled(goal: goal2))
         0 * storySubscriber.onNext(new GoalFulfilled(goal: goal3))
         1 * storySubscriber.onNext(new StoryEnded())
-        and:
+        and: 'history recorded'
         engine.story.history.events.size() == 4
         !engine.story.history.events[0].players[0].player.is(engine.story.history.events[1].players[0].player)
         engine.story.history.events*.players*.action.flatten().size() == 40

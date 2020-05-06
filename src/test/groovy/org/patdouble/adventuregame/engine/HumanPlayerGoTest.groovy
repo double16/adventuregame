@@ -20,12 +20,12 @@ class HumanPlayerGoTest extends AbstractPlayerTest {
         when:
         boolean success = engine.action(warrior, 'go north').join()
 
-        then:
+        then: 'state is correct'
         success
         warrior.chronos == 1
         warrior.room.modelId == 'trailer_2'
         !story.requests.find { it instanceof ActionRequest && it.player == warrior }
-        and:
+        and: 'events sent'
         1 * storySubscriber.onNext(new PlayerChanged(warrior, 1))
         1 * storySubscriber.onNext{ it instanceof RequestSatisfied && it.request.player == warrior }
     }

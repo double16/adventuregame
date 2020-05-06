@@ -1,4 +1,4 @@
-package org.patdouble.adventuregame.engine
+package org.patdouble.adventuregame.engine.state
 
 import groovy.transform.CompileStatic
 import org.kie.api.definition.type.PropertyReactive
@@ -10,13 +10,17 @@ import org.patdouble.adventuregame.state.Story
 @PropertyReactive
 @CompileStatic
 class StoryState {
-    boolean ended
+    private boolean ended
 
     /**
      * Initialize from story.
      */
     StoryState(Story story) {
         update(story)
+    }
+
+    boolean isEnded() {
+        ended
     }
 
     /**

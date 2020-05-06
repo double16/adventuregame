@@ -32,7 +32,7 @@ class AbstractSubscriberTest extends Specification {
         when:
         subscriber.onError(new IllegalArgumentException())
         then:
-        1 * subscription.request(1)
+        0 * subscription.request(1)
     }
 
     def "OnComplete"() {

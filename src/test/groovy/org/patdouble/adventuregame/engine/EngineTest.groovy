@@ -1,5 +1,7 @@
 package org.patdouble.adventuregame.engine
 
+import org.patdouble.adventuregame.FlowSubscriptionCounter
+import org.patdouble.adventuregame.SpecHelper
 import org.patdouble.adventuregame.flow.StoryMessage
 import org.patdouble.adventuregame.model.World
 import org.patdouble.adventuregame.state.Story
@@ -12,7 +14,7 @@ import java.util.concurrent.Flow
 abstract class EngineTest extends Specification {
     Story story
     Flow.Subscriber<StoryMessage> storySubscriber
-    Executor executor
+    FlowSubscriptionCounter subscriptionCounter
     Engine engine
 
     void modify(World world) {
@@ -26,15 +28,24 @@ abstract class EngineTest extends Specification {
 
         storySubscriber = Mock()
         storySubscriber.onSubscribe(_) >> { Flow.Subscription s -> s.request(Integer.MAX_VALUE) }
-        executor = { it.run() } as Executor
 
-        engine = new Engine(story, executor)
+        subscriptionCounter = new FlowSubscriptionCounter()
+
+        engine = new Engine(story, null, { it.run() } as Executor)
         engine.chronosLimit = 100
         engine.subscribe(storySubscriber)
+        engine.subscribe(subscriptionCounter)
 //        engine.subscribe(new StoryMessageOutput())
     }
 
     def cleanup() {
         engine.close()
+    }
+
+    /**
+     * Wait for messages to settle.
+     */
+    protected void waitForMessages() {
+        SpecHelper.settle(subscriptionCounter.dataHash())
     }
 }

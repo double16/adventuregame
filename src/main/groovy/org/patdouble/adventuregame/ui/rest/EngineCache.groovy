@@ -36,6 +36,8 @@ import java.util.concurrent.atomic.AtomicLong
 @Slf4j
 @CompileDynamic
 class EngineCache {
+    private static long B_PER_MB = 1024*1024
+    private static Runtime RT = Runtime.runtime
 
     @CompileStatic
     private class Value {
@@ -134,6 +136,8 @@ class EngineCache {
                     result = em.merge(v.engine.story).initialize()
                     em.flush()
                     success = true
+                } catch (RuntimeException e) {
+                    log.error("Saving story ${v.engine.story.id}", e)
                 } finally {
                     if (success) {
                         tx.commit()
@@ -179,14 +183,26 @@ class EngineCache {
                 entityManager.merge(s)
             }
             entityManager.flush()
-            log.info('Removed Engine for story {}, age {}, ended {}, {}', s.id, System.currentTimeMillis() - v.expires.get(), s.ended)
+            log.info('Removed Engine for story {}, age {}, ended {}', s.id, System.currentTimeMillis() - v.expires.get(), s.ended)
         }
     }
 
     @Scheduled(fixedDelay = 30000L)
     @Transactional
     void scheduleSweep() {
+        log.info('Starting sweep with {} engines, memory total/max/free {}M/{}M/{}M',
+                map.size(),
+                Math.floor(RT.totalMemory()/B_PER_MB),
+                Math.floor(RT.maxMemory()/B_PER_MB),
+                Math.floor(RT.freeMemory()/B_PER_MB))
+
         sweep()
         expire()
+
+        log.info('Finished sweep with {} engines, memory total/max/free {}M/{}M/{}M',
+                map.size(),
+                Math.floor(RT.totalMemory()/B_PER_MB),
+                Math.floor(RT.maxMemory()/B_PER_MB),
+                Math.floor(RT.freeMemory()/B_PER_MB))
     }
 }

@@ -1,0 +1,480 @@
+/*
+======================================================
+   Monkees and Bananas Sample Problem
+
+     This is an extended version of a
+     rather common AI planning problem.
+     The point is for the monkee to find
+     and eat some bananas.
+======================================================
+*/
+
+
+/***********
+ * Classes *
+ ***********/
+
+class monkey {
+  location = green-couch;
+  on-top-of = floor;
+  holding = nothing;
+}
+
+class thing {
+  name;
+  location;
+  on-top-of = floor;
+  weight = light;
+}
+
+class chest {
+  name;
+  contents;
+  unlocked_by;
+}
+
+class goal-is-to {
+  action;
+  argument-1;
+  argument-2;
+}
+
+/*************************
+ * CHEST UNLOCKING RULES *
+ *************************/
+
+rule hold-chest-to-put-on-floor {
+  if {
+    goal-is-to { action=unlock; argument-1=?chest; }
+    thing { name=?chest; on-top-of != floor; weight=light; }
+    monkey { holding != ?chest; }
+    not goal-is-to { action=hold; argument-1=?chest; }
+  }
+  then {
+    assert(goal-is-to { action=hold; argument-1=?chest; });
+  }
+}
+
+rule put-chest-on-floor {
+  if {
+    goal-is-to { action=unlock;  argument-1=?chest; }
+    monkey { $name=?monkey; location=?place; on-top-of=?on; holding=?chest; }
+    thing { $name=?thing; name=?chest; }
+  }
+  then {
+    output("Monkey throws the " ?chest " off the " ?on " onto the floor.\n");
+    modify(?monkey { holding=blank;} );
+    modify(?thing { location=?place; on-top-of=floor;} );
+  }
+}
+
+rule get-key-to-unlock {
+  if {
+    goal-is-to { action=unlock; argument-1=?obj; }
+    thing { name=?obj; on-top-of=floor; }
+    chest { name=?obj; unlocked-by=?key; }
+    monkey { holding != ?key; }
+    not goal-is-to { action=hold; argument-1=?key; }
+  }
+  then {
+    assert(goal-is-to { action=hold; argument-1=?key; } );
+  }
+}
+
+rule move-to-chest-with-key {
+  if {
+    goal-is-to { action=unlock; argument-1=?chest; }
+    thing { name=?chest; location=?cplace; on-top-of=floor; }
+    monkey { location != ?cplace; holding=?key; }
+    chest { name=?chest; unlocked-by=?key; }
+    not goal-is-to { action=walk-to; argument-1=?cplace; }
+  }
+  then {
+    assert(goal-is-to { action=walk-to; argument-1=?cplace;} );
+  }
+}
+
+rule unlock-chest-with-key {
+  if {
+    goal-is-to { $name=?goal; action=unlock; argument-1=?name; }
+    chest { $name=?chest; name=?name; contents=?contents; unlocked-by=?key; }
+    thing { name=?name; location=?place; on-top-of=?on; }
+    monkey { location=?place; on-top-of=?on; holding=?key; }
+  }
+  then {
+    output("Monkey opens the " ?name " with the " ?key
+                " revealing the " ?contents ".\n");
+    modify(?chest { contents=nothing; });
+    assert(thing { name=?contents; location=?place; on-top-of=?name;} );
+    reject(?goal);
+  }
+}
+
+/*********************
+ * HOLD OBJECT RULES *
+ *********************/
+
+rule unlock-chest-to-hold-object {
+  if {
+    goal-is-to { action=hold; argument-1=?obj; }
+    chest { name=?chest; contents=?obj; }
+    not goal-is-to { action=unlock; argument-1=?chest; }
+  }
+  then {
+    assert(goal-is-to { action=unlock; argument-1=?chest; });
+  }
+}
+
+rule use-ladder-to-hold {
+  if {
+    goal-is-to { action=hold; argument-1=?obj; }
+    thing { name=?obj; location=?place; on-top-of=ceiling; weight=light; }
+    not thing { name=ladder; location=?place; }
+    not goal-is-to { action=move; argument-1=ladder; argument-2=?place; }
+  }
+  then {
+    assert(goal-is-to { action=move; argument-1=ladder; argument-2=?place;} );
+  }
+}
+
+rule climb-ladder-to-hold {
+  if {
+    goal-is-to { action=hold; argument-1=?obj; }
+    thing { name=?obj; location=?place; on-top-of=ceiling; weight=light; }
+    thing { name=ladder; location=?place; on-top-of=floor; }
+    monkey { on-top-of != ladder; }
+    not goal-is-to { action=on; argument-1=ladder; }
+  }
+  then {
+    assert(goal-is-to { action=on; argument-1=ladder; });
+  }
+}
+
+rule grab-object-from-ladder {
+  if {
+    goal-is-to { $name=?goal; action=hold; argument-1=?name; }
+    thing { $name=?thing; name=?name; location=?place;
+                       on-top-of=ceiling; weight=light; }
+    thing { name=ladder; location=?place; }
+    monkey { $name=?monkey; location=?place; on-top-of=ladder; holding=blank; }
+  }
+  then {
+    output("Monkey grabs the " ?name ".\n");
+    modify(?thing { location=held; on-top-of=held;});
+    modify(?monkey { holding=?name;} );
+    reject(?goal);
+  }
+}
+
+rule climb-to-hold {
+  if {
+    goal-is-to { action=hold; argument-1=?obj; }
+    thing { name=?obj; location=?place; location != ceiling;
+            on-top-of=?on; weight=light; }
+    monkey { location=?place; on-top-of!=?on; }
+    not goal-is-to { action=on; argument-1=?on; }
+  }
+  then {
+    assert(goal-is-to { action=on; argument-1=?on; });
+  }
+}
+
+rule walk-to-hold {
+  if {
+    goal-is-to { action=hold; argument-1=?obj; }
+    thing { name=?obj; location=?place; on-top-of!=ceiling; weight=light; }
+    monkey { location!=?place; }
+    not goal-is-to { action=walk-to; argument-1=?place; }
+  }
+  then {
+    assert(goal-is-to { action=walk-to; argument-1=?place; });
+  }
+}
+
+rule drop-to-hold {
+  if {
+    goal-is-to { action=hold; argument-1=?obj; }
+    thing { name=?obj; location=?place; on-top-of=?on; weight=light; }
+    monkey { location=?place; on-top-of=?on; holding!=blank; }
+    not goal-is-to { action=hold; argument-1=blank; }
+  }
+  then {
+    assert(goal-is-to { action=hold; argument-1=blank; });
+  }
+}
+
+rule grab-object {
+  if {
+    goal-is-to { $name=?goal; action=hold; argument-1=?name; }
+    thing { $name=?thing; name=?name; location=?place;
+            on-top-of=?on; weight=light; }
+    monkey { $name=?monkey; location=?place; on-top-of=?on; holding=blank; }
+  }
+  then {
+    output("Monkey grabs the " ?name ".\n");
+    modify(?thing { location=held; on-top-of=held; });
+    modify(?monkey { holding=?name;});
+    reject(?goal);
+  }
+}
+
+rule drop-object {
+  if {
+    goal-is-to { $name=?goal; action=hold; argument-1=blank; }
+    monkey { $name=?monkey; location=?place; on-top-of=?on;
+             holding=?name; holding!=blank; }
+    thing { $name=?thing; name=?name; }
+  }
+  then {
+    output("Monkey drops the " ?name ".\n");
+    modify(?monkey { holding=blank; });
+    modify(?thing { location=?place; on-top-of=?on; });
+    reject(?goal);
+  }
+}
+
+/*********************
+ * MOVE OBJECT RULES *
+ *********************/
+
+rule unlock-chest-to-move-object {
+  if {
+    goal-is-to { action=move; argument-1=?obj; }
+    chest { name=?chest; contents=?obj; }
+    not goal-is-to { action=unlock; argument-1=?chest; }
+  }
+  then {
+    assert(goal-is-to { action=unlock; argument-1=?chest; });
+  }
+}
+
+rule hold-object-to-move {
+  if {
+    goal-is-to { action=move; argument-1=?obj; argument-2=?place; }
+    thing { name=?obj; location!=?place; weight=light; }
+    monkey { holding!=?obj; }
+    not goal-is-to { action=hold; argument-1=?obj; }
+  }
+  then {
+    assert(goal-is-to { action=hold; argument-1=?obj; });
+  }
+}
+
+rule move-object-to-place {
+  if {
+    goal-is-to { action=move; argument-1=?obj; argument-2=?place; }
+    monkey { location!=?place; holding=?obj; }
+    not goal-is-to {action=walk-to; argument-1=?place; }
+  }
+  then {
+    assert(goal-is-to { action=walk-to; argument-1=?place; });
+  }
+}
+
+rule drop-object-once-moved {
+  if {
+    goal-is-to { $name=?goal; action=move; argument-1=?name; argument-2=?place; }
+    monkey { $name=?monkey; location=?place; holding=?obj; }
+    thing { $name=?thing; name=?name; weight=light; }
+  }
+  then {
+    output("Monkey drops the " ?name ".\n");
+    modify(?monkey { holding=blank; });
+    modify(?thing { location=?place; on-top-of=floor; });
+    reject(?goal);
+  }
+}
+
+rule already-moved-object {
+  if {
+    goal-is-to { $name=?goal; action=move; argument-1=?obj; argument-2=?place;}
+    thing { name=?obj; location=?place; }
+  }
+  then {
+    reject(?goal);
+  }
+}
+
+/***********************
+ * WALK TO PLACE RULES *
+ ***********************/
+
+rule already-at-place {
+  if {
+    goal-is-to { $name=?goal; action=walk-to; argument-1=?place; }
+    monkey { location=?place; }
+  }
+  then {
+    reject(?goal);
+  }
+}
+
+rule get-on-floor-to-walk {
+  if {
+    goal-is-to { action=walk-to; argument-1=?place; }
+    monkey { location!=?place; on-top-of!=floor; }
+    not goal-is-to { action=on; argument-1=floor; }
+  }
+  then {
+    assert(goal-is-to { action=on; argument-1=floor;});
+  }
+}
+
+rule walk-holding-nothing {
+  if {
+    goal-is-to { $name=?goal; action=walk-to; argument-1=?place; }
+    monkey { $name=?monkey; location!=?place; on-top-of=floor; holding=blank; }
+  }
+  then {
+    output("Monkey walks to " ?place ".\n");
+    modify(?monkey { location=?place; });
+    reject(?goal);
+  }
+}
+
+rule walk-holding-object {
+  if {
+    goal-is-to { $name=?goal; action=walk-to; argument-1=?place; }
+    monkey { $name=?monkey; location!=?place; on-top-of=floor; holding=?obj; }
+    thing { name=?obj; }
+  }
+  then {
+    output("Monkey walks to " ?place " holding the " ?obj ".\n");
+    modify(?monkey { location=?place; });
+    reject(?goal);
+  }
+}
+
+/***********************
+ * GET ON OBJECT RULES *
+ ***********************/
+
+rule jump-onto-floor {
+  if {
+    goal-is-to { $name=?goal; action=on; argument-1=floor; }
+    monkey { $name=?monkey; on-top-of=?on; on-top-of!=floor; }
+  }
+  then {
+    output("Monkey jumps off the " ?on " onto the floor.\n");
+    modify(?monkey {on-top-of=floor;});
+    reject(?goal);
+  }
+}
+
+rule walk-to-place-to-climb {
+  if {
+    goal-is-to { action=on; argument-1=?obj; }
+    thing { name=?obj; location=?place; }
+    monkey { location!=?place; }
+    not goal-is-to { action=walk-to; argument-1=?place; }
+  }
+  then {
+    assert(goal-is-to { action=walk-to; argument-1=?place; });
+  }
+}
+
+rule drop-to-climb {
+  if {
+    goal-is-to { action=on; argument-1=?obj; }
+    thing { name=?obj; location=?place; }
+    monkey { location=?place; holding!=blank; }
+    not goal-is-to { action=hold; argument-1=blank; }
+  }
+  then {
+    assert(goal-is-to { action=hold; argument-1=blank;});
+  }
+}
+
+rule climb-indirectly {
+  if {
+    goal-is-to { action=on; argument-1=?obj; }
+    thing { name=?obj; location=?place; on-top-of=?on; }
+    monkey { location=?place; on-top-of!=?on; on-top-of!=?obj; holding=blank; }
+    not goal-is-to { action=on; argument-1=?on; }
+  }
+  then {
+    assert(goal-is-to {action=on; argument-1=?on; });
+  }
+}
+
+rule climb-directly {
+  if {
+    goal-is-to { $name=?goal; action=on; argument-1=?obj; }
+    thing { name=?obj; location=?place; on-top-of=?on; }
+    monkey { $name=?monkey; location=?place; on-top-of=?on; holding=blank; }
+  }
+  then {
+    output("Monkey climbs onto the " ?obj ".\n");
+    modify(?monkey { on-top-of=?obj;});
+    reject(?goal);
+  }
+}
+
+rule already-on-object {
+  if {
+    goal-is-to { $name=?goal; action=on; argument-1=?obj; }
+    monkey { on-top-of=?obj; }
+  }
+  then {
+    reject(?goal);
+  }
+}
+
+/********************
+ * EAT OBJECT RULES *
+ ********************/
+
+rule hold-to-eat {
+  if {
+    goal-is-to { action=eat; argument-1=?obj; }
+    monkey { holding!=?obj; }
+    not goal-is-to { action=hold; argument-1=?obj; }
+  }
+  then {
+    assert(goal-is-to { action=hold; argument-1=?obj; });
+  }
+}
+
+rule satisfy-hunger {
+  if {
+    goal-is-to {$name=?goal; action=eat; argument-1=?name; }
+    monkey {$name=?monkey; holding=?name; }
+    thing { $name=?thing; name=?name; }
+  }
+  then {
+    output("Monkey eats the " ?name ".\n");
+    modify(?monkey { holding=blank;});
+    reject(?goal ?thing);
+    //halt;
+  }
+}
+
+/**********************
+ * INITIAL STATE RULE *
+ **********************/
+
+rule startup {
+  then {
+    output("Building Monkey and Bananas world.\n");
+    assert(monkey { location=t5-7; on-top-of=green-couch; holding=blank; });
+    assert(thing { name=green-couch; location=t5-7; weight=heavy; });
+    assert(thing { name=red-couch; location=t2-2; weight=heavy; });
+    assert(thing { name=big-pillow; location=t2-2; on-top-of=red-couch;});
+    assert(thing { name=red-chest; location=t2-2; on-top-of=big-pillow;});
+    assert(chest { name=red-chest; contents=ladder; unlocked-by=red-key;});
+    assert(thing { name=blue-chest; location=t7-7; on-top-of=ceiling;});
+    assert(thing { name=grapes; location=t7-8; on-top-of=ceiling;});
+    assert(chest { name=blue-chest; contents=bananas; unlocked-by=blue-key;});
+    assert(thing { name=blue-couch; location=t8-8; weight=heavy;});
+    assert(thing { name=green-chest; location=t8-8; on-top-of=ceiling;});
+    assert(chest { name=green-chest; contents=blue-key; unlocked-by=red-key;});
+    assert(thing { name=red-key; location=t1-3;});
+  }
+}
+
+rule crave-bananas {
+  then {
+    output("Monkey is craving bananas.\n");
+    assert(goal-is-to { action=eat; argument-1=bananas; });
+  }
+}

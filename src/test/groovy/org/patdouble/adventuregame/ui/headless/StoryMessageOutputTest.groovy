@@ -9,13 +9,14 @@ class StoryMessageOutputTest extends Specification {
     ByteArrayOutputStream byteout
     PrintStream printer
     StoryMessageOutput output
+    Flow.Subscription subscription
 
     def setup() {
         byteout = new ByteArrayOutputStream()
         printer = new PrintStream(byteout)
         output = new StoryMessageOutput(printer)
-        Flow.Subscription subscription = Mock()
-        output.onSubscribe(subscription)
+        subscription = Mock()
+        output.onSubscribe(this.subscription)
     }
 
     def "OnNext"() {
@@ -23,6 +24,8 @@ class StoryMessageOutputTest extends Specification {
         output.onNext(new Notification('subject', 'text'))
         then:
         byteout.toString() == 'Notification(subject:subject, text:text, type:Notification)\n'
+        and:
+        1 * subscription.request(1)
     }
 
     def "OnError"() {
@@ -32,5 +35,7 @@ class StoryMessageOutputTest extends Specification {
         then:
         s.contains('IllegalArgumentException')
         s.contains('test exception')
+        and:
+        0 * subscription.request(1)
     }
 }

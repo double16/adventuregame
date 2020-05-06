@@ -3,7 +3,12 @@ package org.patdouble.adventuregame.state
 dialect "mvel"
 
 import java.util.List;
-import org.patdouble.adventuregame.engine.StoryState;
+import org.patdouble.adventuregame.engine.state.StoryState;
+import org.patdouble.adventuregame.engine.state.KnownRoom;
+import org.patdouble.adventuregame.state.PlayerEvent;
+import org.patdouble.adventuregame.state.Player;
+import org.patdouble.adventuregame.model.Room;
+import org.patdouble.adventuregame.model.Action;
 
 global org.slf4j.Logger log;
 global org.patdouble.adventuregame.engine.EngineFacade engine;
@@ -49,7 +54,7 @@ rule "human player action request"
     $c : Chronos()
     $player : Player(motivator == Motivator.HUMAN, chronos < $c.getCurrent())
   then
-    log.info("human player "+$player.getTitle()+" action needed");
+    //log.info("human player "+$player.getTitle()+" action needed");
     engine.createActionRequest($player);
 end
 
@@ -59,6 +64,25 @@ rule "ai player turn"
     $c : Chronos()
     $player : Player(motivator == Motivator.AI, chronos < $c.getCurrent())
   then
-    log.info("AI player "+$player.getTitle()+" waits");
+    //log.info("AI player "+$player.getTitle()+" waits");
     engine.action($player, "wait", null, null);
+end
+
+query knownRoomsToPlayer(Player p)
+    $room: KnownRoom(player == p)
+end
+
+rule "known rooms"
+    when
+        $c : Chronos()
+        $player : Player()
+        $room : Room()
+        accumulate( PlayerEvent( player.id == $player.id, player.room.modelId == $room.modelId, $when : event.when );
+                        $count : count(),
+                        $max : max( $when );
+                        $count > 0 && ($c.current - $max) <= KnownRoom.memoryLimitInChronos($player.memory,$count)
+                  )
+    then
+        //log.debug("KnownRoom "+$player.getTitle()+": "+$room.getName()+", count = "+$count+", max = "+$max+", chronos = "+$c.current+", memory = "+$player.memory);
+        insertLogical(new KnownRoom($player, $room));
 end

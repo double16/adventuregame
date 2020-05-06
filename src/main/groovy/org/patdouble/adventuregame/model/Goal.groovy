@@ -33,7 +33,7 @@ class Goal {
     boolean required
     /** If this goal is met, end the story regardless of other goals. */
     boolean theEnd
-    /** The rules for fulfilling the goal, written using the DSL (rules/default.dsl). */
+    /** The rules for fulfilling the goal, written using the DSL (default.dsl). */
     @ElementCollection(fetch = FetchType.EAGER)
     List<String> rules = []
 }

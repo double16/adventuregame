@@ -34,13 +34,13 @@ class DroolsConfiguration {
 
         KieFileSystem kieFileSystem = kieServices.newKieFileSystem()
         RULE_FILES.each {
-            kieFileSystem.write(ResourceFactory.newClassPathResource("rules/${it}"))
+            kieFileSystem.write(ResourceFactory.newClassPathResource(it))
         }
         if (worldRulesDrl) {
-            kieFileSystem.write('src/main/resources/rules/world.drl', worldRulesDrl)
+            kieFileSystem.write('src/main/resources/org/patdouble/adventuregame/state/world.drl', worldRulesDrl)
         }
         if (worldRulesDslr) {
-            kieFileSystem.write('src/main/resources/rules/world.dslr', worldRulesDslr)
+            kieFileSystem.write('src/main/resources/org/patdouble/adventuregame/state/world.dslr', worldRulesDslr)
         }
         KieBuilder kieBuilder = kieServices.newKieBuilder(kieFileSystem)
         kieBuilder.buildAll()

@@ -103,6 +103,7 @@ class HumanPlayerTest extends AbstractPlayerTest {
         engine.action(thief, 'go north').join()
         engine.action(warrior, 'go west').join()
         engine.action(thief, 'go east').join()
+        waitForMessages()
 
         then:
         thief.room.modelId == 'trailer_3'
@@ -121,6 +122,7 @@ class HumanPlayerTest extends AbstractPlayerTest {
         when:
         engine.action(warrior, 'wait').join()
         boolean success = engine.action(warrior, 'wait').join()
+        waitForMessages()
 
         then:
         !success
@@ -138,6 +140,7 @@ class HumanPlayerTest extends AbstractPlayerTest {
 
         when:
         boolean success = engine.action(warrior, 'wait4').join()
+        waitForMessages()
 
         then:
         !success
@@ -145,7 +148,7 @@ class HumanPlayerTest extends AbstractPlayerTest {
         and:
         1 * storySubscriber.onNext(new PlayerNotification(warrior,
                 'I don\'t understand what you want to do',
-                'Things you can do: arrest, attack, buy, capture, drop, escape, exit, fight, flee, go, leave, look, move, nap, pay, pick up, put down, release, rest, run, say, see, sleep, speak, stay, swim, take, talk, wait, wake'))
+                'Things you can do: arrest, attack, buy, capture, drop, escape, exit, fight, flee, go, leave, look, map, move, nap, pay, pick up, put down, release, rest, run, say, see, sleep, speak, stay, swim, take, talk, wait, wake'))
 
     }
 }

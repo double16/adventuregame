@@ -5,6 +5,7 @@ import groovy.transform.AutoClone
 import groovy.transform.AutoCloneStyle
 import groovy.transform.CompileDynamic
 import org.hibernate.Hibernate
+import org.kie.api.definition.type.PropertyReactive
 import org.patdouble.adventuregame.model.Persona
 import org.patdouble.adventuregame.model.Room
 import org.patdouble.adventuregame.storage.jpa.Constants
@@ -22,6 +23,7 @@ import javax.persistence.OneToOne
  */
 @AutoClone(excludes = [Constants.COL_DBID], style = AutoCloneStyle.COPY_CONSTRUCTOR)
 @Entity
+@PropertyReactive
 @CompileDynamic
 class Player implements Temporal {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)

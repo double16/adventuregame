@@ -9,7 +9,12 @@ import org.kie.api.runtime.KieContainer
 import org.kie.api.runtime.KieSession
 import org.kie.api.runtime.KieSessionConfiguration
 import org.kie.api.runtime.rule.FactHandle
+import org.kie.api.runtime.rule.QueryResults
+import org.kie.api.runtime.rule.QueryResultsRow
 import org.kie.internal.runtime.conf.ForceEagerActivationOption
+import org.patdouble.adventuregame.engine.action.ActionExecutor
+import org.patdouble.adventuregame.engine.state.KnownRoom
+import org.patdouble.adventuregame.engine.state.StoryState
 import org.patdouble.adventuregame.flow.ChronosChanged
 import org.patdouble.adventuregame.flow.GoalFulfilled
 import org.patdouble.adventuregame.flow.Notification
@@ -26,6 +31,7 @@ import org.patdouble.adventuregame.model.Action
 import org.patdouble.adventuregame.model.ExtrasTemplate
 import org.patdouble.adventuregame.model.Goal
 import org.patdouble.adventuregame.model.PlayerTemplate
+import org.patdouble.adventuregame.model.Room
 import org.patdouble.adventuregame.state.Chronos
 import org.patdouble.adventuregame.state.Event
 import org.patdouble.adventuregame.state.GoalStatus
@@ -42,8 +48,8 @@ import javax.validation.constraints.NotNull
 import java.time.Duration
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
+import java.util.concurrent.Executors
 import java.util.concurrent.Flow
-import java.util.concurrent.ForkJoinPool
 import java.util.concurrent.SubmissionPublisher
 
 /**
@@ -56,6 +62,9 @@ import java.util.concurrent.SubmissionPublisher
 @Slf4j
 @CompileDynamic
 class Engine implements Closeable {
+    @Lazy
+    private static Executor DEFAULT_EXECUTOR = { Executors.newCachedThreadPool() } ()
+
     Story story
     final Locale locale = Locale.ENGLISH
     final ActionStatementParser actionStatementParser
@@ -70,7 +79,7 @@ class Engine implements Closeable {
     @Delegate(includeTypes = [Flow.Publisher])
     final private SubmissionPublisher<StoryMessage> publisher
 
-    private DroolsConfiguration droolsConfiguration
+    private final DroolsConfiguration droolsConfiguration
     private KieContainer kContainer
     private KieSession kieSession
     private CompletableFuture<Boolean> firingComplete
@@ -83,14 +92,14 @@ class Engine implements Closeable {
      * recorded in history with the resulting player state. It's likely the actions of other players will affect this
      * player so we need to wait until all actions are processed before creating an event.
      */
-    private Map<UUID, ActionStatement> currentActions = [:]
+    private final Map<UUID, ActionStatement> currentActions = [:]
 
-    Engine(@NotNull Story story, Executor executor = null) {
+    Engine(@NotNull Story story, Executor executor = null, Executor flowExecutor = null) {
         Objects.requireNonNull(story)
         this.facade = new EngineFacade(this)
         this.story = story
-        this.executor = executor ?: ForkJoinPool.commonPool()
-        this.publisher = new SubmissionPublisher<>(this.executor, Flow.defaultBufferSize())
+        this.executor = executor ?: DEFAULT_EXECUTOR
+        this.publisher = new SubmissionPublisher<>(flowExecutor ?: this.executor, Flow.defaultBufferSize())
         actionStatementParser = new ActionStatementParser(locale)
         bundles = Bundles.get(locale)
         droolsConfiguration = new DroolsConfiguration()
@@ -131,6 +140,9 @@ class Engine implements Closeable {
         final CompletableFuture<Story> future = new CompletableFuture<>()
         kieSession.submit {
             Story story = storyProducer.call()
+            if (story == null) {
+                return
+            }
             if (story.is(this.story)) {
                 future.complete(story)
             } else {
@@ -170,7 +182,8 @@ class Engine implements Closeable {
     CompletableFuture<Void> ignore(PlayerRequest request) {
         final CompletableFuture<Void> future = new CompletableFuture<>()
         if (!request.optional) {
-            future.completeExceptionally(new IllegalArgumentException("Can not ignore required player ${request.template}"))
+            future.completeExceptionally(new IllegalArgumentException(
+                    "Can not ignore required player ${request.template}"))
         } else {
             kieSession.submit {
                 try {
@@ -300,7 +313,6 @@ class Engine implements Closeable {
         }
     }
 
-
     /**
      * Publish a message.
      * @param storyMessage
@@ -392,18 +404,24 @@ class Engine implements Closeable {
                         publisher.submit(new RequestCreated(actionRequest))
                     }
                 } else if (success) {
-                    player.chronos = story.chronos.current
-                    kieSession.update(handles.get(player.id), player)
-                    if (action.getVerbAsAction() && action.getVerbAsAction().chronosCost > 0) {
+                    long chronosCost = action.chronosCost
+                    if (chronosCost > 0) {
+                        // assuming a cost of 1, need to do something different for > 1
+                        // maybe increment the chronos by chronosCost and the player skips turns
+                        player.chronos = story.chronos.current
+                        kieSession.update(handles.get(player.id), player)
                         currentActions.put(player.id, action)
-                    }
-                    publisher.submit(new PlayerChanged(player.cloneKeepId(), story.chronos.current))
+                        publisher.submit(new PlayerChanged(player.cloneKeepId(), story.chronos.current))
 
-                    if (actionRequest) {
-                        story.requests.remove(actionRequest)
-                        removeKieObject(actionRequest)
+                        if (actionRequest) {
+                            story.requests.remove(actionRequest)
+                            removeKieObject(actionRequest)
+                            Objects.requireNonNull(actionRequest.id)
+                            publisher.submit(new RequestSatisfied(actionRequest, action))
+                        }
+                    } else if (actionRequest) {
                         Objects.requireNonNull(actionRequest.id)
-                        publisher.submit(new RequestSatisfied(actionRequest, action))
+                        publisher.submit(new RequestCreated(actionRequest))
                     }
                 } else {
                     if (actionRequest) {
@@ -422,6 +440,24 @@ class Engine implements Closeable {
             next()
             return s
         }
+    }
+
+    /**
+     * Get a list of rooms known to the player.
+     */
+    CompletableFuture<Collection<Room>> findRoomsKnownToPlayer(Player p) {
+        final CompletableFuture<Collection<Room>> future = new CompletableFuture<>()
+        executor.execute {
+            try {
+                QueryResults results = queryRuleEngine('knownRoomsToPlayer', p)
+                Collection<Room> rooms = results.collect { QueryResultsRow row -> ((KnownRoom) row.get('$room')).room }
+                future.complete(rooms)
+            } catch (RuntimeException e) {
+                log.error 'findRoomsKnownToPlayer({})', p, e
+                future.completeExceptionally(e)
+            }
+        }
+        future
     }
 
     /**
@@ -462,7 +498,8 @@ class Engine implements Closeable {
                 throw new IllegalStateException("Transient object ${object} requested to add to the KIE session")
             }
         } catch (MissingProjectException e) {
-            throw new IllegalStateException("Object ${object} requested to add to the KIE session but has no 'id' property", e)
+            throw new IllegalStateException(
+                    "Object ${object} requested to add to the KIE session but has no 'id' property", e)
         }
     }
 
@@ -483,13 +520,15 @@ class Engine implements Closeable {
                     kieSession.delete(handle)
                     handles.remove(id)
                 } else {
-                    throw new IllegalStateException("Object ${object} requested to remove from the KIE session but not FactHandle found")
+                    throw new IllegalStateException(
+                            "Object ${object} requested to remove from the KIE session but not FactHandle found")
                 }
             } else {
                 throw new IllegalStateException("Transient object ${object} requested to remove from the KIE session")
             }
         } catch (MissingPropertyException e) {
-            throw new IllegalStateException("Object ${object} requested to remove from the KIE session but has no 'id' property", e)
+            throw new IllegalStateException(
+                    "Object ${object} requested to remove from the KIE session but has no 'id' property", e)
         }
     }
 
@@ -660,5 +699,13 @@ class Engine implements Closeable {
         story.history.addEvent(event)
         currentActions.clear()
         event
+    }
+
+    /**
+     * See {@link KieSession#getQueryResults(java.lang.String, java.lang.Object...)}.
+     */
+    private QueryResults queryRuleEngine(String queryName, Object... args) {
+        Objects.requireNonNull(kieSession)
+        kieSession.getQueryResults(queryName, args)
     }
 }
