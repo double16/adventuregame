@@ -4,7 +4,6 @@ jobs:
     working_directory: ~/adventuregame
     environment:
       - TERM=dumb
-      - GRADLE_OPTS="--no-daemon"
     docker:
       - image: openjdk:11.0.6-jdk
     steps:
@@ -17,14 +16,14 @@ jobs:
 
       - run:
           name: codenarc
-          command: ./gradlew codenarcMain --stacktrace
+          command: ./gradlew codenarcMain --stacktrace --no-daemon
 # Takes too long, >10m
 #      - run:
 #          name: Open Source Vuln
-#          command: ./gradlew dependencyCheckAggregate --stacktrace
+#          command: ./gradlew dependencyCheckAggregate --stacktrace --no-daemon
       - run:
           name: Unit Tests
-          command: ./gradlew test cloverGenerateReport --stacktrace
+          command: ./gradlew test cloverGenerateReport --stacktrace --no-daemon
       - store_test_results:
           path: ./build/test-results
       - store_artifacts:
