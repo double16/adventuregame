@@ -51,10 +51,13 @@ import org.patdouble.adventuregame.state.request.Request
 import javax.validation.constraints.NotNull
 import java.time.Duration
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 import java.util.concurrent.Flow
 import java.util.concurrent.SubmissionPublisher
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 /**
  * Runs the story by advancing the {@link Chronos}, declaring necessary inputs from humans, meeting goals for AI
@@ -289,8 +292,16 @@ class Engine implements Closeable {
         if (kieSession) {
             log.info 'Halting rule engine'
             kieSession.halt()
-            firingComplete?.join()
-            kieSession.dispose()
+            try {
+                firingComplete?.get(10, TimeUnit.SECONDS)
+                kieSession.dispose()
+            } catch (ExecutionException e) {
+                log.error('Execution exception halting rule engine, forcing dispose', e)
+                kieSession.dispose()
+            } catch (TimeoutException e) {
+                log.error('Timeout halting rule engine, forcing destroy')
+                kieSession.destroy()
+            }
             kieSession = null
             if (kieRuntimeLogger != null) {
                 kieRuntimeLogger.close()

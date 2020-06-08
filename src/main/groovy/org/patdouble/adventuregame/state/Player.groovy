@@ -63,6 +63,7 @@ class Player implements Temporal, KieMutableProperties, CanSecureHash {
         this.motivator = motivator
         this.nickName = nickName
         this.persona = persona.clone()
+        Objects.requireNonNull(this.persona.name)
     }
 
     String[] kieMutableProperties() {

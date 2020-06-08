@@ -5,7 +5,7 @@ jobs:
     environment:
       - TERM=dumb
     docker:
-      - image: openjdk:14.0.1-slim
+      - image: openjdk:14.0.1-jdk
     steps:
       - checkout
       - restore_cache:
