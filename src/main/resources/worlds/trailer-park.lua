@@ -33,6 +33,9 @@ player {
     nickname = 'Victor';
     fullname = 'Victor the Spider';
     room = 'entrance';
+    memory {
+        rooms = { 'entrance', 'trailer_1', 'trailer_2', 'trailer_3', 'trailer_4', 'dump' }
+    }
 }
 
 player {
@@ -56,9 +59,11 @@ extra {
     fullname = 'Thug';
     quantity = 3;
     room = 'entrance';
-    --goal {
-    --
-    --}
+    goal {
+        description = 'Find the dump.';
+        required = true;
+        rule { 'player goes to room "dump"' }
+    }
 }
 
 room 'entrance' {
@@ -109,6 +114,10 @@ room 'dump' {
         direction = 'dive';
         room = 'trailer_3';
     }
+}
+
+room 'nowhere' {
+    description = 'This is a room with no paths leading to it.'
 }
 
 goal 'one' {

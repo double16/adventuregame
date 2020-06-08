@@ -64,6 +64,7 @@ Vue.component('action-request', {
 <div><h3>{{ request.roomSummary.name }}</h3><p>{{ request.roomSummary.description }}</p><p>{{ request.roomSummary.occupants }}</p>
 <form v-on:submit.prevent="performAction">
 <input id="statement" size="40" v-model="statement" v-focus type="text" placeholder="What do you want to do?"/>
+<button class="btn btn-primary" type="submit">Submit</button>
 <button class="btn btn-light" type="button" data-toggle="collapse" :data-target="\'#actions\'+request.id" v-if="request.actions"><span class="fas fa-question-circle"></span></button>
 <p class="collapse" :id="\'actions\'+request.id">
 <button type="button" v-for="action in request.actions" class="btn btn-outline-secondary btn-sm" v-on:click="populateAction(action)">{{ action }}</button>
@@ -104,8 +105,12 @@ Vue.component('world-map', {
     methods: {
         draw: function(el) {
             var g = new dagreD3.graphlib.Graph().setGraph({})
-            this.map.rooms.forEach(room => g.setNode(room.id, { label: room.name }))
-            this.map.edges.forEach(edge => g.setEdge(edge.from, edge.to, { label: edge.direction }))
+            if (this.map.rooms.length == 0) {
+                g.setNode('?', { label: '?' })
+            } else {
+                this.map.rooms.forEach(room => g.setNode(room.id, { label: room.name }))
+                this.map.edges.forEach(edge => g.setEdge(edge.from, edge.to, { label: edge.direction }))
+            }
 
             // Set some general styles
             g.nodes().forEach(function(v) {
@@ -126,10 +131,11 @@ Vue.component('world-map', {
             render(inner, g)
 
             // Center the graph
-            var initialScale = 0.75
-            svg.call(zoom.transform, d3.zoomIdentity.translate((svg.attr("width") - g.graph().width * initialScale) / 2, 20).scale(initialScale))
-
-            svg.attr('height', g.graph().height * initialScale + 40)
+            if (g.graph().width > 0 && g.graph().height > 0) {
+                var initialScale = 0.75
+                svg.call(zoom.transform, d3.zoomIdentity.translate((svg.attr("width") - g.graph().width * initialScale) / 2, 20).scale(initialScale))
+                svg.attr('height', g.graph().height * initialScale + 40)
+            }
         }
     },
     watch: {
@@ -306,6 +312,7 @@ const Story = {
                 } else {
                     this.notifications.splice(0)
                 }
+                return
             } else if (disposition === 'GoalFulfilled') {
                 type = disposition
                 body = message.goal

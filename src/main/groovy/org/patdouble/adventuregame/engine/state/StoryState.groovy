@@ -1,13 +1,11 @@
 package org.patdouble.adventuregame.engine.state
 
 import groovy.transform.CompileStatic
-import org.kie.api.definition.type.PropertyReactive
 import org.patdouble.adventuregame.state.Story
 
 /**
  * Holds the state of the story for the purpose of the rule engine.
  */
-@PropertyReactive
 @CompileStatic
 class StoryState {
     private boolean ended
@@ -19,6 +17,10 @@ class StoryState {
         update(story)
     }
 
+    /**
+     * Added to prevent both getRequired() and isRequired() from being generated which Drools
+     * does not like.
+     */
     boolean isEnded() {
         ended
     }

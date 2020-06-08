@@ -11,6 +11,8 @@ import javax.persistence.Entity
 import javax.persistence.GeneratedValue
 import javax.persistence.GenerationType
 import javax.persistence.Id
+import java.nio.ByteBuffer
+import java.security.MessageDigest
 
 /**
  * Template for extras in the story. Extras are always controlled by AI. An extra may be an important role, such as a
@@ -51,5 +53,12 @@ class ExtrasTemplate implements CharacterTrait {
     @Override
     String toString() {
         "ExtrasTemplate: ${persona.toString()}, nick ${nickName}, full ${fullName}, room ${room.modelId}, qty ${quantity}"
+    }
+
+    @Override
+    void update(MessageDigest md) {
+        CharacterTrait.super.update(md)
+        ByteBuffer intb = ByteBuffer.allocate(4)
+        md.update(intb.putInt(quantity).array())
     }
 }

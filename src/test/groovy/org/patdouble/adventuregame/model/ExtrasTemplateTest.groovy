@@ -12,6 +12,7 @@ class ExtrasTemplateTest extends Specification {
         template.persona = PersonaMocks.THIEF
         template.quantity = 3
         template.room = RoomMocks.ENTRANCE
+        template.goals.add(GoalMocks.PLAYER_ENTER_ROOM)
     }
 
     def "CreatePlayer"() {
@@ -24,6 +25,8 @@ class ExtrasTemplateTest extends Specification {
         p.nickName == null
         p.fullName == null
         p.room == RoomMocks.ENTRANCE
+        p.goals.size() == 1
+        p.goals[0].id == GoalMocks.PLAYER_ENTER_ROOM.id
     }
 
     def "CreatePlayers"() {

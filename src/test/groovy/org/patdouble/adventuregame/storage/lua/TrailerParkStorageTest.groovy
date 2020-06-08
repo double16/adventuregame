@@ -77,9 +77,17 @@ class TrailerParkStorageTest extends Specification {
         thugExtra2.persona.name == 'thug'
         thugExtra2.quantity == 3
         thugExtra2.room.modelId == 'entrance'
+        thugExtra2.goals.size() == 1
+        with(thugExtra2.goals.first()) {
+            !name
+            required
+            !theEnd
+            description == 'Find the dump.'
+            rules == [ 'player goes to room "dump"' ]
+        }
 
         and: 'room count'
-        world.rooms.size() == 6
+        world.rooms.size() == 7
 
         and: 'room entrance'
         Room rEntrance = world.rooms.find { it.modelId == 'entrance' }
@@ -145,16 +153,19 @@ class TrailerParkStorageTest extends Specification {
         with(world.goals.find { it.name == 'one' }) {
             !required
             !theEnd
+            description == 'Any player reaches trailer 2.'
             rules == [ 'player enters room "trailer_2"' ]
         }
         with(world.goals.find { it.name == 'two' }) {
             !required
             theEnd
+            description == 'Any player reaches trailer 4.'
             rules == [ 'player enters room "trailer_4"' ]
         }
         with(world.goals.find { it.name == 'three' }) {
             required
             !theEnd
+            description == 'Unspecified'
             rules == []
         }
     }

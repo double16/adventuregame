@@ -29,6 +29,6 @@ class MapMessage extends StoryMessage {
     }
 
     Player player
-    List<RoomInfo> rooms = []
-    List<RoomEdgeInfo> edges = []
+    Set<RoomInfo> rooms = new HashSet<>()
+    Set<RoomEdgeInfo> edges = new HashSet<>()
 }

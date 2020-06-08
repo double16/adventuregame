@@ -2,6 +2,7 @@ package org.patdouble.adventuregame.state
 
 import groovy.transform.CompileDynamic
 import groovy.transform.EqualsAndHashCode
+import groovy.transform.ToString
 import org.hibernate.Hibernate
 import org.hibernate.annotations.CreationTimestamp
 import org.hibernate.annotations.UpdateTimestamp
@@ -31,10 +32,21 @@ import java.time.LocalDateTime
  */
 @Entity
 @EqualsAndHashCode(excludes = [Constants.COL_ID, 'created', 'modified'])
+@ToString(includePackage = false, includes = ['id', 'world', 'created', 'ended'])
 @CompileDynamic
-class Story {
+class Story implements KieMutableProperties {
+    private static final String[] KIE_MUTABLE_PROPS = [
+            'history',
+            // GoalStatus is managed separately
+            // 'goals',
+            'chronos',
+            'ended',
+            'requests',
+    ]
+
     public static final String FULL_STOP = '.'
     public static final String SPACE = ' '
+
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
     UUID id
 
@@ -64,6 +76,11 @@ class Story {
 
     Story(World world) {
         this.world = world
+    }
+
+    @Override
+    String[] kieMutableProperties() {
+        KIE_MUTABLE_PROPS
     }
 
     Collection<Player> getPlayers(Room room = null) {

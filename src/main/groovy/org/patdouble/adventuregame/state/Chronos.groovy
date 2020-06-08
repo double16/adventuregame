@@ -6,8 +6,6 @@ import groovy.transform.EqualsAndHashCode
 import javax.persistence.Column
 import javax.persistence.Embeddable
 
-import org.kie.api.definition.type.PropertyReactive
-
 /**
  * The time keeper. The unit of time is not related to the clock but relative
  * to the human players actions. Each player must never be more than one unit
@@ -15,7 +13,6 @@ import org.kie.api.definition.type.PropertyReactive
  */
 @Embeddable
 @EqualsAndHashCode
-@PropertyReactive
 @CompileStatic
 class Chronos {
     @Column(name = 'chronos')

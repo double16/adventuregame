@@ -10,5 +10,5 @@ import org.springframework.data.rest.core.annotation.RepositoryRestResource
  */
 @RepositoryRestResource
 interface WorldRepository extends JpaRepository<World, UUID> {
-    List<World> findByName(@Param('name') String name)
+    List<World> findByNameAndActive(@Param('name') String name, @Param('active') boolean active)
 }

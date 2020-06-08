@@ -14,17 +14,20 @@ import java.time.temporal.ChronoUnit
 
 @Unroll
 class RoomMemoryTest extends AbstractPlayerTest {
+    Level savedLogLevel
+
     @Override
     Motivator getDefaultMotivator() {
         Motivator.HUMAN
     }
 
     def setup() {
+        savedLogLevel = ((Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME)).level
         ((Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME)).setLevel(Level.WARN)
     }
 
     def cleanup() {
-        ((Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME)).setLevel(Level.INFO)
+        ((Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME)).setLevel(savedLogLevel)
     }
 
     def "initial placement"() {
@@ -47,7 +50,7 @@ class RoomMemoryTest extends AbstractPlayerTest {
         engine.action(warrior, 'go east').join()
 
         then:
-        engine.findRoomsKnownToPlayer(warrior).join()*.modelId.sort() == ['entrance', 'trailer_2', 'trailer_3']
+        engine.findRoomsKnownToPlayer(warrior).join()*.modelId.sort() == ['entrance', 'trailer_2', 'trailer_3', 'trailer_4']
     }
 
     def "revisit rooms with map command"() {

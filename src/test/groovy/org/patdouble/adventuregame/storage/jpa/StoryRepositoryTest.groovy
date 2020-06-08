@@ -32,7 +32,7 @@ class StoryRepositoryTest extends Specification {
     EntityManager entityManager
 
     private Story newStory(String worldName, boolean start = false) {
-        Story story = new Story(worldRepository.findByName(worldName).first())
+        Story story = new Story(worldRepository.findByNameAndActive(worldName, true).first())
         Engine engine = new Engine(story)
         engine.init().join()
         if (start) {

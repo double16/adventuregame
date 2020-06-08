@@ -19,6 +19,8 @@ import javax.persistence.GeneratedValue
 import javax.persistence.GenerationType
 import javax.persistence.Id
 import javax.validation.constraints.NotNull
+import java.nio.ByteBuffer
+import java.security.MessageDigest
 
 /**
  * Template for players in the story. Players can either be human or AI.
@@ -73,5 +75,14 @@ class PlayerTemplate implements CharacterTrait {
     @Override
     int hashCode() {
         Objects.hash(quantity, persona, nickName, fullName)
+    }
+
+    @Override
+    void update(MessageDigest md) {
+        CharacterTrait.super.update(md)
+        ByteBuffer intb = ByteBuffer.allocate(4)
+        md.update(intb.rewind().putInt(quantity.fromInt).array())
+        md.update(intb.rewind().putInt(quantity.toInt).array())
+        md.update(quantity.isReverse() ? (byte) 0x1 : (byte) 0x0)
     }
 }

@@ -2,6 +2,7 @@ package org.patdouble.adventuregame.ui.rest
 
 import groovy.util.logging.Slf4j
 import org.patdouble.adventuregame.engine.Engine
+import org.patdouble.adventuregame.state.AgendaLog
 import org.patdouble.adventuregame.state.Motivator
 import org.patdouble.adventuregame.state.Story
 import org.patdouble.adventuregame.state.request.PlayerRequest
@@ -16,6 +17,7 @@ import org.springframework.web.server.ResponseStatusException
 import spock.lang.Specification
 import spock.lang.Unroll
 
+import javax.persistence.Query
 import javax.transaction.Transactional
 import java.time.Duration
 import java.time.LocalDateTime
@@ -42,7 +44,7 @@ class EngineCacheTest extends Specification {
 
     def "get new story"() {
         given:
-        Story story = new Story(worldRepository.findByName(LuaUniverseRegistry.TRAILER_PARK).first())
+        Story story = new Story(worldRepository.findByNameAndActive(LuaUniverseRegistry.TRAILER_PARK, true).first())
         storyRepository.save(story)
 
         when:
@@ -58,7 +60,7 @@ class EngineCacheTest extends Specification {
 
     def "get init story"() {
         given:
-        Story story = new Story(worldRepository.findByName(LuaUniverseRegistry.TRAILER_PARK).first())
+        Story story = new Story(worldRepository.findByNameAndActive(LuaUniverseRegistry.TRAILER_PARK, true).first())
         Engine engine1 = new Engine(story)
         engine1.init().join()
         engine1.close()
@@ -77,7 +79,7 @@ class EngineCacheTest extends Specification {
 
     def "get started story"() {
         given:
-        Story story = new Story(worldRepository.findByName(LuaUniverseRegistry.TRAILER_PARK).first())
+        Story story = new Story(worldRepository.findByNameAndActive(LuaUniverseRegistry.TRAILER_PARK, true).first())
         Engine engine1 = new Engine(story)
         engine1.chronosLimit = 5
         engine1.init().join()
@@ -101,7 +103,7 @@ class EngineCacheTest extends Specification {
 
     def "get ended story"() {
         given:
-        Story story = new Story(worldRepository.findByName(LuaUniverseRegistry.TRAILER_PARK).first())
+        Story story = new Story(worldRepository.findByNameAndActive(LuaUniverseRegistry.TRAILER_PARK, true).first())
         Engine engine1 = new Engine(story)
         engine1.chronosLimit = 5
         engine1.init().join()
@@ -123,8 +125,8 @@ class EngineCacheTest extends Specification {
     def "clear"() {
         given:
         List<Engine> engines = []
-        engines << cache.get(storyRepository.save(new Story(worldRepository.findByName(LuaUniverseRegistry.TRAILER_PARK).first())).id)
-        engines << cache.get(storyRepository.save(new Story(worldRepository.findByName(LuaUniverseRegistry.THE_HOBBIT).first())).id)
+        engines << cache.get(storyRepository.save(new Story(worldRepository.findByNameAndActive(LuaUniverseRegistry.TRAILER_PARK, true).first())).id)
+        engines << cache.get(storyRepository.save(new Story(worldRepository.findByNameAndActive(LuaUniverseRegistry.THE_HOBBIT, true).first())).id)
         List<LocalDateTime> modified = engines.collect { it.story.modified }
 
         when:
@@ -143,8 +145,8 @@ class EngineCacheTest extends Specification {
         given:
         cache.ttl = Duration.of(10000, ChronoUnit.MILLIS)
         List<Story> stories = []
-        stories << storyRepository.saveAndFlush(new Story(worldRepository.findByName(LuaUniverseRegistry.TRAILER_PARK).first()))
-        stories << storyRepository.saveAndFlush(new Story(worldRepository.findByName(LuaUniverseRegistry.THE_HOBBIT).first()))
+        stories << storyRepository.saveAndFlush(new Story(worldRepository.findByNameAndActive(LuaUniverseRegistry.TRAILER_PARK, true).first()))
+        stories << storyRepository.saveAndFlush(new Story(worldRepository.findByNameAndActive(LuaUniverseRegistry.THE_HOBBIT, true).first()))
         List<LocalDateTime> modified = stories.collect { it.modified }
         when:
         cache.get(stories[1].id).with { Engine e ->
@@ -162,8 +164,8 @@ class EngineCacheTest extends Specification {
         given:
         cache.ttl = Duration.of(100000, ChronoUnit.MILLIS)
         List<Story> stories = []
-        stories << storyRepository.saveAndFlush(new Story(worldRepository.findByName(LuaUniverseRegistry.TRAILER_PARK).first()))
-        stories << storyRepository.saveAndFlush(new Story(worldRepository.findByName(LuaUniverseRegistry.THE_HOBBIT).first()))
+        stories << storyRepository.saveAndFlush(new Story(worldRepository.findByNameAndActive(LuaUniverseRegistry.TRAILER_PARK, true).first()))
+        stories << storyRepository.saveAndFlush(new Story(worldRepository.findByNameAndActive(LuaUniverseRegistry.THE_HOBBIT, true).first()))
         List<LocalDateTime> modified = stories.collect { it.modified }
         when:
         cache.get(stories[0].id)
@@ -178,12 +180,32 @@ class EngineCacheTest extends Specification {
         storyRepository.findById(stories[1].id).get().modified > modified[1]
     }
 
+    def "log stored"() {
+        given:
+        Query query = cache.entityManager.createQuery("select log from ${AgendaLog.class.name} log where log.story = ?1")
+        Engine engine = cache.create(worldRepository.findByNameAndActive(LuaUniverseRegistry.TRAILER_PARK, true).first())
+        engine.chronosLimit = 5
+        engine.story.requests.findAll { it instanceof PlayerRequest }.each { PlayerRequest request ->
+            engine.addToCast(request.template.createPlayer(Motivator.HUMAN)).join()
+        }
+        engine.start().join()
+        engine.end().join()
+        cache.expire()
+
+        when:
+        List<AgendaLog> logs = query.setParameter(1, engine.story).getResultList()
+
+        then:
+        logs.size() == 1
+        logs.first().gzlog.length() > 0
+    }
+
     def "save at intervals"() {
         given:
         cache.clear()
         List<Engine> engines = []
-        engines << cache.get(storyRepository.save(new Story(worldRepository.findByName(LuaUniverseRegistry.TRAILER_PARK).first())).id)
-        engines << cache.get(storyRepository.save(new Story(worldRepository.findByName(LuaUniverseRegistry.THE_HOBBIT).first())).id)
+        engines << cache.get(storyRepository.save(new Story(worldRepository.findByNameAndActive(LuaUniverseRegistry.TRAILER_PARK, true).first())).id)
+        engines << cache.get(storyRepository.save(new Story(worldRepository.findByNameAndActive(LuaUniverseRegistry.THE_HOBBIT, true).first())).id)
         List<LocalDateTime> modified = engines.collect { it.story.modified }
 
         when:

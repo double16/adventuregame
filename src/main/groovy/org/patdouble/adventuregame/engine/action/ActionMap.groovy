@@ -22,7 +22,10 @@ class ActionMap implements ActionExecutor {
                 message.rooms.add(new MapMessage.RoomInfo(id: from.modelId, name: from.name))
                 from.neighbors.each { String direction, Room to ->
                     if (rooms.contains(to)) {
-                        message.edges.add(new MapMessage.RoomEdgeInfo(from: from.modelId, to: to.modelId, direction: direction))
+                        message.edges.add(new MapMessage.RoomEdgeInfo(
+                                from: from.modelId,
+                                to: to.modelId,
+                                direction: direction))
                     }
                 }
             }

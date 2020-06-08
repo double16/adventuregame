@@ -73,7 +73,7 @@ class EngineController {
             world = worldRepository.findById(UUID.fromString(request.worldId.split('/').last())).get()
         }
         if (request.worldName && !world) {
-            world = worldRepository.findByName(request.worldName).first()
+            world = worldRepository.findByNameAndActive(request.worldName, true).first()
         }
         if (!world) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "World ${request} not found")

@@ -9,6 +9,7 @@ import org.kie.api.builder.KieModule
 import org.kie.api.conf.EqualityBehaviorOption
 import org.kie.api.runtime.KieContainer
 import org.kie.internal.io.ResourceFactory
+import org.slf4j.LoggerFactory
 
 /**
  * Configures the rule engine.
@@ -18,7 +19,6 @@ class DroolsConfiguration {
     private static final List<String> RULE_FILES = [
             'org/patdouble/adventuregame/state/default.dsl',
             'org/patdouble/adventuregame/state/default.dslr',
-            'org/patdouble/adventuregame/state/debug.drl',
             'org/patdouble/adventuregame/state/default.drl',
     ]
 
@@ -36,6 +36,9 @@ class DroolsConfiguration {
         RULE_FILES.each {
             kieFileSystem.write(ResourceFactory.newClassPathResource(it))
         }
+        if (LoggerFactory.getLogger('org.patdouble.adventuregame.engine.Engine').isDebugEnabled()) {
+            kieFileSystem.write(ResourceFactory.newClassPathResource('org/patdouble/adventuregame/state/debug.drl'))
+        }
         if (worldRulesDrl) {
             kieFileSystem.write('src/main/resources/org/patdouble/adventuregame/state/world.drl', worldRulesDrl)
         }
@@ -49,7 +52,7 @@ class DroolsConfiguration {
         KieContainer kContainer = kieServices.newKieContainer(kieModule.getReleaseId())
 
         KieBaseConfiguration kieBaseConfiguration = kieServices.newKieBaseConfiguration()
-        kieBaseConfiguration.setOption(EqualityBehaviorOption.IDENTITY)
+        kieBaseConfiguration.setOption(EqualityBehaviorOption.EQUALITY)
 
         kContainer.newKieBase(kieBaseConfiguration)
         kContainer

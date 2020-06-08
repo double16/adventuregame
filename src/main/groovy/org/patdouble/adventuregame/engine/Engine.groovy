@@ -1,19 +1,22 @@
 package org.patdouble.adventuregame.engine
 
 import groovy.transform.CompileDynamic
+import groovy.transform.ToString
 import groovy.util.logging.Slf4j
 import org.apache.maven.lifecycle.MissingProjectException
 import org.drools.core.common.InternalAgenda
 import org.kie.api.KieServices
+import org.kie.api.logger.KieRuntimeLogger
 import org.kie.api.runtime.KieContainer
 import org.kie.api.runtime.KieSession
 import org.kie.api.runtime.KieSessionConfiguration
 import org.kie.api.runtime.rule.FactHandle
 import org.kie.api.runtime.rule.QueryResults
 import org.kie.api.runtime.rule.QueryResultsRow
+import org.kie.internal.logger.KnowledgeRuntimeLoggerFactory
 import org.kie.internal.runtime.conf.ForceEagerActivationOption
 import org.patdouble.adventuregame.engine.action.ActionExecutor
-import org.patdouble.adventuregame.engine.state.KnownRoom
+import org.patdouble.adventuregame.engine.state.Helpers
 import org.patdouble.adventuregame.engine.state.StoryState
 import org.patdouble.adventuregame.flow.ChronosChanged
 import org.patdouble.adventuregame.flow.GoalFulfilled
@@ -36,6 +39,7 @@ import org.patdouble.adventuregame.state.Chronos
 import org.patdouble.adventuregame.state.Event
 import org.patdouble.adventuregame.state.GoalStatus
 import org.patdouble.adventuregame.state.History
+import org.patdouble.adventuregame.state.KieMutableProperties
 import org.patdouble.adventuregame.state.Motivator
 import org.patdouble.adventuregame.state.Player
 import org.patdouble.adventuregame.state.PlayerEvent
@@ -59,11 +63,12 @@ import java.util.concurrent.SubmissionPublisher
  *
  * The entire state is stored in the {@link Story} object.
  */
+@ToString(includes = ['story', 'locale', 'autoLifecycle'])
 @Slf4j
 @CompileDynamic
 class Engine implements Closeable {
     @Lazy
-    private static Executor DEFAULT_EXECUTOR = { Executors.newCachedThreadPool() } ()
+    private static final Executor DEFAULT_EXECUTOR = { Executors.newCachedThreadPool() } ()
 
     Story story
     final Locale locale = Locale.ENGLISH
@@ -82,6 +87,8 @@ class Engine implements Closeable {
     private final DroolsConfiguration droolsConfiguration
     private KieContainer kContainer
     private KieSession kieSession
+    private KieRuntimeLogger kieRuntimeLogger
+    File kieRuntimeLoggerFile
     private CompletableFuture<Boolean> firingComplete
     private FactHandle chronosHandle
     private FactHandle storyStateHandle
@@ -94,6 +101,7 @@ class Engine implements Closeable {
      */
     private final Map<UUID, ActionStatement> currentActions = [:]
 
+    @SuppressWarnings('ThisReferenceEscapesConstructor')
     Engine(@NotNull Story story, Executor executor = null, Executor flowExecutor = null) {
         Objects.requireNonNull(story)
         this.facade = new EngineFacade(this)
@@ -113,19 +121,19 @@ class Engine implements Closeable {
     CompletableFuture<Void> init() {
         assert story.world
 
-        final CompletableFuture<Void> future = new CompletableFuture<>()
+        final CompletableFuture<Void> FUTURE = new CompletableFuture<>()
         kieSession.submit {
             if (story.chronos == null) {
                 story.chronos = new Chronos()
                 story.history = new History(story.world)
                 createPlayerRequests()
                 createGoalStatus()
-                checkInitComplete(future)
+                checkInitComplete(FUTURE)
             } else {
-                future.complete(null)
+                FUTURE.complete(null)
             }
         }
-        future
+        FUTURE
     }
 
     /**
@@ -137,24 +145,24 @@ class Engine implements Closeable {
         if (kieSession == null ) { // ended
             return CompletableFuture.completedFuture(story)
         }
-        final CompletableFuture<Story> future = new CompletableFuture<>()
+        final CompletableFuture<Story> FUTURE = new CompletableFuture<>()
         kieSession.submit {
             Story story = storyProducer.call()
             if (story == null) {
                 return
             }
             if (story.is(this.story)) {
-                future.complete(story)
+                FUTURE.complete(story)
             } else {
                 this.story = story
                 if (storyStateHandle != null) {
                     populateKieSession()
                     syncStoryState()
                 }
-                future.complete(story)
+                FUTURE.complete(story)
             }
         }
-        future
+        FUTURE
     }
 
     /**
@@ -163,16 +171,16 @@ class Engine implements Closeable {
      */
     @SuppressWarnings('Instanceof')
     CompletableFuture<Void> addToCast(Player player) {
-        final CompletableFuture<Void> future = new CompletableFuture<>()
+        final CompletableFuture<Void> FUTURE = new CompletableFuture<>()
         kieSession.submit {
             try {
                 doAddToCast(player)
-                checkInitComplete(future)
+                checkInitComplete(FUTURE)
             } catch (RuntimeException e) {
-                future.completeExceptionally(e)
+                FUTURE.completeExceptionally(e)
             }
         }
-        future
+        FUTURE
     }
 
     /**
@@ -180,21 +188,21 @@ class Engine implements Closeable {
      * @throws IllegalArgumentException if the request isn't optional
      */
     CompletableFuture<Void> ignore(PlayerRequest request) {
-        final CompletableFuture<Void> future = new CompletableFuture<>()
+        final CompletableFuture<Void> FUTURE = new CompletableFuture<>()
         if (!request.optional) {
-            future.completeExceptionally(new IllegalArgumentException(
+            FUTURE.completeExceptionally(new IllegalArgumentException(
                     "Can not ignore required player ${request.template}"))
         } else {
             kieSession.submit {
                 try {
                     doIgnore(request)
-                    checkInitComplete(future)
+                    checkInitComplete(FUTURE)
                 } catch (RuntimeException e) {
-                    future.completeExceptionally(e)
+                    FUTURE.completeExceptionally(e)
                 }
             }
         }
-        future
+        FUTURE
     }
 
     /**
@@ -205,7 +213,7 @@ class Engine implements Closeable {
      */
     @SuppressWarnings('Instanceof')
     CompletableFuture<Void> start(final Motivator forceMotivator = null) {
-        final CompletableFuture<Void> future = new CompletableFuture<>()
+        final CompletableFuture<Void> FUTURE = new CompletableFuture<>()
         kieSession.submit {
             try {
                 if (forceMotivator == null) {
@@ -234,12 +242,12 @@ class Engine implements Closeable {
                     startRuleEngine()
                 }
 
-                future.complete(null)
+                FUTURE.complete(null)
             } catch (RuntimeException e) {
-                future.completeExceptionally(e)
+                FUTURE.completeExceptionally(e)
             }
         }
-        future.thenRun { next() }
+        FUTURE.thenRun { next() }
     }
 
     /**
@@ -257,7 +265,7 @@ class Engine implements Closeable {
             return CompletableFuture.completedFuture(null)
         }
 
-        final CompletableFuture<Void> future = new CompletableFuture<>()
+        final CompletableFuture<Void> FUTURE = new CompletableFuture<>()
         kieSession.submit {
             if (!story.ended) {
                 story.ended = true
@@ -267,9 +275,9 @@ class Engine implements Closeable {
                 story.requests.clear()
                 publisher.submit(new StoryEnded())
             }
-            future.complete(null)
+            FUTURE.complete(null)
         }
-        future
+        FUTURE
     }
 
     /**
@@ -284,6 +292,10 @@ class Engine implements Closeable {
             firingComplete?.join()
             kieSession.dispose()
             kieSession = null
+            if (kieRuntimeLogger != null) {
+                kieRuntimeLogger.close()
+                kieRuntimeLogger = null
+            }
         }
         if (!publisher.isClosed()) {
             publisher.close()
@@ -326,20 +338,20 @@ class Engine implements Closeable {
      * Mark a goal as fulfilled.
      */
     CompletableFuture<Void> fulfill(GoalStatus goal) {
-        final CompletableFuture<Void> future = new CompletableFuture<>()
+        final CompletableFuture<Void> FUTURE = new CompletableFuture<>()
         kieSession.submit {
             try {
                 if (!goal.fulfilled) {
                     goal.fulfilled = true
-                    kieSession.update(handles.get(goal.id), goal)
+                    kieSession.update(handles.get(goal.id), goal, 'fulfilled')
                     publisher.submit(new GoalFulfilled(goal.goal))
                 }
-                future.complete(null)
+                FUTURE.complete(null)
             } catch (Exception e) {
-                future.completeExceptionally(e)
+                FUTURE.completeExceptionally(e)
             }
         }
-        future
+        FUTURE
     }
 
     /**
@@ -356,9 +368,9 @@ class Engine implements Closeable {
      */
     @SuppressWarnings('Instanceof')
     CompletableFuture<Boolean> action(Player player, ActionStatement action) {
-        log.info('action for player {} - {}', player, action)
+        log.debug('action for player {} - {}', player, action)
 
-        final CompletableFuture<Boolean> future = new CompletableFuture<>()
+        final CompletableFuture<Boolean> FUTURE = new CompletableFuture<>()
 
         kieSession.submit {
             try {
@@ -371,7 +383,7 @@ class Engine implements Closeable {
                         publisher.submit(new PlayerNotification(player,
                                 bundles.text.getString('action.norequest.subject'),
                                 bundles.text.getString('action.norequest.text')))
-                        future.complete(false)
+                        FUTURE.complete(false)
                         return
                     }
                 }
@@ -404,24 +416,16 @@ class Engine implements Closeable {
                         publisher.submit(new RequestCreated(actionRequest))
                     }
                 } else if (success) {
-                    long chronosCost = action.chronosCost
-                    if (chronosCost > 0) {
-                        // assuming a cost of 1, need to do something different for > 1
-                        // maybe increment the chronos by chronosCost and the player skips turns
-                        player.chronos = story.chronos.current
-                        kieSession.update(handles.get(player.id), player)
-                        currentActions.put(player.id, action)
-                        publisher.submit(new PlayerChanged(player.cloneKeepId(), story.chronos.current))
+                    player.chronos += action.chronosCost
+                    addOrReplaceKieObject(player)
+                    currentActions.put(player.id, action)
+                    publisher.submit(new PlayerChanged(player.cloneKeepId(), player.chronos))
 
-                        if (actionRequest) {
-                            story.requests.remove(actionRequest)
-                            removeKieObject(actionRequest)
-                            Objects.requireNonNull(actionRequest.id)
-                            publisher.submit(new RequestSatisfied(actionRequest, action))
-                        }
-                    } else if (actionRequest) {
+                    if (actionRequest) {
+                        story.requests.remove(actionRequest)
+                        removeKieObject(actionRequest)
                         Objects.requireNonNull(actionRequest.id)
-                        publisher.submit(new RequestCreated(actionRequest))
+                        publisher.submit(new RequestSatisfied(actionRequest, action))
                     }
                 } else {
                     if (actionRequest) {
@@ -430,14 +434,17 @@ class Engine implements Closeable {
                     }
                 }
 
-                future.complete(success)
+                FUTURE.complete(success)
             } catch (RuntimeException e) {
-                future.completeExceptionally(e)
+                FUTURE.completeExceptionally(e)
             }
         }
 
-        future.thenApply { s ->
-            next()
+        FUTURE.thenApply { s ->
+            // result of actions may have ended the story
+            if (kieSession) {
+                next()
+            }
             return s
         }
     }
@@ -446,18 +453,32 @@ class Engine implements Closeable {
      * Get a list of rooms known to the player.
      */
     CompletableFuture<Collection<Room>> findRoomsKnownToPlayer(Player p) {
-        final CompletableFuture<Collection<Room>> future = new CompletableFuture<>()
+        final CompletableFuture<Collection<Room>> FUTURE = new CompletableFuture<>()
         executor.execute {
             try {
                 QueryResults results = queryRuleEngine('knownRoomsToPlayer', p)
-                Collection<Room> rooms = results.collect { QueryResultsRow row -> ((KnownRoom) row.get('$room')).room }
-                future.complete(rooms)
+                Collection<Room> rooms = results.collect { QueryResultsRow row -> ((Room) row.get('$room')) }
+                FUTURE.complete(rooms)
             } catch (RuntimeException e) {
                 log.error 'findRoomsKnownToPlayer({})', p, e
-                future.completeExceptionally(e)
+                FUTURE.completeExceptionally(e)
             }
         }
-        future
+        FUTURE
+    }
+
+    void setKieRuntimeLoggerFile(File file) {
+        if (kieRuntimeLoggerFile && file) {
+            if (kieRuntimeLoggerFile.absolutePath != file.absolutePath) {
+                throw new IllegalArgumentException(
+                        "Attempt to change KIE log file from ${kieRuntimeLoggerFile} to ${file}")
+            }
+        }
+        if (file) {
+            kieRuntimeLoggerFile = file
+            kieRuntimeLogger = KnowledgeRuntimeLoggerFactory.newFileLogger(kieSession,
+                    kieRuntimeLoggerFile.absolutePath)
+        }
     }
 
     /**
@@ -469,17 +490,28 @@ class Engine implements Closeable {
             return
         }
 
+        final int INITIAL_BUFFER_SIZE = 16384
         WorldRuleGenerator worldRuleGenerator = new WorldRuleGenerator(story.world)
-        StringWriter drl = new StringWriter(16384)
-        StringWriter dslr = new StringWriter(16384)
+        StringWriter drl = new StringWriter(INITIAL_BUFFER_SIZE)
+        StringWriter dslr = new StringWriter(INITIAL_BUFFER_SIZE)
         worldRuleGenerator.generate(drl, dslr)
         kContainer = droolsConfiguration.kieContainer(drl.toString(), dslr.toString())
 
         KieSessionConfiguration ksConfig = KieServices.Factory.get().newKieSessionConfiguration()
         ksConfig.setOption(ForceEagerActivationOption.YES)
         kieSession = kContainer.newKieSession(ksConfig)
+
+        // setup the audit logging
+//        KnowledgeRuntimeLoggerFactory.newConsoleLogger(kieSession)
+//        KnowledgeRuntimeLoggerFactory.newFileLogger(kieSession, '/tmp/kie.log')
+        if (kieRuntimeLoggerFile) {
+            kieRuntimeLogger = KnowledgeRuntimeLoggerFactory.newFileLogger(kieSession,
+                    kieRuntimeLoggerFile.absolutePath)
+        }
+
         kieSession.setGlobal('log', log)
         kieSession.setGlobal('engine', facade)
+        kieSession.setGlobal('stringify', Helpers.stringify(this))
     }
 
     @SuppressWarnings(['MethodParameterTypeRequired', 'NoDef'])
@@ -490,7 +522,20 @@ class Engine implements Closeable {
             if (id) {
                 FactHandle handle = handles.get(id)
                 if (handle) {
-                    kieSession.update(handle, object)
+                    if (object instanceof KieMutableProperties) {
+                        String[] props = ((KieMutableProperties) object).kieMutableProperties()
+                        if (props.length > 0) { // empty props indicates immutable
+                            def existing = kieSession.getObject(handle)
+                            String[] changed = (existing == null || existing.is(object)) ?
+                                    props :
+                                    props.findAll { existing.getProperty(it) != object.getProperty(it) } as String[]
+                            if (changed.length > 0) {
+                                kieSession.update(handle, object, changed)
+                            }
+                        }
+                    } else {
+                        kieSession.update(handle, object)
+                    }
                 } else {
                     handles.put(id, kieSession.insert(object))
                 }
@@ -555,6 +600,7 @@ class Engine implements Closeable {
     }
 
     private void populateKieSessionHistory(Collection<Event> events) {
+        addOrReplaceKieObjects(events)
         addOrReplaceKieObjects(events*.players)
     }
 
@@ -643,7 +689,13 @@ class Engine implements Closeable {
     }
 
     private void syncStoryState() {
-        ((StoryState) kieSession.getObject(storyStateHandle))?.update(story)
+        StoryState state = kieSession.getObject(storyStateHandle) as StoryState
+        if (state != null) {
+            state.update(story)
+            kieSession.update(storyStateHandle, state)
+        } else {
+            log.warn 'Unable to sync story state, no object found with handle {}', storyStateHandle
+        }
     }
 
     private void checkInitComplete(final CompletableFuture<Void> future) {
@@ -680,7 +732,7 @@ class Engine implements Closeable {
                 story.chronos.current,
                 story.roomSummary(player.room, player, bundles))
         if (!story.requests.contains(request)) {
-            log.info('Creating action request {}', request)
+            log.debug('Creating action request {}', request)
             request.actions.addAll(actionStatementParser.availableActions)
             request.directions.addAll(player.room.neighbors.keySet().sort())
             story.requests.add(request)
@@ -695,7 +747,8 @@ class Engine implements Closeable {
      */
     private Event recordHistory() {
         Event event = new Event(story.chronos)
-        event.players.addAll(story.cast.collect { new PlayerEvent(event: event, player: it.clone(), action: currentActions.get(it.id)) })
+        event.players.addAll(story.cast.collect {
+            new PlayerEvent(event: event, player: it.clone(), action: currentActions.get(it.id)) })
         story.history.addEvent(event)
         currentActions.clear()
         event

@@ -2,14 +2,16 @@ package org.patdouble.adventuregame.state
 
 global org.slf4j.Logger log;
 
+import org.patdouble.adventuregame.engine.state.HasHumanString;
+
 dialect "mvel"
 
 rule "log chronos"
-  salience 10000
+  salience 30000
   when
     $c : Chronos()
   then
-    log.info("Chronos is now "+$c.getCurrent());
+    log.info("Chronos is now {}", $c.getCurrent());
 end
 
 rule "log only ai"
@@ -27,4 +29,43 @@ rule "log unfulfilled required goals"
     not (exists (GoalStatus(goal.required == true, getFulfilled() == false)))
   then
     log.info("No required goals left");
+end
+
+rule "log recent event hashes"
+  salience 2000
+  when
+    $c : Chronos(getCurrent() > 0)
+    not (exists (Player(motivator == Motivator.HUMAN)))
+    accumulate( $e : Event( when > ($c.getCurrent() - $c.getCurrent() * 0.2) );
+            $count : count(),
+            $hashes : collectSet( $e.computeSecureHash() );
+            $count > 0
+      )
+  then
+    log.debug("Event hashes at {}, limit {}: {}", $c.getCurrent(), $c.getCurrent() - $c.getCurrent() * 0.2, $hashes);
+end
+
+rule "log room explore objectives"
+    salience 1999
+    when
+        $objs : List(size > 0) from collect ( RoomExploreObjective() )
+    then
+        log.debug("RoomExploreObjective: {}", stringify.call($objs));
+end
+
+rule "log room objectives"
+    salience 1999
+    when
+        $objs : List(size > 0) from collect ( RoomObjective() )
+    then
+        log.debug("RoomObjectives: {}", stringify.call($objs));
+end
+
+rule "log player room"
+    salience 11000
+    when
+      $player : Player() @watch(room)
+      $room   : Room() from $player.room
+    then
+      log.debug("Player room: {}, id {}", $room.modelId, $room.id);
 end

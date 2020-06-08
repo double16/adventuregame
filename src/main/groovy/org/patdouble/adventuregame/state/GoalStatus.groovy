@@ -3,7 +3,6 @@ package org.patdouble.adventuregame.state
 import com.fasterxml.jackson.annotation.JsonIgnore
 import groovy.transform.Canonical
 import groovy.transform.CompileDynamic
-import org.kie.api.definition.type.PropertyReactive
 import org.patdouble.adventuregame.model.Goal
 import org.patdouble.adventuregame.storage.jpa.Constants
 
@@ -19,9 +18,10 @@ import javax.persistence.ManyToOne
  */
 @Canonical(excludes = [Constants.COL_DBID], includePackage = false)
 @Entity
-@PropertyReactive
 @CompileDynamic
-class GoalStatus {
+class GoalStatus implements KieMutableProperties {
+    private static final String[] KIE_MUTABLE_PROPS = [ 'fulfilled' ]
+
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
     @JsonIgnore
     UUID dbId
@@ -30,4 +30,9 @@ class GoalStatus {
     @ManyToOne(fetch = FetchType.EAGER)
     Goal goal
     boolean fulfilled
+
+    @Override
+    String[] kieMutableProperties() {
+        KIE_MUTABLE_PROPS
+    }
 }

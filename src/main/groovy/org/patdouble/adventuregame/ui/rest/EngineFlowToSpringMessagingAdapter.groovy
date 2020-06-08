@@ -33,7 +33,8 @@ class EngineFlowToSpringMessagingAdapter implements Flow.Subscriber<StoryMessage
 
     @Override
     void onNext(StoryMessage item) {
-        log.info 'Forwarding to {}: {}', destination, item
+        // TODO: Do not forward messages related to AI
+        log.debug 'Forwarding to {}: {}', destination, item
         simpMessagingTemplate.convertAndSend(destination, item, [type: item.class.simpleName])
         subscription.request(Long.MAX_VALUE)
     }

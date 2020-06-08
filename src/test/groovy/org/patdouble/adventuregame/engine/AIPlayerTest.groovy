@@ -62,7 +62,7 @@ class AIPlayerTest extends AbstractPlayerTest {
         engine.start().join()
 
         when:
-        boolean success = engine.action(warrior, 'wait')
+        boolean success = engine.action(warrior, 'wait').join()
 
         then:
         success

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import groovy.transform.CompileDynamic
 import groovy.transform.ToString
 import org.hibernate.Hibernate
+import org.patdouble.adventuregame.state.KieMutableProperties
 import org.patdouble.adventuregame.storage.jpa.Constants
 
 import javax.persistence.Entity
@@ -12,7 +13,9 @@ import javax.persistence.GenerationType
 import javax.persistence.Id
 import javax.persistence.Lob
 import javax.persistence.ManyToMany
+import javax.persistence.ManyToOne
 import javax.validation.constraints.NotNull
+import java.security.MessageDigest
 
 /**
  * A place of non-deterministic size that can hold objects and players.
@@ -20,7 +23,9 @@ import javax.validation.constraints.NotNull
 @Entity
 @ToString(excludes = [Constants.COL_ID, Constants.COL_DBID, 'neighbors'], includePackage = false)
 @CompileDynamic
-class Room {
+class Room implements KieMutableProperties, CanSecureHash {
+    private static final String[] KIE_MUTABLE_PROPS = []
+
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
     @JsonIgnore
     UUID dbId
@@ -37,8 +42,21 @@ class Room {
     @JsonIgnore
     Map<String, Room> neighbors = [:]
 
+    @ManyToOne
+    Region region
+
+    @Override
+    String[] kieMutableProperties() {
+        KIE_MUTABLE_PROPS
+    }
+
     Map<String, Room> getNeighbors() {
         Collections.unmodifiableMap(neighbors)
+    }
+
+    @JsonIgnore
+    Set<UUID> getNeighborsId() {
+        Collections.unmodifiableSet(neighbors.values()*.id as Set)
     }
 
     @SuppressWarnings('ParameterReassignment')
@@ -74,6 +92,9 @@ class Room {
         if (description != r2.description) {
             return false
         }
+        if (region?.modelId != r2.region?.modelId) {
+            return false
+        }
         if (neighbors.keySet() != r2.neighbors.keySet()) {
             return false
         }
@@ -82,6 +103,20 @@ class Room {
 
     Room initialize() {
         Hibernate.initialize(neighbors)
+        Hibernate.initialize(region)
+        region?.initialize()
         this
+    }
+
+    @Override
+    void update(MessageDigest md) {
+        md.update((modelId ?: "").bytes)
+        md.update((name ?: "").bytes)
+        md.update((description ?: "").bytes)
+        md.update((region?.modelId ?: "").bytes)
+        neighbors.each { String direction, Room room ->
+            md.update(direction.bytes)
+            md.update(room.modelId.bytes)
+        }
     }
 }

@@ -5,6 +5,7 @@ import groovy.transform.CompileStatic
 import org.luaj.vm2.Globals
 import org.luaj.vm2.LuaClosure
 import org.luaj.vm2.LuaFunction
+import org.luaj.vm2.LuaString
 import org.luaj.vm2.LuaTable
 import org.luaj.vm2.LuaValue
 import org.luaj.vm2.Prototype
@@ -16,8 +17,11 @@ import org.patdouble.adventuregame.model.ExtrasTemplate
 import org.patdouble.adventuregame.model.Goal
 import org.patdouble.adventuregame.model.Persona
 import org.patdouble.adventuregame.model.PlayerTemplate
+import org.patdouble.adventuregame.model.Region
 import org.patdouble.adventuregame.model.Room
 import org.patdouble.adventuregame.model.World
+
+import java.math.RoundingMode
 
 /**
  * Storage of World using Lua.
@@ -29,11 +33,14 @@ class WorldLuaStorage {
     public static final String KEY_DESCRIPTION = 'description'
     public static final String KEY_QUANTITY = 'quantity'
     public static final String KEY_ROOM = 'room'
+    public static final String KEY_ID = 'id'
 
     final Prototype dslPrototype
 
     WorldLuaStorage() {
-        dslPrototype = JsePlatform.standardGlobals().loadPrototype(getClass().getResourceAsStream('world-dsl.lua'), '@world-dsl.lua', 't')
+        dslPrototype = JsePlatform.standardGlobals().loadPrototype(
+                getClass().getResourceAsStream('world-dsl.lua'),
+                '@world-dsl.lua', 't')
     }
 
     World load(InputStream is) throws IOException {
@@ -53,22 +60,39 @@ class WorldLuaStorage {
         world.author = nullSafeToString(worldDomain.get(KEY_AUTHOR))
         world.description = nullSafeToString(worldDomain.get(KEY_DESCRIPTION))
 
+        readRegions(domain, world)
         readRooms(domain, world)
         readPersonas(domain, world)
         readPlayers(domain, world)
         readExtras(domain, world)
-        readGoals(domain, world)
+        readGoals(domain, world.goals)
 
         return world
     }
 
     @CompileStatic
     private static class LuaArrayIterator<T extends LuaValue> implements Iterator<T> {
-        private final LuaTable table
+        private LuaTable table
         private LuaValue k = LuaValue.NIL
         private Varargs n
 
+        LuaArrayIterator(LuaValue value) {
+            if (value instanceof LuaTable) {
+                init(value as LuaTable)
+            } else if (!value || value.isnil()) {
+                init(new LuaTable())
+            } else {
+                LuaTable t = new LuaTable()
+                t.set(0, value)
+                init(t)
+            }
+        }
+
         LuaArrayIterator(LuaTable table) {
+            init(table)
+        }
+
+        private void init(LuaTable table) {
             this.table = (LuaTable) (table ?: new LuaTable())
             n = table.next(k)
         }
@@ -102,7 +126,7 @@ class WorldLuaStorage {
         for (LuaTable data : new LuaArrayIterator<LuaTable>(personas)) {
             Persona p = new Persona(name: data.get(KEY_NAME))
             p.health = data.get('health').toint()
-            p.wealth = new BigDecimal(data.get('wealth').tofloat())
+            p.wealth = new BigDecimal(data.get('wealth').toString()).setScale(2, RoundingMode.DOWN)
             world.personas.add(p)
         }
     }
@@ -161,6 +185,7 @@ class WorldLuaStorage {
                     persona: persona.get(),
                     nickName: nullSafeToString(data.get('nickname')),
                     fullName: nullSafeToString(data.get('fullname')))
+
             LuaValue roomNameValue = data.get(KEY_ROOM)
             if (!roomNameValue.isnil()) {
                 String roomName = roomNameValue as String
@@ -168,9 +193,14 @@ class WorldLuaStorage {
                     new IllegalArgumentException("Cannot find room ${roomName} for player ${player.fullName}")
                 }
             }
+
+            readGoals(data, player.goals)
+            readKnownRooms(world, data, player.knownRooms)
+
             if (customizer) {
                 customizer.call(player, data)
             }
+
             result << player
         }
 
@@ -196,6 +226,54 @@ class WorldLuaStorage {
         quantity
     }
 
+    private void readRegions(LuaTable domain, World world) {
+        LuaTable regions = domain.get('regions') as LuaTable
+        if (regions.isnil() || regions.length() == 0) {
+            return
+        }
+        
+        // first pass, create the regions
+        for (LuaTable data : new LuaArrayIterator<LuaTable>(regions)) {
+            String regionId = nullSafeToString(data.get(KEY_ID))
+            Region region = new Region()
+            region.modelId = regionId
+            region.name = nullSafeToString(data.get(KEY_NAME))
+            region.description = nullSafeToString(data.get(KEY_DESCRIPTION))
+            if (region.name == null) {
+                region.name = region.modelId
+                        .replaceAll(/[_-]+/, ' ')
+                        .replaceAll(/\b([a-z])/) { it[1].toUpperCase() }
+            }
+            world.regions.add(region)
+        }
+
+        // second pass, associate parent regions
+        for (LuaTable data : new LuaArrayIterator<LuaTable>(regions)) {
+            String regionId = nullSafeToString(data.get(KEY_ID))
+            Region region = world.findRegionById(regionId)
+                    .orElseThrow { new IllegalArgumentException("Cannot find region ${regionId}") }
+            String parentId = nullSafeToString(data.get('inside'))
+            if (parentId) {
+                if (parentId == regionId) {
+                    new IllegalArgumentException("Region ${regionId} cannot be inside itself")
+                }
+                Region parentRegion = world.findRegionById(parentId)
+                        .orElseThrow {
+                            new IllegalArgumentException("Cannot find region ${parentId} for ${regionId}.inside") }
+                // check for cycles
+                Region cycleCheck = parentRegion
+                while (cycleCheck) {
+                    if (cycleCheck.parent?.modelId == parentRegion.modelId) {
+                        new IllegalArgumentException(
+                                "Region ${regionId} can not be inside region ${parentId}, causes a loop")
+                    }
+                    cycleCheck = cycleCheck.parent
+                }
+                region.parent = parentRegion
+            }
+        }
+    }
+
     private void readRooms(LuaTable domain, World world) {
         LuaTable rooms = domain.get('rooms') as LuaTable
         if (rooms.isnil() || rooms.length() == 0) {
@@ -204,20 +282,28 @@ class WorldLuaStorage {
 
         // first pass, create the rooms
         for (LuaTable data : new LuaArrayIterator<LuaTable>(rooms)) {
-            String roomId = nullSafeToString(data.get('id'))
+            String roomId = nullSafeToString(data.get(KEY_ID))
             Room room = new Room()
             room.modelId = roomId
             room.name = nullSafeToString(data.get(KEY_NAME))
             room.description = nullSafeToString(data.get(KEY_DESCRIPTION))
             if (room.name == null) {
-                room.name = room.modelId.replaceAll(/[_-]+/, ' ').replaceAll(/\b([a-z])/) { it[1].toUpperCase() }
+                room.name = room.modelId
+                        .replaceAll(/[_-]+/, ' ')
+                        .replaceAll(/\b([a-z])/) { it[1].toUpperCase() }
+            }
+            String regionId = nullSafeToString(data.get('region'))
+            if (regionId) {
+                Region region = world.findRegionById(regionId)
+                        .orElseThrow { new IllegalArgumentException("Cannot find region ${regionId}") }
+                room.region = region
             }
             world.rooms.add(room)
         }
 
         // second pass, create neighbors
         for (LuaTable data : new LuaArrayIterator<LuaTable>(rooms)) {
-            String roomId = nullSafeToString(data.get('id'))
+            String roomId = nullSafeToString(data.get(KEY_ID))
             Room room = world.findRoomById(roomId)
                     .orElseThrow { new IllegalArgumentException("Cannot find room ${roomId}") }
             LuaTable neighbors = data.get('neighbors') as LuaTable
@@ -244,21 +330,52 @@ class WorldLuaStorage {
         }
     }
 
-    private void readGoals(LuaTable domain, World world) {
+    private Goal readGoal(LuaTable data) {
+        Goal g = new Goal(name: nullSafeToString(data.get(KEY_NAME)))
+        g.description = nullSafeToString(data.get(KEY_DESCRIPTION))
+        g.required = Optional.ofNullable(data.get('required')).orElse(LuaValue.FALSE).toboolean()
+        g.theEnd = Optional.ofNullable(data.get('the_end')).orElse(LuaValue.FALSE).toboolean()
+
+        for(LuaTable rule : new LuaArrayIterator<LuaTable>(data.get('rules') as LuaTable)) {
+            g.rules.add(nullSafeToString(rule.get('definition')))
+        }
+        g
+    }
+
+    private void readGoals(LuaTable domain, Collection<Goal> list) {
         LuaTable goals = domain.get('goals') as LuaTable
         if (goals.isnil()) {
             return
         }
         for (LuaTable data : new LuaArrayIterator<LuaTable>(goals)) {
-            Goal g = new Goal(name: nullSafeToString(data.get(KEY_NAME)))
-            g.description = nullSafeToString(data.get('description'))
-            g.required = Optional.ofNullable(data.get('required')).orElse(LuaValue.FALSE).toboolean()
-            g.theEnd = Optional.ofNullable(data.get('the_end')).orElse(LuaValue.FALSE).toboolean()
+            list << readGoal(data)
+        }
+    }
 
-            for(LuaTable rule : new LuaArrayIterator<LuaTable>(data.get('rules') as LuaTable)) {
-                g.rules.add(nullSafeToString(rule.get('definition')))
+    private void readKnownRooms(World world, LuaTable domain, Collection<Room> list) {
+        LuaValue memories = domain.get('memories')
+        if (memories.isnil()) {
+            return
+        }
+
+        for (LuaValue element : new LuaArrayIterator<LuaTable>(memories)) {
+            for (LuaValue data : new LuaArrayIterator<LuaTable>(element.get('rooms'))) {
+                String modelId = data.toString()
+                Room room = world.findRoomById(modelId).get()
+                if (!room) {
+                    throw new IllegalArgumentException("Cannot find room ${modelId} specified in memory")
+                }
+                list << room
             }
-            world.goals << g
+
+            for (LuaValue data : new LuaArrayIterator<LuaTable>(element.get('regions'))) {
+                String modelId = data.toString()
+                Region region = world.findRegionById(modelId).get()
+                if (!region) {
+                    throw new IllegalArgumentException("Cannot find region ${modelId} specified in memory")
+                }
+                list.addAll(world.findRoomsByRegion(region))
+            }
         }
     }
 

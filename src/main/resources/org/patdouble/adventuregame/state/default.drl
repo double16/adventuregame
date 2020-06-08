@@ -3,15 +3,29 @@ package org.patdouble.adventuregame.state
 dialect "mvel"
 
 import java.util.List;
+import java.util.TreeSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import org.patdouble.adventuregame.engine.state.Helpers;
 import org.patdouble.adventuregame.engine.state.StoryState;
 import org.patdouble.adventuregame.engine.state.KnownRoom;
+import org.patdouble.adventuregame.engine.state.VisitedRoom;
+import org.patdouble.adventuregame.engine.state.PlayerGoal;
+import org.patdouble.adventuregame.engine.state.PlayerGoalMet;
+import org.patdouble.adventuregame.engine.state.PlayerGoalRuleUnmet;
+import org.patdouble.adventuregame.engine.state.PlayerGoalRuleMet;
+import org.patdouble.adventuregame.engine.state.PlayerGoToRoomObjective;
+import org.patdouble.adventuregame.engine.state.RoomObjective;
+import org.patdouble.adventuregame.engine.state.RoomExploreObjective;
 import org.patdouble.adventuregame.state.PlayerEvent;
 import org.patdouble.adventuregame.state.Player;
 import org.patdouble.adventuregame.model.Room;
 import org.patdouble.adventuregame.model.Action;
+import org.patdouble.adventuregame.model.Goal;
 
 global org.slf4j.Logger log;
 global org.patdouble.adventuregame.engine.EngineFacade engine;
+global groovy.lang.Closure stringify;
 
 rule "next chronos"
   activation-group "next-turn"
@@ -42,9 +56,30 @@ rule "complete"
     $c : Chronos(getCurrent() > 0)
     not (exists (GoalStatus(goal.required == true, getFulfilled() == false)))
     not (exists (Player(motivator == Motivator.HUMAN)))
+    not (exists (PlayerGoalRuleUnmet(required == true)))
     forall( Player(chronos >= $c.getCurrent()) )
   then
     log.info("No required goals left for AI players, ending the story");
+    engine.end();
+end
+
+rule "complete when stale"
+  // We are checking the most recent 20% of events for unique events, using the hash to define uniqueness. If the number
+  // of unique events in the last 20% is 25% or less, then consider the story stale. Chronos of 40 is the first that
+  // looks for 2 identical hashes.
+  activation-group "next-turn"
+  salience 2000
+  when
+    $c : Chronos(getCurrent() > 0)
+    not (exists (Player(motivator == Motivator.HUMAN)))
+    accumulate( $e : Event( when > ($c.getCurrent() - $c.getCurrent() * 0.2) );
+            $count : count(),
+            $hashes : collectSet( $e.computeSecureHash() );
+            $c.getCurrent() > 40 && $hashes.size() <= Math.max(1, $c.getCurrent() * 0.05)
+      )
+  then
+    log.info("Event hashes at {}, limit {}: {}", $c.getCurrent(), $c.getCurrent() - $c.getCurrent() * 0.2, $hashes);
+    log.info("Story has become stale");
     engine.end();
 end
 
@@ -54,35 +89,208 @@ rule "human player action request"
     $c : Chronos()
     $player : Player(motivator == Motivator.HUMAN, chronos < $c.getCurrent())
   then
-    //log.info("human player "+$player.getTitle()+" action needed");
+    //log.debug("human player "+$player.getTitle()+" action needed");
     engine.createActionRequest($player);
 end
 
-rule "ai player turn"
+rule "ai player wait"
   salience 200
   when
     $c : Chronos()
     $player : Player(motivator == Motivator.AI, chronos < $c.getCurrent())
   then
-    //log.info("AI player "+$player.getTitle()+" waits");
+    //log.debug("AI player "+$player.getTitle()+" waits");
     engine.action($player, "wait", null, null);
 end
 
-query knownRoomsToPlayer(Player p)
-    $room: KnownRoom(player == p)
+rule "ai player room exploring"
+  salience 400
+  when
+    $c            : Chronos()
+    $player       : Player(motivator == Motivator.AI, chronos < $c.getCurrent()) @watch(room)
+    $neighbor     : Map.Entry() from $player.room.neighbors.entrySet()
+    $neighborRoom : Room(this == $neighbor.value)
+    $direction    : String() from $neighbor.key
+    $obj          : RoomExploreObjective(player == $player.id, startRoom == $player.room.id, nextRoom == $neighborRoom.id)
+  then
+    log.info("AI player room exploring room: {} to the {}", $neighborRoom, $direction);
+    engine.action($player, "go", $direction, null);
 end
 
-rule "known rooms"
+rule "ai player room objective"
+  salience 300
+  when
+    $c            : Chronos()
+    $player       : Player(motivator == Motivator.AI, chronos < $c.getCurrent()) @watch(room)
+    accumulate(     $e     : RoomObjective(player == $player.id, room memberOf $player.room.getNeighborsId());
+                    $obj   : min( $e ),
+                    $count : count();
+                    $count > 0)
+    $entry        : Map.Entry( value#Room.id == $obj#RoomObjective.room ) from $player.room.neighbors.entrySet()
+    $direction    : String() from $entry.key
+  then
+    log.debug("AI player {} go {} to meet objective {}", $player.getTitle(), $direction, stringify.call($obj));
+    engine.action($player, "go", $direction, null);
+end
+
+query knownRoomsToPlayer(Player p)
+    $known : KnownRoom(player == p.id)
+    $room  : Room(id == $known.room)
+end
+
+rule "visited rooms from history"
+    salience 10020
     when
-        $c : Chronos()
         $player : Player()
         $room : Room()
         accumulate( PlayerEvent( player.id == $player.id, player.room.modelId == $room.modelId, $when : event.when );
                         $count : count(),
                         $max : max( $when );
-                        $count > 0 && ($c.current - $max) <= KnownRoom.memoryLimitInChronos($player.memory,$count)
+                        $count > 0
                   )
     then
-        //log.debug("KnownRoom "+$player.getTitle()+": "+$room.getName()+", count = "+$count+", max = "+$max+", chronos = "+$c.current+", memory = "+$player.memory);
-        insertLogical(new KnownRoom($player, $room));
+        log.debug("VisitedRoom {}: {}, count = {}, when = {}", $player.getTitle(), $room.getName(), $count, $max);
+        insertLogical(new VisitedRoom($player.id, $room.id, $max, $count));
+end
+
+rule "first time visited room from current room"
+    salience 10011
+    when
+        $c      : Chronos()
+        $player : Player() @watch(room)
+    then
+        log.debug("VisitedRoom {}: {} from current location", $player.getTitle(), $player.room.getName());
+        insertLogical(new VisitedRoom($player.id, $player.room.id, $c.current, 1));
+end
+
+rule "repeated visited room from current room"
+    salience 10010
+    no-loop true
+    when
+        $c       : Chronos()
+        $player  : Player() @watch(room)
+        $visited : VisitedRoom(player == $player.id, room == $player.room.id, count > 1)
+    then
+        log.debug("VisitedRoom {}: {} from current location, additive", $player.getTitle(), $player.room.getName());
+        insertLogical(new VisitedRoom($player.id, $player.room.id, $c.current, $visited.count + 1));
+end
+
+rule "known room from long term memory"
+    salience 10000
+    when
+        $player : Player() @watch(knownRooms)
+        $room   : Room() from $player.knownRooms
+    then
+        log.debug("KnownRoom {}: {} from long term memory", $player.getTitle(), $room.getName());
+        insertLogical(new KnownRoom($player.id, $room.id));
+end
+
+rule "known rooms from visited rooms"
+    salience 10000
+    when
+        $c       : Chronos()
+        $player  : Player() @watch(memory)
+        // ($c.current - $max) <= KnownRoom.memoryLimitInChronos($player.memory, $count)
+        $visited : VisitedRoom(player == $player.id, when >= $c.current - KnownRoom.memoryLimitInChronos($player.memory, count))
+    then
+        log.debug("KnownRoom {}: {}, count = {}, max = {}, chronos = {}, memory = {}", $player.getTitle(), $visited.room, $visited.count, $visited.when, $c.current, $player.memory);
+        insertLogical(new KnownRoom($player.id, $visited.room));
+end
+
+rule "AI player goals"
+    salience 2500
+    when
+        $player : Player(motivator == Motivator.AI)
+        $goal   : Goal() from $player.goals
+    then
+        log.debug("PlayerGoal for {}, goal {}", $player.id, $goal.id);
+        insert(new PlayerGoal($player.id, $goal.id));
+end
+
+rule "player goal go to room"
+    salience 2400
+    when
+        $playerGoal : PlayerGoal()
+        $player     : Player(id == $playerGoal.player)
+        $goal       : Goal(id == $playerGoal.goal) from $player.goals
+        $rule       : String(this matches "player goes to room \"(.+?)\"") from $goal.rules
+        $room       : Room(modelId == Helpers.extractRoomModelId($rule)[0])
+    then
+        log.debug("Player go to room: {} {}", $playerGoal.player, $rule);
+end
+
+rule "player goal go to room pending"
+    extends "player goal go to room"
+    salience 2400
+    when
+        not (VisitedRoom(player == $playerGoal.player, room == $room.id))
+    then
+        log.debug("Player go to room pending: {} {}", $playerGoal.player, $rule);
+        insertLogical(new PlayerGoToRoomObjective($goal.required, $playerGoal.player, $room.id));
+end
+
+rule "player goal go to room met"
+    extends "player goal go to room"
+    salience 2400
+    when
+        $visited : VisitedRoom(player == $playerGoal.player, room == $room.id)
+    then
+        log.debug("Player go to room met: {} {}", $playerGoal.player, $rule);
+        insertLogical(new PlayerGoalRuleMet($playerGoal.player, $playerGoal.goal, $rule, $visited.when));
+end
+
+rule "room objective from goal"
+    salience 2350
+    when
+        $goto : PlayerGoToRoomObjective()
+        Player(id == $goto.player, room.id != $goto.room)
+    then
+        log.debug("RoomObjective: player {} room {} cost 1 to meet PlayerGoToRoomObjective", $goto.player, $goto.room);
+        insertLogical(new RoomObjective($goto.player, $goto.room, 100));
+end
+
+rule "room objective to go to room to explore"
+    salience 2300
+    when
+        $obj    : RoomExploreObjective()
+        $player : Player(id == $obj.player, room.id != $obj.startRoom) @watch(room)
+    then
+        log.debug("Player {} (in room {}) go to room {} to explore {} for target {}", $obj.player, $player.room.modelId, $obj.startRoom, $obj.nextRoom, $obj.targetRoom);
+        insertLogical(new RoomObjective($obj.player, $obj.startRoom, 50));
+end
+
+rule "room objective next step back into known room"
+    salience 2200
+    no-loop true
+    when
+        $obj          : RoomObjective()
+        $player       : Player(id == $obj.player) @watch(room)
+        $known        : KnownRoom(player == $obj.player, room == $obj.room)
+        $room         : Room(id == $obj.room)
+        $neighbor     : Map.Entry() from $room.neighbors.entrySet()
+        $neighborRoom : Room(this == $neighbor.value, id != $player.room.id)
+        $nextRoom     : KnownRoom(player == $obj.player, room == $neighborRoom.id)
+        $direction    : String() from $neighbor.key
+    then
+        log.debug("Getting to room {} from {} via {}, cost {} to reach {}", $neighborRoom.modelId, $room.modelId, $direction, $obj.cost + 100, stringify.call($obj));
+        insertLogical(new RoomObjective($obj.player, $nextRoom.room, $obj.cost + 100));
+end
+
+rule "room objective explore for next step"
+    salience 2200
+    when
+        // Objective is to reach an unknown room
+        $obj       : RoomObjective()
+        not (KnownRoom(player == $obj.player, room == $obj.room))
+
+        // Explore out from all known rooms
+        $known     : KnownRoom(player == $obj.player)
+        $room      : Room(id == $known.room)
+        $neighbor  : Map.Entry() from $room.neighbors.entrySet()
+        $nextRoom  : Room() from $neighbor.value
+        $direction : String() from $neighbor.key
+        not (KnownRoom(player == $obj.player, room == $nextRoom.id))
+    then
+        log.debug("Player {} exploring for room {} by {} from {} via {}", $obj.player, $obj.room, $nextRoom.modelId, $room.modelId, $direction);
+        insertLogical(new RoomExploreObjective($obj.player, $room.id, $direction, $nextRoom.id, $obj.room));
 end

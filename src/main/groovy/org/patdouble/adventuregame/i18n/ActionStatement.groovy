@@ -3,9 +3,11 @@ package org.patdouble.adventuregame.i18n
 import groovy.transform.CompileDynamic
 import groovy.transform.Immutable
 import org.patdouble.adventuregame.model.Action
+import org.patdouble.adventuregame.model.CanSecureHash
 
 import javax.persistence.Embeddable
 import javax.validation.constraints.NotNull
+import java.security.MessageDigest
 
 /**
  * Describes an action of a player.
@@ -13,7 +15,7 @@ import javax.validation.constraints.NotNull
 @Immutable
 @Embeddable
 @CompileDynamic
-class ActionStatement {
+class ActionStatement implements CanSecureHash {
     @NotNull
     final String verb
     final String directObject
@@ -49,5 +51,16 @@ class ActionStatement {
     @Override
     String toString() {
         "${getClass().simpleName} '${text}'"
+    }
+
+    @Override
+    void update(MessageDigest md) {
+        md.update(verb.bytes)
+        if (directObject) {
+            md.update(directObject.bytes)
+        }
+        if (indirectObject) {
+            md.update(indirectObject.bytes)
+        }
     }
 }

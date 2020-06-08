@@ -1,3 +1,4 @@
+regions = {};
 rooms = {};
 personas = {};
 players = {};
@@ -44,21 +45,34 @@ function room(id)
     return domain_params('room', domain)
 end
 
+function region(id)
+    local domain = {
+        id = id;
+    }
+    table.insert(regions, domain)
+
+    return domain_params('region', domain)
+end
+
 function neighbor(params)
     params.target = 'neighbors'
     return params
 end
 
-function goal(name)
+function goal(arg)
     local domain = {
-        name = name;
         -- used when embedded in another domain
         target = 'goals';
         rules = {};
     }
-    table.insert(goals, domain)
-
-    return domain_params('goal', domain)
+    if type(arg) == 'table' then
+        domain_params('goal', domain)(arg)
+        return domain
+    else
+        domain['name'] = arg
+        table.insert(goals, domain)
+        return domain_params('goal', domain)
+    end
 end
 
 function rule(params)
@@ -81,13 +95,24 @@ function persona(name)
 end
 
 function player(params)
-    local domain = { }
+    local domain = {
+        goals = { };
+        memories = { };
+    }
     table.insert(players, domain)
     domain_params('player', domain)(params)
 end
 
+function memory(params)
+    params.target = 'memories'
+    return params
+end
+
 function extra(params)
-    local domain = { }
+    local domain = {
+        goals = { };
+        memories = { };
+    }
     table.insert(extras, domain)
     domain_params('extra', domain)(params)
 end
@@ -102,6 +127,7 @@ end
 
 domain = {
     world = world_table;
+    regions = regions;
     rooms = rooms;
     personas = personas;
     players = players;

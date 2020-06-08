@@ -3,18 +3,17 @@ package org.patdouble.adventuregame.storage.lua
 import org.patdouble.adventuregame.model.Persona
 import org.patdouble.adventuregame.model.PlayerTemplate
 import org.patdouble.adventuregame.model.World
-import org.patdouble.adventuregame.storage.lua.LuaUniverseRegistry
 import spock.lang.Specification
 
 class WorldLuaStorageTest extends Specification {
-    LuaUniverseRegistry registry = new LuaUniverseRegistry()
+    WorldLuaStorage luaStorage = new WorldLuaStorage()
 
     private World loadTheHobbit() {
-        registry.worlds.find { it.name == LuaUniverseRegistry.THE_HOBBIT }
+        luaStorage.load(LuaUniverseRegistry.getResourceAsStream('/worlds/the-hobbit.lua'))
     }
 
     private World loadTrailerPark() {
-        registry.worlds.find { it.name == LuaUniverseRegistry.TRAILER_PARK }
+        luaStorage.load(LuaUniverseRegistry.getResourceAsStream('/worlds/trailer-park.lua'))
     }
 
     def "load"() {
@@ -38,11 +37,50 @@ class WorldLuaStorageTest extends Specification {
         and: 'players'
         world.players.size() == 2
 
+        and: 'regions'
+        world.regions.size() == 3
+        world.regions*.modelId.sort() == [ 'bag_end', 'mordor', 'shire' ]
+        with(world.findRegionById('bag_end').get()) {
+            name == 'Bag End'
+            description == 'Baggins\' Hobbit Hole'
+            parent.modelId == 'shire'
+        }
+        with(world.findRegionById('shire').get()) {
+            name == 'The Shire'
+            !description
+        }
+        with(world.findRegionById('mordor').get()) {
+            name == 'Mordor'
+            !description
+        }
+
+        and: 'rooms'
+        world.rooms*.modelId.size() == 3
+        with(world.findRoomById('bag_end_foyer').get()) {
+            name == 'Bag End Foyer'
+            description == 'Entrance to Bag End'
+            region.modelId == 'bag_end'
+        }
+
         and: 'Bilbo'
-        PlayerTemplate bilbo = world.players.find { it.nickName == 'Bilbo' }
-        bilbo.nickName == 'Bilbo'
-        bilbo.fullName == 'Bilbo Baggins'
-        bilbo.persona.name == 'hobbit'
+        with(world.players.find { it.nickName == 'Bilbo' }) {
+            fullName == 'Bilbo Baggins'
+            persona.name == 'hobbit'
+            knownRooms*.modelId.sort() == [ 'bag_end_foyer', 'bag_end_kitchen' ]
+        }
+
+        and: 'Gandalf'
+        with (world.players.find { it.nickName == 'Gandalf' }) {
+            fullName == 'Gandalf the Grey'
+            persona.name == 'wizard'
+            knownRooms*.modelId.sort() == [ 'bag_end_foyer', 'bag_end_kitchen', 'blackgate' ]
+        }
+
+        and: 'orcs'
+        with (world.extras.find { it.fullName == 'Orc' }) {
+            persona.name == 'orc'
+            knownRooms*.modelId.sort() == [ 'blackgate' ]
+        }
     }
 
     def "hash code"() {
@@ -55,5 +93,36 @@ class WorldLuaStorageTest extends Specification {
         expect:
         loadTheHobbit() == loadTheHobbit()
         loadTheHobbit() != loadTrailerPark()
+    }
+
+    def "computeSecureHash"() {
+        expect:
+        loadTheHobbit().computeSecureHash() == loadTheHobbit().computeSecureHash()
+        loadTrailerPark().computeSecureHash() == loadTrailerPark().computeSecureHash()
+        loadTheHobbit().computeSecureHash() != loadTrailerPark().computeSecureHash()
+    }
+
+    def "computeSecureHash identifies changes"() {
+        given:
+        World w = loadTrailerPark()
+        String originalHash = w.computeSecureHash()
+
+        when: 'name is changed'
+        World w2 = loadTrailerPark()
+        w2.name += ' 2'
+        then:
+        w2.computeSecureHash() != originalHash
+
+        when: 'description is changed'
+        World w3 = loadTrailerPark()
+        w3.description += ' 2'
+        then:
+        w3.computeSecureHash() != originalHash
+
+        when: 'goal is changed'
+        World w4 = loadTrailerPark()
+        w4.goals[0].rules[0] = w4.goals[0].rules[0] + '2'
+        then:
+        w4.computeSecureHash() != originalHash
     }
 }

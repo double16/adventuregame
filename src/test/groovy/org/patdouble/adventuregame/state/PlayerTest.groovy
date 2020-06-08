@@ -51,4 +51,12 @@ class PlayerTest extends Specification {
         p2a.hashCode() == p2a.hashCode()
         p2a.hashCode() == p2b.hashCode()
     }
+
+    def "computeSecureHash"() {
+        expect:
+        p1a.computeSecureHash() == p1a.computeSecureHash()
+        p1a.computeSecureHash() == p1b.computeSecureHash()
+        p1a.computeSecureHash() != p2a.computeSecureHash()
+        p1a.computeSecureHash() != p3.computeSecureHash()
+    }
 }

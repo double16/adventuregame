@@ -1,14 +1,18 @@
 package org.patdouble.adventuregame.engine.state
 
 import groovy.transform.CompileStatic
-import org.patdouble.adventuregame.model.Room
-import org.patdouble.adventuregame.state.Player
+import groovy.transform.Immutable
+import groovy.transform.Memoized
+import org.kie.api.definition.type.ClassReactive
 
 /**
- * Marks a room that a player has visited and remembers.
+ * Marks a room that of which a player is aware.
  */
+@Immutable(includePackage = false)
+@ClassReactive
 @CompileStatic
 class KnownRoom {
+    @Memoized
     static int memoryLimitInChronos(int memoryLevel, int visitCount) {
         if (visitCount < 1) {
             return 0
@@ -19,11 +23,6 @@ class KnownRoom {
         Math.floor((Math.pow(memoryLevel, 2) / 3000) * (2 * Math.log10((double) visitCount / 10) + 3))
     }
 
-    final Player player
-    final Room room
-
-    KnownRoom(Player player, Room room) {
-        this.player = player
-        this.room = room
-    }
+    final UUID player
+    final UUID room
 }

@@ -75,4 +75,16 @@ class RoomTest extends Specification {
         then:
         thrown(IllegalArgumentException)
     }
+
+    def "getNeighborsId"() {
+        given:
+        Room r1 = new Room(modelId: 'r1')
+        Room r2 = new Room(modelId: 'r2')
+        Room r3 = new Room(modelId: 'r3')
+        when:
+        r1.addNeighbor('north', r2)
+        r1.addNeighbor('south', r3)
+        then:
+        r1.getNeighborsId() == [ r2.id, r3.id ] as Set
+    }
 }

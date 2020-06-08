@@ -66,7 +66,7 @@ class EngineControllerTest extends Specification {
 
     def "CreateStory by id"() {
         given:
-        String id = controller.worldRepository.findByName(LuaUniverseRegistry.TRAILER_PARK).first().id.toString()
+        String id = controller.worldRepository.findByNameAndActive(LuaUniverseRegistry.TRAILER_PARK, true).first().id.toString()
         System.out.println "worldId = ${id}"
         CreateStoryRequest request = new CreateStoryRequest(worldId: id)
 
@@ -79,7 +79,7 @@ class EngineControllerTest extends Specification {
 
     def "CreateStory by URI"() {
         given:
-        String id = "http://localhost:8080/api/worlds/"+controller.worldRepository.findByName(LuaUniverseRegistry.TRAILER_PARK).first().id.toString()
+        String id = "http://localhost:8080/api/worlds/"+controller.worldRepository.findByNameAndActive(LuaUniverseRegistry.TRAILER_PARK, true).first().id.toString()
         System.out.println "worldId = ${id}"
         CreateStoryRequest request = new CreateStoryRequest(worldId: id)
 

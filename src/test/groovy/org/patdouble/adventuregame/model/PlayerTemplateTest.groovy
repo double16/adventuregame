@@ -11,6 +11,7 @@ class PlayerTemplateTest extends Specification {
         template = new PlayerTemplate()
         template.persona = PersonaMocks.THIEF
         template.room = RoomMocks.ENTRANCE
+        template.goals.add(GoalMocks.PLAYER_ENTER_ROOM)
     }
 
     def "CreatePlayer"() {
@@ -25,6 +26,8 @@ class PlayerTemplateTest extends Specification {
         p.nickName == 'victor'
         p.fullName == 'victor the spider'
         p.room == RoomMocks.ENTRANCE
+        p.goals.size() == 1
+        p.goals[0].id == GoalMocks.PLAYER_ENTER_ROOM.id
     }
 
     def "ToString"() {

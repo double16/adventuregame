@@ -7,7 +7,7 @@ import spock.lang.Specification
 class CharacterTraitTest extends Specification {
     def "CreatePlayer"() {
         given:
-        CharacterTrait ct = new Object() as CharacterTrait
+        CharacterTrait ct = new PlayerTemplate()
         ct.persona = PersonaMocks.WARRIOR
         ct.nickName = 'S.B.'
         ct.fullName = 'shadowblade'

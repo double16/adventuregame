@@ -38,14 +38,23 @@ player {
     persona = 'hobbit';
     nickname = 'Bilbo';
     fullname = 'Bilbo Baggins';
-    room = 'bag_end';
+    room = 'bag_end_foyer';
+
+    memory {
+        regions = { 'shire' };
+    }
 }
 
 player {
     persona = 'wizard';
     nickname = 'Gandalf';
     fullname = 'Gandalf the Grey';
-    room = 'bag_end';
+    room = 'bag_end_foyer';
+
+    memory {
+        regions = { 'shire' };
+        rooms = 'blackgate';
+    }
 }
 
 extra {
@@ -53,12 +62,36 @@ extra {
     fullname = 'Orc';
     room = 'blackgate';
     quantity = 50;
+    memory {
+        regions = 'mordor';
+    }
 }
 
-room 'bag_end' {
-    description = "Baggins' Hobbit Hole"
+region 'shire' {
+    name = 'The Shire';
+}
+
+region 'bag_end' {
+    name = 'Bag End';
+    inside = 'shire';
+    description = "Baggins' Hobbit Hole";
+}
+
+region 'mordor' {
+    name = 'Mordor';
+}
+
+room 'bag_end_foyer' {
+    description = "Entrance to Bag End";
+    region = 'bag_end';
+}
+
+room 'bag_end_kitchen' {
+    description = "Bag End Kitchen";
+    region = 'bag_end';
 }
 
 room 'blackgate' {
-    description = "Entrance to Mordor"
+    description = "Entrance to Mordor";
+    region = 'mordor';
 }

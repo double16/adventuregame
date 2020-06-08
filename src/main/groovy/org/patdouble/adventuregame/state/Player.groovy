@@ -5,7 +5,8 @@ import groovy.transform.AutoClone
 import groovy.transform.AutoCloneStyle
 import groovy.transform.CompileDynamic
 import org.hibernate.Hibernate
-import org.kie.api.definition.type.PropertyReactive
+import org.patdouble.adventuregame.model.CanSecureHash
+import org.patdouble.adventuregame.model.Goal
 import org.patdouble.adventuregame.model.Persona
 import org.patdouble.adventuregame.model.Room
 import org.patdouble.adventuregame.storage.jpa.Constants
@@ -15,17 +16,22 @@ import javax.persistence.Entity
 import javax.persistence.GeneratedValue
 import javax.persistence.GenerationType
 import javax.persistence.Id
+import javax.persistence.ManyToMany
 import javax.persistence.ManyToOne
 import javax.persistence.OneToOne
+import javax.persistence.OrderColumn
+import java.nio.ByteBuffer
+import java.security.MessageDigest
 
 /**
  * Models the player's attributes and current state.
  */
 @AutoClone(excludes = [Constants.COL_DBID], style = AutoCloneStyle.COPY_CONSTRUCTOR)
 @Entity
-@PropertyReactive
 @CompileDynamic
-class Player implements Temporal {
+class Player implements Temporal, KieMutableProperties, CanSecureHash {
+    private static final String[] KIE_MUTABLE_PROPS = Persona.KIE_MUTABLE_PROPS + ['chronos', 'room'] as String[]
+
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
     @JsonIgnore
     UUID dbId
@@ -33,7 +39,7 @@ class Player implements Temporal {
     UUID id = UUID.randomUUID()
 
     Motivator motivator
-    @Delegate(excludes = [ 'clone', Constants.COL_DBID, Constants.COL_ID ])
+    @Delegate(excludes = [ 'clone', 'update', 'computeSecureHash', Constants.COL_DBID, Constants.COL_ID ])
     @OneToOne(cascade = CascadeType.ALL)
     @JsonIgnore
     Persona persona = new Persona()
@@ -44,6 +50,12 @@ class Player implements Temporal {
     /** The location of the player. */
     @ManyToOne
     Room room
+    /** List of rooms that are always known to the player, i.e. long term memory. */
+    @ManyToMany
+    List<Room> knownRooms = []
+    @ManyToMany(cascade = CascadeType.ALL)
+    @OrderColumn(name="INDEX")
+    List<Goal> goals = []
 
     Player() { }
 
@@ -51,6 +63,10 @@ class Player implements Temporal {
         this.motivator = motivator
         this.nickName = nickName
         this.persona = persona.clone()
+    }
+
+    String[] kieMutableProperties() {
+        KIE_MUTABLE_PROPS
     }
 
     @JsonIgnore
@@ -90,6 +106,8 @@ class Player implements Temporal {
     Player initialize() {
         Hibernate.initialize(persona)
         Hibernate.initialize(room)
+        Hibernate.initialize(knownRooms)
+        Hibernate.initialize(goals)
         this
     }
 
@@ -97,5 +115,24 @@ class Player implements Temporal {
         Player p = clone()
         p.id = this.id
         p
+    }
+
+    @Override
+    void update(MessageDigest md) {
+        persona.update(md)
+        md.update(motivator.name().bytes)
+        if (nickName) {
+            md.update(nickName.bytes)
+        }
+        if (fullName) {
+            md.update(fullName.bytes)
+        }
+        if (room) {
+            md.update(room.modelId.bytes)
+        }
+        knownRooms.each { md.update(it.modelId.bytes) }
+
+        ByteBuffer intb = ByteBuffer.allocate(4)
+        md.update(intb.rewind().putInt(siblingNumber).array())
     }
 }

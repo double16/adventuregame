@@ -21,9 +21,19 @@ abstract class EngineTest extends Specification {
         // modify the world for the test case
     }
 
+    /**
+     * Immobilize AI to provide a more predictable run. Defaults to true.
+     */
+    boolean immobilizeAI() {
+        true
+    }
+
     def setup() {
         World world = new LuaUniverseRegistry().worlds.find { it.name == LuaUniverseRegistry.TRAILER_PARK }
         modify(world)
+        if (immobilizeAI()) {
+            world.extras.each { it.goals.clear() }
+        }
         story = new Story(world)
 
         storySubscriber = Mock()
