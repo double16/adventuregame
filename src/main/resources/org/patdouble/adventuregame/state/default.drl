@@ -113,7 +113,7 @@ rule "ai player room exploring"
     $direction    : String() from $neighbor.key
     $obj          : RoomExploreObjective(player == $player.id, startRoom == $player.room.id, nextRoom == $neighborRoom.id)
   then
-    log.info("AI player room exploring room: {} to the {}", $neighborRoom, $direction);
+    log.debug("AI player room exploring room: {} to the {}", $neighborRoom, $direction);
     engine.action($player, "go", $direction, null);
 end
 
@@ -178,8 +178,8 @@ end
 rule "known room from long term memory"
     salience 10000
     when
-        $player : Player() @watch(knownRooms)
-        $room   : Room() from $player.knownRooms
+        $player : Player()
+        $room   : Room() from $player.template.knownRooms
     then
         log.debug("KnownRoom {}: {} from long term memory", $player.getTitle(), $room.getName());
         insertLogical(new KnownRoom($player.id, $room.id));
@@ -201,7 +201,7 @@ rule "AI player goals"
     salience 2500
     when
         $player : Player(motivator == Motivator.AI)
-        $goal   : Goal() from $player.goals
+        $goal   : Goal() from $player.template.goals
     then
         log.debug("PlayerGoal for {}, goal {}", $player.id, $goal.id);
         insert(new PlayerGoal($player.id, $goal.id));
@@ -212,7 +212,7 @@ rule "player goal go to room"
     when
         $playerGoal : PlayerGoal()
         $player     : Player(id == $playerGoal.player)
-        $goal       : Goal(id == $playerGoal.goal) from $player.goals
+        $goal       : Goal(id == $playerGoal.goal) from $player.template.goals
         $rule       : String(this matches "player goes to room \"(.+?)\"") from $goal.rules
         $room       : Room(modelId == Helpers.extractRoomModelId($rule)[0])
     then

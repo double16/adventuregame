@@ -38,7 +38,7 @@ class Event implements KieMutableProperties, CanSecureHash {
     /** Tied to the {@link Chronos} value. */
     long when
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = 'event')
     List<PlayerEvent> players = []
 
     Event() { }

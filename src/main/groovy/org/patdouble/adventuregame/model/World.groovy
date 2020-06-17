@@ -54,7 +54,7 @@ class World implements CanSecureHash {
      * List of extras, which are like players but are only controlled by AI.
      */
     @OneToMany(cascade = CascadeType.ALL)
-    List<ExtrasTemplate> extras = []
+    List<PlayerTemplate> extras = []
 
     @OneToMany(cascade = CascadeType.ALL)
     List<Region> regions = []
@@ -79,8 +79,7 @@ class World implements CanSecureHash {
         Objects.requireNonNull(region)
         Set<String> regionIds = regions.collect { it.parentageModelIds }
                .findAll { it.contains(region.modelId) }
-               .collect { it.subList(0, it.indexOf(region.modelId)+1) }
-               .flatten() as Set
+               .collectMany { it.subList(0, it.indexOf(region.modelId)+1) } as Set
         getRooms().findAll { it.region?.modelId in regionIds }
     }
 

@@ -26,8 +26,8 @@ class PlayerTemplateTest extends Specification {
         p.nickName == 'victor'
         p.fullName == 'victor the spider'
         p.room == RoomMocks.ENTRANCE
-        p.goals.size() == 1
-        p.goals[0].id == GoalMocks.PLAYER_ENTER_ROOM.id
+        p.template.goals.size() == 1
+        p.template.goals[0].id == GoalMocks.PLAYER_ENTER_ROOM.id
     }
 
     def "ToString"() {

@@ -5,15 +5,13 @@ import groovy.transform.CompileStatic
 import org.luaj.vm2.Globals
 import org.luaj.vm2.LuaClosure
 import org.luaj.vm2.LuaFunction
-import org.luaj.vm2.LuaString
 import org.luaj.vm2.LuaTable
 import org.luaj.vm2.LuaValue
 import org.luaj.vm2.Prototype
 import org.luaj.vm2.Varargs
 import org.luaj.vm2.lib.jse.JsePlatform
-import org.patdouble.adventuregame.model.CharacterTrait
 import org.patdouble.adventuregame.model.Direction
-import org.patdouble.adventuregame.model.ExtrasTemplate
+
 import org.patdouble.adventuregame.model.Goal
 import org.patdouble.adventuregame.model.Persona
 import org.patdouble.adventuregame.model.PlayerTemplate
@@ -28,12 +26,14 @@ import java.math.RoundingMode
  */
 @CompileDynamic
 class WorldLuaStorage {
-    public static final String KEY_NAME = 'name'
-    public static final String KEY_AUTHOR = 'author'
-    public static final String KEY_DESCRIPTION = 'description'
-    public static final String KEY_QUANTITY = 'quantity'
-    public static final String KEY_ROOM = 'room'
-    public static final String KEY_ID = 'id'
+    static final String KEY_NAME = 'name'
+    static final String KEY_AUTHOR = 'author'
+    static final String KEY_DESCRIPTION = 'description'
+    static final String KEY_QUANTITY = 'quantity'
+    static final String KEY_ROOM = 'room'
+    static final String KEY_ID = 'id'
+    static final String KEY_REGIONS = 'regions'
+    static final String KEY_ROOMS = 'rooms'
 
     final Prototype dslPrototype
 
@@ -118,6 +118,11 @@ class WorldLuaStorage {
         v.toString()
     }
 
+    private static String humanReadableModelId(String modelId) {
+        modelId.replaceAll(/[_-]+/, ' ')
+                .replaceAll(/\b([a-z])/) { it[1].toUpperCase() }
+    }
+
     private void readPersonas(LuaTable domain, World world) {
         LuaTable personas = domain.get('personas') as LuaTable
         if (personas.isnil() || personas.length() == 0) {
@@ -133,42 +138,22 @@ class WorldLuaStorage {
 
     private void readPlayers(LuaTable domain, World world) {
         List<PlayerTemplate> players = parsePlayers(
-                PlayerTemplate,
                 world,
-                domain.get('players') as LuaTable) {
-            PlayerTemplate player, LuaTable data ->
-                LuaValue quantity = data.get(KEY_QUANTITY)
-                if (!quantity.isnil()) {
-                    if (quantity.isnumber()) {
-                        player.quantity = quantity.toint()
-                    } else {
-                        player.quantity = parseQuantity(quantity as String)
-                    }
-                }
-        }
+                domain.get('players') as LuaTable)
         world.players.addAll(players)
     }
 
     private void readExtras(LuaTable domain, World world) {
-        List<ExtrasTemplate> extras = parsePlayers(
-                ExtrasTemplate,
+        List<PlayerTemplate> extras = parsePlayers(
                 world,
-                domain.get('extras') as LuaTable) {
-            ExtrasTemplate extra, LuaTable data ->
-                LuaValue quantity = data.get(KEY_QUANTITY)
-                if (!quantity.isnil()) {
-                    extra.quantity = quantity.toint()
-                }
-        }
+                domain.get('extras') as LuaTable)
         world.extras.addAll(extras)
     }
 
-    private <T extends CharacterTrait> List<T> parsePlayers(
-            Class<T> template,
+    private List<PlayerTemplate> parsePlayers(
             World world,
-            LuaTable players,
-            Closure customizer) {
-        List<T> result = []
+            LuaTable players) {
+        List<PlayerTemplate> result = []
         if (!players) {
             return result
         }
@@ -181,7 +166,7 @@ class WorldLuaStorage {
             if (!persona.present) {
                 throw new IllegalArgumentException("Persona ${personaStr} not found")
             }
-            T player = template.newInstance(
+            PlayerTemplate player = new PlayerTemplate(
                     persona: persona.get(),
                     nickName: nullSafeToString(data.get('nickname')),
                     fullName: nullSafeToString(data.get('fullname')))
@@ -197,8 +182,13 @@ class WorldLuaStorage {
             readGoals(data, player.goals)
             readKnownRooms(world, data, player.knownRooms)
 
-            if (customizer) {
-                customizer.call(player, data)
+            LuaValue quantity = data.get(KEY_QUANTITY)
+            if (!quantity.isnil()) {
+                if (quantity.isnumber()) {
+                    player.quantity = new IntRange(quantity.toint(), quantity.toint())
+                } else {
+                    player.quantity = parseQuantity(quantity as String)
+                }
             }
 
             result << player
@@ -227,7 +217,7 @@ class WorldLuaStorage {
     }
 
     private void readRegions(LuaTable domain, World world) {
-        LuaTable regions = domain.get('regions') as LuaTable
+        LuaTable regions = domain.get(KEY_REGIONS) as LuaTable
         if (regions.isnil() || regions.length() == 0) {
             return
         }
@@ -240,9 +230,7 @@ class WorldLuaStorage {
             region.name = nullSafeToString(data.get(KEY_NAME))
             region.description = nullSafeToString(data.get(KEY_DESCRIPTION))
             if (region.name == null) {
-                region.name = region.modelId
-                        .replaceAll(/[_-]+/, ' ')
-                        .replaceAll(/\b([a-z])/) { it[1].toUpperCase() }
+                region.name = humanReadableModelId(region.modelId)
             }
             world.regions.add(region)
         }
@@ -275,7 +263,7 @@ class WorldLuaStorage {
     }
 
     private void readRooms(LuaTable domain, World world) {
-        LuaTable rooms = domain.get('rooms') as LuaTable
+        LuaTable rooms = domain.get(KEY_ROOMS) as LuaTable
         if (rooms.isnil() || rooms.length() == 0) {
             return
         }
@@ -288,9 +276,7 @@ class WorldLuaStorage {
             room.name = nullSafeToString(data.get(KEY_NAME))
             room.description = nullSafeToString(data.get(KEY_DESCRIPTION))
             if (room.name == null) {
-                room.name = room.modelId
-                        .replaceAll(/[_-]+/, ' ')
-                        .replaceAll(/\b([a-z])/) { it[1].toUpperCase() }
+                room.name = humanReadableModelId(room.modelId)
             }
             String regionId = nullSafeToString(data.get('region'))
             if (regionId) {
@@ -359,7 +345,7 @@ class WorldLuaStorage {
         }
 
         for (LuaValue element : new LuaArrayIterator<LuaTable>(memories)) {
-            for (LuaValue data : new LuaArrayIterator<LuaTable>(element.get('rooms'))) {
+            for (LuaValue data : new LuaArrayIterator<LuaTable>(element.get(KEY_ROOMS))) {
                 String modelId = data.toString()
                 Room room = world.findRoomById(modelId).get()
                 if (!room) {
@@ -368,7 +354,7 @@ class WorldLuaStorage {
                 list << room
             }
 
-            for (LuaValue data : new LuaArrayIterator<LuaTable>(element.get('regions'))) {
+            for (LuaValue data : new LuaArrayIterator<LuaTable>(element.get(KEY_REGIONS))) {
                 String modelId = data.toString()
                 Region region = world.findRegionById(modelId).get()
                 if (!region) {

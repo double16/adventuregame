@@ -1,6 +1,7 @@
 package org.patdouble.adventuregame.ui.rest
 
 import groovy.transform.CompileDynamic
+import groovy.util.logging.Slf4j
 import org.patdouble.adventuregame.engine.Engine
 import org.patdouble.adventuregame.flow.ChronosChanged
 import org.patdouble.adventuregame.flow.ErrorMessage
@@ -24,14 +25,20 @@ import org.springframework.messaging.handler.annotation.Payload
 import org.springframework.messaging.handler.annotation.SendTo
 import org.springframework.messaging.simp.SimpMessageSendingOperations
 import org.springframework.messaging.simp.annotation.SubscribeMapping
+import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.ResponseBody
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 
+import javax.servlet.http.HttpServletResponse
 import javax.transaction.Transactional
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 /**
  * REST controller for the lifecycle of an Engine.
@@ -42,6 +49,7 @@ import java.util.concurrent.CompletableFuture
 @MessageMapping//('/engine')
 @SuppressWarnings('Instanceof')
 @Transactional
+@Slf4j
 class EngineController {
     @Autowired
     EngineCache engineCache
@@ -57,7 +65,23 @@ class EngineController {
             ResponseStatusException rse = (ResponseStatusException) e
             return new ErrorMessage(httpCode: rse.status.value(), message: rse.reason ?: rse.status.reasonPhrase)
         }
-        return new ErrorMessage(httpCode: HttpStatus.INTERNAL_SERVER_ERROR.value(), message: e.message)
+
+        int code = HttpStatus.INTERNAL_SERVER_ERROR.value()
+        if (e instanceof IllegalArgumentException) {
+            code = HttpStatus.NOT_ACCEPTABLE.value()
+        } else {
+            log.error(e.message, e)
+        }
+        return new ErrorMessage(httpCode: code, message: e.message)
+    }
+
+    @SuppressWarnings('Unused')
+    @ExceptionHandler
+    @ResponseBody
+    ErrorMessage handleExceptionHttp(Exception e, HttpServletResponse response) {
+        ErrorMessage msg = handleException(e)
+        response.sendError(msg.httpCode, msg.message)
+        return msg
     }
 
     @MessageMapping('/createstory')
@@ -82,9 +106,7 @@ class EngineController {
         new CreateStoryResponse(storyUri: "/play/${engine.story.id}")
     }
 
-    @SubscribeMapping('/story.{storyId}')
-    List<StoryMessage> subscribe(@DestinationVariable('storyId') String storyId) {
-        Engine engine = requireEngine(storyId)
+    List<? extends StoryMessage> assembleState(Engine engine) {
         List<? extends StoryMessage> result = []
         result.addAll(engine.story.goals.findAll { it.fulfilled }.collect { new GoalFulfilled(it.goal) })
         if (engine.story.ended) {
@@ -99,6 +121,29 @@ class EngineController {
         result
     }
 
+    @SubscribeMapping('/story.{storyId}')
+    List<StoryMessage> subscribe(@DestinationVariable('storyId') @RequestParam('storyId') String storyId) {
+        Engine engine = requireEngine(storyId)
+        assembleState(engine)
+    }
+
+    @RequestMapping(
+            method = RequestMethod.POST,
+            path = 'state',
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    List<StoryMessage> state(@RequestParam('storyId') String storyId) {
+        try {
+            Engine engine = requireEngine(storyId)
+            assembleState(engine)
+        } catch (ResponseStatusException e) {
+            if (e.status == HttpStatus.CONFLICT) {
+                return [new StoryEnded()]
+            }
+            throw e
+        }
+    }
+
     @MessageMapping('/action')
     @RequestMapping(
             method = RequestMethod.POST,
@@ -111,7 +156,17 @@ class EngineController {
         if (!player) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Player ${actionRequest.playerId} not found")
         }
-        engine.action(player, actionRequest.statement)
+        CompletableFuture<Boolean> future = engine.action(player, actionRequest.statement)
+        if (actionRequest.waitForComplete) {
+            try {
+                boolean value = future.get(5, TimeUnit.SECONDS)
+                if (!value) {
+                    throw new ResponseStatusException(HttpStatus.NOT_ACCEPTABLE)
+                }
+            } catch (TimeoutException e) {
+                throw new ResponseStatusException(HttpStatus.PROCESSING)
+            }
+        }
     }
 
     @MessageMapping('/addtocast')

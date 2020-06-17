@@ -55,7 +55,7 @@ class Story implements KieMutableProperties {
     World world
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     List<Player> cast = []
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = 'story')
     List<GoalStatus> goals = []
     @Embedded
     Chronos chronos
@@ -63,7 +63,7 @@ class Story implements KieMutableProperties {
     boolean ended
     @OneToOne(cascade = CascadeType.ALL)
     History history
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = 'story')
     List<Request> requests = []
     @CreationTimestamp
     @SuppressWarnings('Unused')

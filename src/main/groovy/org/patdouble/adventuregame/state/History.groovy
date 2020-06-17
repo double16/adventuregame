@@ -28,7 +28,7 @@ class History {
 
     @ManyToOne
     World world
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = 'history')
     List<Event> events = []
 
     History() { }

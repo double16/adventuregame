@@ -24,9 +24,12 @@ import javax.persistence.EntityManager
 import javax.persistence.EntityManagerFactory
 import javax.persistence.EntityTransaction
 import javax.persistence.PersistenceContext
+import javax.persistence.PersistenceException
 import javax.transaction.Transactional
 import javax.validation.constraints.NotNull
+import java.sql.SQLException
 import java.time.Duration
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.atomic.AtomicLong
@@ -40,8 +43,8 @@ import java.util.zip.GZIPOutputStream
 @Slf4j
 @CompileDynamic
 class EngineCache {
-    private static long B_PER_MB = 1024*1024
-    private static Runtime RT = Runtime.runtime
+    private static final long B_PER_MB = 1024*1024
+    private static final Runtime RT = Runtime.runtime
 
     @CompileStatic
     private class Value {
@@ -112,12 +115,13 @@ class EngineCache {
         Objects.requireNonNull(story.id)
         Engine engine = configure(new Engine(story, executor))
         engine.init().join()
-        engine.updateStory { storyRepository.saveAndFlush(story) }
+        engine.updateStory { storyRepository.saveAndFlush(story) }.join()
+        Objects.requireNonNull(story.id)
         map.put(story.id, new Value(engine))
         engine
     }
 
-    void clear() {
+    CompletableFuture<Void> clear() {
         remove({true})
     }
 
@@ -125,36 +129,32 @@ class EngineCache {
      * Expire engines that haven't seen activity since the {@link #ttl}.
      */
     @Transactional
-    void expire(long timeInMillis = System.currentTimeMillis()) {
+    CompletableFuture<Void> expire(long timeInMillis = System.currentTimeMillis()) {
         remove({ v -> v.expires.get() < timeInMillis || v.engine.story.ended })
     }
 
     @Transactional
-    void sweep() {
-        map.values().each { Value v ->
-            v.engine.updateStory {
-                EntityManager em = entityManagerFactory.createEntityManager()
-                EntityTransaction tx = em.getTransaction()
+    CompletableFuture<Void> sweep() {
+        List<CompletableFuture<?>> futures = []
+
+        Iterator<Value> iter = map.values().iterator()
+        while (iter.hasNext()) {
+            Value v = iter.next()
+            futures << v.engine.updateStory {
                 Story result = null
-                boolean success = false
                 try {
-                    tx.begin()
-                    result = em.merge(v.engine.story).initialize()
-                    em.flush()
-                    success = true
-                } catch (RuntimeException e) {
-                    log.error("Saving story ${v.engine.story.id}", e)
-                } finally {
-                    if (success) {
-                        tx.commit()
-                    } else {
-                        tx.rollback()
+                    doInTransaction { EntityManager em ->
+                        result = em.merge(v.engine.story).initialize()
+                        em.flush()
                     }
-                    em.close()
+                } catch (PersistenceException | SQLException e) {
+                    log.error("Saving story ${v.engine.story.id}, removing from cache", e)
+                    iter.remove()
                 }
                 result
             }
         }
+        CompletableFuture.allOf(futures as CompletableFuture[])
     }
 
     int size() {
@@ -173,7 +173,9 @@ class EngineCache {
     /**
      * Remove the engines matching the condition. The argument to the closure is the Value. This method is thread-safe.
      */
-    private void remove(Closure<Boolean> condition) {
+    private CompletableFuture<Void> remove(Closure<Boolean> condition) {
+        List<CompletableFuture<Void>> futures = []
+
         Iterator<Value> i = map.values().iterator()
         while (i.hasNext()) {
             Value v = i.next()
@@ -183,19 +185,48 @@ class EngineCache {
 
             // remove it before we start closing so no one else will use it
             i.remove()
-            v.engine.close()
 
-            Story s = v.engine.story
-            if (!entityManager.contains(s)) {
-                entityManager.merge(s)
+            final Story s = v.engine.story
+            long age = System.currentTimeMillis() - v.expires.get()
+            futures << v.engine.close().thenRun {
+                doInTransaction { EntityManager em ->
+                    if (!em.contains(s)) {
+                        em.merge(s)
+                    }
+                    saveEngineLog(v.engine, em)
+                    em.flush()
+                }
+                log.info('Closed Engine for story {}, age {}, ended {}', s.id, age, s.ended)
             }
-            saveEngineLog(v.engine)
-            entityManager.flush()
-            log.info('Removed Engine for story {}, age {}, ended {}', s.id, System.currentTimeMillis() - v.expires.get(), s.ended)
+
+            log.info('Removed Engine for story {}, age {}, ended {}', s.id, age, s.ended)
         }
+
+        CompletableFuture.allOf(futures as CompletableFuture[])
     }
 
-    private void saveEngineLog(Engine engine) {
+    private void doInTransaction(Closure c) {
+        if (entityManager.isJoinedToTransaction()) {
+            c.call(entityManager)
+        } else {
+            EntityManager em = entityManagerFactory.createEntityManager()
+            EntityTransaction tx = em.getTransaction()
+            boolean success = false
+            try {
+                tx.begin()
+                c.call(em)
+                success = true
+            } finally {
+                if (success) {
+                    tx.commit()
+                } else {
+                    tx.rollback()
+                }
+                em.close()
+            }
+        }
+    }
+    private void saveEngineLog(Engine engine, EntityManager em) {
         Story story = engine.story
         File file = engine.kieRuntimeLoggerFile
         if (file == null) {
@@ -211,7 +242,8 @@ class EngineCache {
             }
         }
         if (!file.exists() || file.length() == 0) {
-            log.debug 'Skipping agenda log, nothing to log, file = {}, exists = {}, length = {}', file?.absolutePath, file?.exists(), file?.length()
+            log.debug 'Skipping agenda log, nothing to log, file = {}, exists = {}, length = {}',
+                    file?.absolutePath, file?.exists(), file?.length()
             file.delete()
             return
         }
@@ -246,7 +278,7 @@ class EngineCache {
             agendaLog.story = engine.story
             agendaLog.gzlog = BlobProxy.generateProxy(new FileInputStream(compressed), compressed.length())
             log.debug 'Persisting AgendaLog for story {}', story.id
-            entityManager.persist(agendaLog)
+            em.persist(agendaLog)
         } finally {
             compressed.delete()
             file.delete()
@@ -256,17 +288,19 @@ class EngineCache {
     @Scheduled(fixedDelay = 30000L)
     @Transactional
     void scheduleSweep() {
-        log.info('Starting sweep with {} engines, memory total/max/free {}M/{}M/{}M',
+        log.info('Starting sweep with {} engines, {} pending close, memory total/max/free {}M/{}M/{}M',
                 map.size(),
+                Engine.PENDING_CLOSE.get(),
                 Math.floor(RT.totalMemory()/B_PER_MB),
                 Math.floor(RT.maxMemory()/B_PER_MB),
                 Math.floor(RT.freeMemory()/B_PER_MB))
 
-        sweep()
         expire()
+        sweep()
 
-        log.info('Finished sweep with {} engines, memory total/max/free {}M/{}M/{}M',
+        log.info('Finished sweep with {} engines, {} pending close, memory total/max/free {}M/{}M/{}M',
                 map.size(),
+                Engine.PENDING_CLOSE.get(),
                 Math.floor(RT.totalMemory()/B_PER_MB),
                 Math.floor(RT.maxMemory()/B_PER_MB),
                 Math.floor(RT.freeMemory()/B_PER_MB))

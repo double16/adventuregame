@@ -15,4 +15,6 @@ class ActionRequest {
     String storyId
     String playerId
     String statement
+    /** true if the call should not return until the action has finished. */
+    Boolean waitForComplete
 }

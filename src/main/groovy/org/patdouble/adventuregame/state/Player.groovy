@@ -6,8 +6,8 @@ import groovy.transform.AutoCloneStyle
 import groovy.transform.CompileDynamic
 import org.hibernate.Hibernate
 import org.patdouble.adventuregame.model.CanSecureHash
-import org.patdouble.adventuregame.model.Goal
 import org.patdouble.adventuregame.model.Persona
+import org.patdouble.adventuregame.model.PlayerTemplate
 import org.patdouble.adventuregame.model.Room
 import org.patdouble.adventuregame.storage.jpa.Constants
 
@@ -16,10 +16,9 @@ import javax.persistence.Entity
 import javax.persistence.GeneratedValue
 import javax.persistence.GenerationType
 import javax.persistence.Id
-import javax.persistence.ManyToMany
 import javax.persistence.ManyToOne
 import javax.persistence.OneToOne
-import javax.persistence.OrderColumn
+import javax.validation.constraints.NotNull
 import java.nio.ByteBuffer
 import java.security.MessageDigest
 
@@ -38,6 +37,10 @@ class Player implements Temporal, KieMutableProperties, CanSecureHash {
     /** 'business' id */
     UUID id = UUID.randomUUID()
 
+    @ManyToOne
+    @NotNull
+    PlayerTemplate template
+
     Motivator motivator
     @Delegate(excludes = [ 'clone', 'update', 'computeSecureHash', Constants.COL_DBID, Constants.COL_ID ])
     @OneToOne(cascade = CascadeType.ALL)
@@ -50,16 +53,11 @@ class Player implements Temporal, KieMutableProperties, CanSecureHash {
     /** The location of the player. */
     @ManyToOne
     Room room
-    /** List of rooms that are always known to the player, i.e. long term memory. */
-    @ManyToMany
-    List<Room> knownRooms = []
-    @ManyToMany(cascade = CascadeType.ALL)
-    @OrderColumn(name="INDEX")
-    List<Goal> goals = []
 
     Player() { }
 
-    Player(Motivator motivator, Persona persona, String nickName = null) {
+    Player(PlayerTemplate template, Motivator motivator, Persona persona, String nickName = null) {
+        this.template = template
         this.motivator = motivator
         this.nickName = nickName
         this.persona = persona.clone()
@@ -105,10 +103,9 @@ class Player implements Temporal, KieMutableProperties, CanSecureHash {
     }
 
     Player initialize() {
+        Hibernate.initialize(template)
         Hibernate.initialize(persona)
         Hibernate.initialize(room)
-        Hibernate.initialize(knownRooms)
-        Hibernate.initialize(goals)
         this
     }
 
@@ -131,7 +128,6 @@ class Player implements Temporal, KieMutableProperties, CanSecureHash {
         if (room) {
             md.update(room.modelId.bytes)
         }
-        knownRooms.each { md.update(it.modelId.bytes) }
 
         ByteBuffer intb = ByteBuffer.allocate(4)
         md.update(intb.rewind().putInt(siblingNumber).array())

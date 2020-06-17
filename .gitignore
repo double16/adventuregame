@@ -53,3 +53,7 @@ HELP.md
 ### VS Code ###
 .vscode/
 .gradletasknamecache
+
+# Project Specific
+
+lightning-jenkins.properties

@@ -14,6 +14,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ContextConfiguration
 import org.springframework.web.server.ResponseStatusException
+import spock.lang.PendingFeature
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -133,7 +134,8 @@ class EngineCacheTest extends Specification {
         engines.each { Engine e ->
             e.addToCast(e.story.requests.find { it instanceof PlayerRequest }.template.createPlayer(Motivator.HUMAN)).join()
         }
-        cache.clear()
+        cache.sweep().join()
+        cache.clear().join()
 
         then:
         engines[0].story.modified > modified[0]
@@ -190,7 +192,8 @@ class EngineCacheTest extends Specification {
         }
         engine.start().join()
         engine.end().join()
-        cache.expire()
+        engine.close().join()
+        cache.expire().join()
 
         when:
         List<AgendaLog> logs = query.setParameter(1, engine.story).getResultList()
@@ -219,5 +222,11 @@ class EngineCacheTest extends Specification {
         engines[0].story.modified > modified[0]
         engines[1].story.modified > modified[1]
         engines.every { !it.isClosed() }
+    }
+
+    @PendingFeature
+    def "expire engines during high mem usage"() {
+        expect:
+        false
     }
 }

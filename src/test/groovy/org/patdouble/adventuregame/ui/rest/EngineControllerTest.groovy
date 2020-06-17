@@ -4,8 +4,12 @@ import org.patdouble.adventuregame.engine.Engine
 import org.patdouble.adventuregame.engine.RecordingSimpMessageTemplate
 import org.patdouble.adventuregame.flow.ChronosChanged
 import org.patdouble.adventuregame.flow.ErrorMessage
+import org.patdouble.adventuregame.flow.GoalFulfilled
 import org.patdouble.adventuregame.flow.PlayerChanged
+import org.patdouble.adventuregame.flow.RequestCreated
 import org.patdouble.adventuregame.flow.RequestSatisfied
+import org.patdouble.adventuregame.flow.StoryEnded
+import org.patdouble.adventuregame.flow.StoryMessage
 import org.patdouble.adventuregame.model.PersonaMocks
 import org.patdouble.adventuregame.state.Player
 import org.patdouble.adventuregame.state.request.PlayerRequest
@@ -14,8 +18,10 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
+import org.springframework.mock.web.MockHttpServletResponse
 import org.springframework.test.context.ContextConfiguration
 import org.springframework.web.server.ResponseStatusException
+import spock.lang.PendingFeature
 import spock.lang.Specification
 import spock.lang.Unroll
 import static org.patdouble.adventuregame.SpecHelper.settle
@@ -206,7 +212,8 @@ class EngineControllerTest extends Specification {
         controller.action(new ActionRequest(
                 storyId: storyId,
                 playerId: warrior.id as String,
-                statement: 'go north'
+                statement: 'go north',
+                waitForComplete: true
         ))
         waitForStompMessages()
 
@@ -222,23 +229,106 @@ class EngineControllerTest extends Specification {
         }
     }
 
-    def "handleException"() {
-        when:
-        ErrorMessage err1 = controller.handleException(new ResponseStatusException(HttpStatus.NOT_FOUND, 'Story not found'))
-        then:
-        err1.httpCode == 404
-        err1.message == 'Story not found'
+    def "Action with invalid statement"() {
+        given:
+        Engine engine = controller.engineCache.get(UUID.fromString(storyId))
+        engine.story.requests.findAll { it instanceof PlayerRequest }.each {
+            controller.addToCast(new AddToCastRequest(
+                    storyId: storyId,
+                    playerTemplateId: it.template.id as String,
+                    motivator: 'human'))
+        }
+        controller.start(new StartRequest(storyId: storyId))
+        Player warrior = engine.story.cast.find { it.persona.name == PersonaMocks.WARRIOR.name }
 
         when:
-        ErrorMessage err2 = controller.handleException(new ResponseStatusException(HttpStatus.CONFLICT))
+        controller.action(new ActionRequest(
+                storyId: storyId,
+                playerId: warrior.id as String,
+                statement: 'go nowhere',
+                waitForComplete: true
+        ))
+        waitForStompMessages()
+
         then:
-        err2.httpCode == 409
-        err2.message == 'Conflict'
+        def e = thrown(ResponseStatusException)
+        e.status == HttpStatus.NOT_ACCEPTABLE
+    }
+
+    def "State"() {
+        given:
+        Engine engine = controller.engineCache.get(UUID.fromString(storyId))
+        engine.story.requests.findAll { it instanceof PlayerRequest }.each {
+            controller.addToCast(new AddToCastRequest(
+                    storyId: storyId,
+                    playerTemplateId: it.template.id as String,
+                    motivator: 'human'))
+        }
+        engine.story.goals.find { it.goal.name == 'one' }.fulfilled = true
+        controller.start(new StartRequest(storyId: storyId, waitForComplete: true))
+        when:
+        List<StoryMessage> messages = controller.state(storyId)
+
+        then:
+        messages.size() == 34
+        messages.count { it instanceof RequestCreated } == 12
+        messages.count { it instanceof PlayerChanged } == 20
+        messages.count { it instanceof ChronosChanged } == 1
+        messages.count { it instanceof GoalFulfilled } == 1
+    }
+
+    def "State for ended story"() {
+        given:
+        Engine engine = controller.engineCache.get(UUID.fromString(storyId))
+        engine.story.requests.findAll { it instanceof PlayerRequest }.each {
+            controller.addToCast(new AddToCastRequest(
+                    storyId: storyId,
+                    playerTemplateId: it.template.id as String,
+                    motivator: 'human'))
+        }
+        engine.story.goals.find { it.goal.name == 'one' }.fulfilled = true
+        controller.start(new StartRequest(storyId: storyId, waitForComplete: true))
+        engine.end().join()
+        controller.engineCache.expire().join()
 
         when:
-        ErrorMessage err3 = controller.handleException(new IllegalStateException('Something is not right'))
+        List<StoryMessage> messages = controller.state(storyId)
+
         then:
-        err3.httpCode == 500
-        err3.message == 'Something is not right'
+        messages.size() == 1
+        messages.count { it instanceof StoryEnded } == 1
+    }
+
+    def "handleException #code"() {
+        given:
+        MockHttpServletResponse response = new MockHttpServletResponse()
+
+        when:
+        ErrorMessage err1 = controller.handleException(exception)
+        then:
+        err1.httpCode == code
+        err1.message == message
+
+        when:
+        ErrorMessage err2 = controller.handleExceptionHttp(exception, response)
+        then:
+        err2.httpCode == code
+        err2.message == message
+        and:
+        response.status == code
+        response.errorMessage == message
+
+        where:
+        code | message                  | exception
+        404  | 'Story not found'        | new ResponseStatusException(HttpStatus.NOT_FOUND, 'Story not found')
+        409  | 'Conflict'               | new ResponseStatusException(HttpStatus.CONFLICT)
+        500  | 'Something is not right' | new IllegalStateException('Something is not right')
+        406  | 'Invalid UUID'           | new IllegalArgumentException('Invalid UUID')
+    }
+
+    @PendingFeature
+    def "respond with busy code when memory usage is high"() {
+        expect:
+        false
     }
 }

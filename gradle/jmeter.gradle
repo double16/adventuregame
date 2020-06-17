@@ -1,0 +1,29 @@
+jmeter {
+    enableReports = false
+    enableExtendedReports = true
+}
+
+def configureJMeterUserProperties = {
+    URL url = new URL('http://localhost:8080')
+    if (jmeter.jmUserProperties == null) {
+        jmeter.jmUserProperties = []
+    }
+    jmeter.jmUserProperties << "app_proto=${url.protocol}"
+    jmeter.jmUserProperties << "app_host=${url.host}"
+    jmeter.jmUserProperties << "app_port=${url.port}"
+    jmeter.jmUserProperties << "app_path=${url.path}"
+}
+jmRun.doFirst(configureJMeterUserProperties)
+jmRun.doLast {
+    project.lightningSettings.jmeterCsv = project.jmeter.jmResultFiles.first()
+}
+
+//[report, verify]*.dependsOn jmRun
+verify.doLast {
+    File junitOrig = project.file('junit.xml')
+    File junitDest = new File(project.buildDir, "test-results/${project.name}/LOAD-junit.xml")
+    if (junitOrig.exists()) {
+        assert junitDest.parentFile.mkdirs()
+        junitOrig.renameTo(junitDest)
+    }
+}

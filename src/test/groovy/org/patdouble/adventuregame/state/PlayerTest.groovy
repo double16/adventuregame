@@ -1,17 +1,18 @@
 package org.patdouble.adventuregame.state
 
 import org.patdouble.adventuregame.model.PersonaMocks
+import org.patdouble.adventuregame.model.PlayerTemplateMocks
 import spock.lang.Specification
 
 class PlayerTest extends Specification {
     Player p1a, p1b, p2a, p2b, p3
 
     def setup() {
-        p1a = new Player(Motivator.AI, PersonaMocks.WARRIOR)
-        p1b = new Player(Motivator.AI, PersonaMocks.WARRIOR)
-        p2a = new Player(Motivator.AI, PersonaMocks.WARRIOR, 'shadowblade')
-        p2b = new Player(Motivator.AI, PersonaMocks.WARRIOR, 'shadowblade')
-        p3 = new Player(Motivator.AI, PersonaMocks.THIEF)
+        p1a = new Player(PlayerTemplateMocks.WARRIOR, Motivator.AI, PersonaMocks.WARRIOR)
+        p1b = new Player(PlayerTemplateMocks.WARRIOR, Motivator.AI, PersonaMocks.WARRIOR)
+        p2a = new Player(PlayerTemplateMocks.WARRIOR, Motivator.AI, PersonaMocks.WARRIOR, 'shadowblade')
+        p2b = new Player(PlayerTemplateMocks.WARRIOR, Motivator.AI, PersonaMocks.WARRIOR, 'shadowblade')
+        p3 = new Player(PlayerTemplateMocks.THIEF, Motivator.AI, PersonaMocks.THIEF)
     }
 
     def "constructor"() {

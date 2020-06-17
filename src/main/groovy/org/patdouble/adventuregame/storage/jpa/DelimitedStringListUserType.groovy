@@ -11,24 +11,22 @@ import java.sql.SQLException
 import java.sql.Types
 
 /**
- * Hibernate user type for storing a range of integers.
+ * Hibernate user type for storing a list of strings in a single delimited column. The user of the type is responsible
+ * for ensuring the deliminator isn't contained in the values.
  */
 @CompileStatic
 @SuppressWarnings(['Unused', 'JdbcResultSetReference', 'JdbcStatementReference'])
-class IntRangeUserType implements UserType {
-
-    private static final int OFFSET_FROM = 0
-    private static final int OFFSET_TO = 1
-    private static final int OFFSET_INCLUSIVE = 2
+class DelimitedStringListUserType implements UserType {
+    private static final String DELIMINATOR = ';'
 
     @Override
     int[] sqlTypes() {
-        [ Types.INTEGER, Types.INTEGER, Types.BOOLEAN ] as int[]
+        [ Types.VARCHAR ] as int[]
     }
 
     @Override
     Class returnedClass() {
-        IntRange
+        List
     }
 
     @Override
@@ -48,17 +46,12 @@ class IntRangeUserType implements UserType {
             String[] names,
             SharedSessionContractImplementor session,
             Object owner) throws HibernateException, SQLException {
-        if (rs.wasNull()) {
-            return null
-        }
 
-        int from = rs.getInt(names[OFFSET_FROM])
-        int to = rs.getInt(names[OFFSET_TO])
-        Boolean inclusive = rs.getBoolean(names[OFFSET_INCLUSIVE])
-        if (inclusive) {
-            return new IntRange(true, from, to)
+        String delimited = rs.getString(names[0])
+        if (rs.wasNull()) {
+            return []
         }
-        return new IntRange(from, to)
+        delimited.split(DELIMINATOR) as List
     }
 
     @Override
@@ -68,25 +61,20 @@ class IntRangeUserType implements UserType {
             int index,
             SharedSessionContractImplementor session) throws HibernateException, SQLException {
         if (value == null) {
-            st.setNull(index + OFFSET_FROM, Types.INTEGER)
-            st.setNull(index + OFFSET_TO, Types.INTEGER)
-            st.setNull(index + OFFSET_INCLUSIVE, Types.BOOLEAN)
+            st.setNull(index, Types.LONGVARCHAR)
         } else {
-            IntRange range = value as IntRange
-            st.setInt(index + OFFSET_FROM, range.from)
-            st.setInt(index + OFFSET_TO, range.to)
-            st.setBoolean(index + OFFSET_INCLUSIVE, range.inclusive)
+            st.setString(index, (value as Collection).join(DELIMINATOR))
         }
     }
 
     @Override
     Object deepCopy(Object value) throws HibernateException {
-        value
+        new ArrayList(value as Collection)
     }
 
     @Override
     boolean isMutable() {
-        false
+        true
     }
 
     @Override

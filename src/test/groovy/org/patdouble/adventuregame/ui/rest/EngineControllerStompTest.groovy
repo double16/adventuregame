@@ -61,6 +61,7 @@ class EngineControllerStompTest extends Specification {
 
     void setup() {
         ((Logger) LoggerFactory.getLogger(LoggingWebSocketHandlerDecorator.class.name)).setLevel(Level.TRACE)
+//        ((Logger) LoggerFactory.getLogger('org.drools.core.common.DefaultAgenda')).setLevel(Level.TRACE)
 
         CreateStoryRequest request = new CreateStoryRequest(worldName: LuaUniverseRegistry.TRAILER_PARK)
         CreateStoryResponse response = controller.createStory(request)
@@ -98,6 +99,7 @@ class EngineControllerStompTest extends Specification {
     }
 
     void cleanup() {
+//        ((Logger) LoggerFactory.getLogger('org.drools.core.common.DefaultAgenda')).setLevel(Level.INFO)
         log.info 'Cleaning up engine cache'
         controller.engineCache.clear()
     }
@@ -197,6 +199,7 @@ class EngineControllerStompTest extends Specification {
         }
         when:
         controller.start(new StartRequest(storyId: storyId, waitForComplete: true))
+        settle { engine.story.chronos.current }
 
         then:
         notThrown(Exception)
@@ -219,12 +222,14 @@ class EngineControllerStompTest extends Specification {
         }
         controller.start(new StartRequest(storyId: storyId, waitForComplete: true))
         Player warrior = engine.story.cast.find { it.persona.name == PersonaMocks.WARRIOR.name }
+        settle { controller.state(storyId).size() }
 
         when:
         controller.action(new ActionRequest(
                 storyId: storyId,
                 playerId: warrior.id as String,
-                statement: 'go north'
+                statement: 'go north',
+                waitForComplete: true,
         ))
         Collection<Object> messages = pollMessages(POLL_TIMEOUT, TimeUnit.SECONDS)
                 .collect { it.second }
@@ -243,14 +248,15 @@ class EngineControllerStompTest extends Specification {
     def "Subscribe"() {
         given:
         Engine engine = controller.engineCache.get(UUID.fromString(storyId))
+        engine.story.goals.find { it.goal.name == 'one' }.fulfilled = true
         engine.story.requests.findAll { it instanceof PlayerRequest }.each {
             controller.addToCast(new AddToCastRequest(
                     storyId: storyId,
                     playerTemplateId: it.template.id as String,
                     motivator: 'human'))
         }
-        engine.story.goals.find { it.goal.name == 'one' }.fulfilled = true
         controller.start(new StartRequest(storyId: storyId, waitForComplete: true))
+        settle { controller.subscribe(storyId).size() }
         when:
         List<StoryMessage> messages = controller.subscribe(storyId)
 

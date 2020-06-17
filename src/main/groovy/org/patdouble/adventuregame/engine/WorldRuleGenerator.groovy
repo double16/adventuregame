@@ -41,7 +41,7 @@ rule "world goal ${g.name}"
     Story Goal "${g.name}"
     ${g.rules.join('\n')}
   then
-    log "goal ${g.name} fulfilled"
+//    log "goal ${g.name} fulfilled"
     goal is fulfilled
 end
 

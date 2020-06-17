@@ -53,7 +53,7 @@ class EngineAutostartTest extends Specification {
         !story.goals.isEmpty()
 
         when:
-        engine.close()
+        engine.close().join()
 
         then:
         engine.isClosed()

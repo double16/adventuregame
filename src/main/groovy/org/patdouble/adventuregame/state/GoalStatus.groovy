@@ -16,7 +16,7 @@ import javax.persistence.ManyToOne
 /**
  * Tracks fulfillment of a {@link Goal}.
  */
-@Canonical(excludes = [Constants.COL_DBID], includePackage = false)
+@Canonical(excludes = [Constants.COL_DBID, 'story'], includePackage = false)
 @Entity
 @CompileDynamic
 class GoalStatus implements KieMutableProperties {
@@ -27,6 +27,9 @@ class GoalStatus implements KieMutableProperties {
     UUID dbId
     /** 'business' id */
     UUID id = UUID.randomUUID()
+    @ManyToOne
+    @JsonIgnore
+    Story story
     @ManyToOne(fetch = FetchType.EAGER)
     Goal goal
     boolean fulfilled

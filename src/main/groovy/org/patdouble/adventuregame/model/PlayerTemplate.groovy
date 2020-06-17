@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.fasterxml.jackson.databind.annotation.JsonSerialize
 import groovy.transform.Canonical
 import groovy.transform.CompileDynamic
+import org.hibernate.Hibernate
 import org.hibernate.annotations.Columns
 import org.hibernate.annotations.Type
 import org.patdouble.adventuregame.state.Motivator
@@ -13,11 +14,16 @@ import org.patdouble.adventuregame.storage.jpa.Constants
 import org.patdouble.adventuregame.storage.json.IntRangeJsonDeserializer
 import org.patdouble.adventuregame.storage.json.IntRangeJsonSerializer
 
+import javax.persistence.CascadeType
 import javax.persistence.Column
 import javax.persistence.Entity
 import javax.persistence.GeneratedValue
 import javax.persistence.GenerationType
 import javax.persistence.Id
+import javax.persistence.ManyToMany
+import javax.persistence.ManyToOne
+import javax.persistence.OneToMany
+import javax.persistence.OrderColumn
 import javax.validation.constraints.NotNull
 import java.nio.ByteBuffer
 import java.security.MessageDigest
@@ -28,12 +34,35 @@ import java.security.MessageDigest
 @Canonical(includes = [Constants.COL_ID, Constants.COL_DBID])
 @Entity
 @CompileDynamic
-class PlayerTemplate implements CharacterTrait {
+class PlayerTemplate implements CanSecureHash {
     @Id @GeneratedValue(strategy = GenerationType.AUTO)
     @JsonIgnore
     UUID dbId
     /** 'business' id */
     UUID id = UUID.randomUUID()
+
+    @Delegate(excludes = [ 'clone', 'update', 'computeSecureHash', Constants.COL_DBID, Constants.COL_ID ])
+    @ManyToOne
+    @NotNull
+    @JsonIgnore
+    Persona persona = new Persona()
+
+    String nickName
+
+    String fullName
+
+    @ManyToOne
+    @NotNull
+    Room room
+
+    /** List of rooms that are always known to the player, i.e. long term memory. */
+    @ManyToMany
+    @JsonIgnore // this could be large
+    List<Room> knownRooms = []
+
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderColumn(name="INDEX")
+    List<Goal> goals = []
 
     /** The allowed quantity of this type of player. */
     @Type(type = 'org.patdouble.adventuregame.storage.jpa.IntRangeUserType')
@@ -44,13 +73,19 @@ class PlayerTemplate implements CharacterTrait {
 
     Player createPlayer(@NotNull Motivator motivator) {
         Objects.requireNonNull(motivator)
-        CharacterTrait.super.createPlayer(motivator)
+        Player p = new Player(this, motivator, persona, nickName)
+        p.fullName = fullName
+        p.room = room
+        p
     }
 
-    @Override
-    @JsonIgnore
-    Persona getPersona() {
-        CharacterTrait.super.getPersona()
+    List<Player> createPlayers() {
+        List<Player> players = []
+        int c = quantity.max()
+        while (c-- > 0) {
+            players << createPlayer(Motivator.AI)
+        }
+        players
     }
 
     @Override
@@ -77,9 +112,23 @@ class PlayerTemplate implements CharacterTrait {
         Objects.hash(quantity, persona, nickName, fullName)
     }
 
+    PlayerTemplate initialize() {
+        Hibernate.initialize(persona)
+        Hibernate.initialize(room)
+        Hibernate.initialize(knownRooms)
+        Hibernate.initialize(goals)
+        this
+    }
+
     @Override
     void update(MessageDigest md) {
-        CharacterTrait.super.update(md)
+        persona.update(md)
+        md.update((nickName ?: "").bytes)
+        md.update((fullName ?: "").bytes)
+        md.update((room?.modelId ?: "").bytes)
+        knownRooms.each { md.update(it.modelId.bytes) }
+        goals*.update(md)
+
         ByteBuffer intb = ByteBuffer.allocate(4)
         md.update(intb.rewind().putInt(quantity.fromInt).array())
         md.update(intb.rewind().putInt(quantity.toInt).array())

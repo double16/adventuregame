@@ -5,19 +5,19 @@ import org.patdouble.adventuregame.state.Player
 import spock.lang.Specification
 
 class ExtrasTemplateTest extends Specification {
-    ExtrasTemplate template
+    PlayerTemplate template
 
     def setup() {
-        template = new ExtrasTemplate()
+        template = new PlayerTemplate()
         template.persona = PersonaMocks.THIEF
-        template.quantity = 3
+        template.quantity = 3..3
         template.room = RoomMocks.ENTRANCE
         template.goals.add(GoalMocks.PLAYER_ENTER_ROOM)
     }
 
     def "CreatePlayer"() {
         when:
-        Player p = template.createPlayer()
+        Player p = template.createPlayer(Motivator.AI)
         then:
         p.motivator == Motivator.AI
         p.persona == PersonaMocks.THIEF
@@ -25,8 +25,8 @@ class ExtrasTemplateTest extends Specification {
         p.nickName == null
         p.fullName == null
         p.room == RoomMocks.ENTRANCE
-        p.goals.size() == 1
-        p.goals[0].id == GoalMocks.PLAYER_ENTER_ROOM.id
+        p.template.goals.size() == 1
+        p.template.goals[0].id == GoalMocks.PLAYER_ENTER_ROOM.id
     }
 
     def "CreatePlayers"() {
@@ -43,7 +43,7 @@ class ExtrasTemplateTest extends Specification {
 
     def "ToString"() {
         expect:
-        template.toString().contains('ExtrasTemplate')
+        template.toString().contains('PlayerTemplate')
         template.toString().contains(' 3')
     }
 }

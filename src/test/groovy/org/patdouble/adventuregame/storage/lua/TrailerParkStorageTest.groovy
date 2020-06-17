@@ -1,13 +1,11 @@
 package org.patdouble.adventuregame.storage.lua
 
 import org.patdouble.adventuregame.model.Direction
-import org.patdouble.adventuregame.model.ExtrasTemplate
+
 import org.patdouble.adventuregame.model.Persona
 import org.patdouble.adventuregame.model.PlayerTemplate
 import org.patdouble.adventuregame.model.Room
 import org.patdouble.adventuregame.model.World
-import org.patdouble.adventuregame.storage.lua.LuaUniverseRegistry
-import org.patdouble.adventuregame.storage.lua.WorldLuaStorage
 import spock.lang.Specification
 
 class TrailerParkStorageTest extends Specification {
@@ -63,19 +61,19 @@ class TrailerParkStorageTest extends Specification {
         world.extras.size() == 2
 
         and: 'thug extras in dump'
-        ExtrasTemplate thugExtra = world.extras.findAll { it.persona.name == 'thug' }[0]
+        PlayerTemplate thugExtra = world.extras.findAll { it.persona.name == 'thug' }[0]
         thugExtra.nickName == null
         thugExtra.fullName == 'Thug'
         thugExtra.persona.name == 'thug'
-        thugExtra.quantity == 5
+        thugExtra.quantity == 5..5
         thugExtra.room.modelId == 'dump'
 
         and: 'thug extras in entrance'
-        ExtrasTemplate thugExtra2 = world.extras.findAll { it.persona.name == 'thug' }[1]
+        PlayerTemplate thugExtra2 = world.extras.findAll { it.persona.name == 'thug' }[1]
         thugExtra2.nickName == null
         thugExtra2.fullName == 'Thug'
         thugExtra2.persona.name == 'thug'
-        thugExtra2.quantity == 3
+        thugExtra2.quantity == 3..3
         thugExtra2.room.modelId == 'entrance'
         thugExtra2.goals.size() == 1
         with(thugExtra2.goals.first()) {
