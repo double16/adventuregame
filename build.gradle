@@ -15,10 +15,13 @@ plugins {
     id 'de.undercouch.download' version '4.0.4'
     id 'com.patdouble.jmeter-gradle-plugin' version '1.2.0-5.3'
     id 'uk.co.automatictester.lightning' version '2.0.1'
+    id 'com.patdouble.zap' version '2.10.0'
+    id 'com.avast.gradle.docker-compose' version '0.12.1'
 }
 
 apply plugin: 'io.spring.dependency-management'
 apply from: 'gradle/jmeter.gradle'
+apply from: 'gradle/zap.gradle'
 
 group = 'org.patdouble.adventuregame'
 version = '0.0.1-SNAPSHOT'
@@ -119,6 +122,15 @@ dependencyUpdates.resolutionStrategy {
 }
 
 check.dependsOn dependencyCheckAggregate
+dependencyCheck {
+    skipConfigurations = [
+            'developmentOnly',
+            'testImplementation',
+            'testRuntimeOnly',
+            'clover',
+            'codenarc',
+    ]
+}
 
 plugins.withId('groovy') {
     compileGroovy {
@@ -182,6 +194,8 @@ dockerSyncBuildContext {
         exclude "**/${it.name}*"
     }
 }
+
+composeUp.dependsOn dockerBuildImage
 
 clover {
     report {

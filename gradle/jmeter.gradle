@@ -3,8 +3,16 @@ jmeter {
     enableExtendedReports = true
 }
 
+lightningSettings {
+    testSetXml = project.file('src/test/jmeter/lightning.xml')
+}
+
+dockerCompose.isRequiredBy(jmRun)
+
 def configureJMeterUserProperties = {
-    URL url = new URL('http://localhost:8080')
+    def host = dockerCompose.servicesInfos.app.firstContainer.host
+    def port = dockerCompose.servicesInfos.app.firstContainer.ports[8080]
+    URL url = new URL("http://${host}:${port}")
     if (jmeter.jmUserProperties == null) {
         jmeter.jmUserProperties = []
     }
@@ -18,12 +26,12 @@ jmRun.doLast {
     project.lightningSettings.jmeterCsv = project.jmeter.jmResultFiles.first()
 }
 
-//[report, verify]*.dependsOn jmRun
+[tasks.report, tasks.verify]*.dependsOn jmRun
 verify.doLast {
     File junitOrig = project.file('junit.xml')
     File junitDest = new File(project.buildDir, "test-results/${project.name}/LOAD-junit.xml")
     if (junitOrig.exists()) {
-        assert junitDest.parentFile.mkdirs()
+        junitDest.parentFile.mkdirs()
         junitOrig.renameTo(junitDest)
     }
 }

@@ -43,6 +43,9 @@ class DroolsConfiguration {
                     if (value?.get()) {
                         return value
                     }
+                    if (value != null) {
+                        log.info 'Rebuilding gc\'d KIE container'
+                    }
                     new SoftReference<>(buildContainer(world))
                 }).get()
         Objects.requireNonNull(container)

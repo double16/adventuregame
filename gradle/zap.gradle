@@ -1,0 +1,122 @@
+import groovyx.net.http.HttpBuilder
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'org.apache.httpcomponents:httpclient:4.5.12'
+        classpath 'io.github.http-builder-ng:http-builder-ng-core:1.0.4'
+    }
+}
+
+zapConfig {
+    applicationUrl = project.objects.property(String).convention('').map {
+        def host = dockerCompose.servicesInfos.app.firstContainer.host
+        def port = dockerCompose.servicesInfos.app.firstContainer.ports[8080]
+        "http://${host}:${port}"
+    }
+}
+
+task zapSetup(dependsOn: zapStart) {
+    doLast {
+        zapConfig.api {
+            project.ext.contextId = context.newContext(project.name).value
+            context.includeInContext(project.name, "\\Q${zapConfig.applicationUrl.get()}\\E.*")
+        }
+
+        def app = HttpBuilder.configure {
+            request.uri = zapConfig.applicationUrl.get()
+            Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress('localhost', zapConfig.proxyPort.get() as int))
+            execution.proxy(proxy, false)
+        }
+        app.get {
+            request.uri.path = '/'
+        }
+        def worlds = app.get {
+            request.uri.path = '/api/worlds'
+            request.accept = 'application/json'
+        }
+        def trailerParkId = worlds._embedded.worlds.find { it.name == 'Trailer Park' }._links.self.href
+        logger.info "trailerParkId = ${trailerParkId}"
+        def player1TemplateId = worlds._embedded.worlds.find { it.name == 'Trailer Park' }.players.find { it.fullName == 'Shadowblow the Hammer' }.id
+        logger.info "player1TemplateId = ${player1TemplateId}"
+        def storyId = app.post {
+            request.uri.path = '/api/engine/createstory'
+            request.contentType = 'application/json'
+            request.accept = 'application/json'
+            request.body = """{ "worldId": "${trailerParkId}" }"""
+        }.storyUri - '/play/'
+        logger.info "storyId = ${storyId}"
+        def player1Uri = app.post {
+            request.uri.path = '/api/engine/addtocast'
+            request.contentType = 'application/json'
+            request.accept = 'application/json'
+            request.body = """
+{
+    "storyId": "${storyId}",
+    "playerTemplateId": "${player1TemplateId}",
+    "motivator": "HUMAN",
+    "fullName": "Shadowblow the Hammer",
+    "nickName": "Shadowblow"
+}
+"""
+        }.playerUri
+        logger.info "player1Uri = ${player1Uri}"
+        def player1Id = player1Uri.split('/')[3]
+        logger.info "player1Id = ${player1Id}"
+        app.post {
+            request.uri.path = '/api/engine/start'
+            request.contentType = 'application/json'
+            request.accept = 'application/json'
+            request.body = """
+{
+    "storyId": "${storyId}",
+    "waitForComplete": true
+}
+"""
+        }
+        logger.info "started"
+
+        while (
+                !app.post {
+                    request.uri.path = '/api/engine/state'
+                    request.contentType = 'application/x-www-form-urlencoded'
+                    request.accept = 'application/json'
+                    request.body = [storyId: storyId]
+                }.find { it.request?.player?.id == player1Id }
+        ) {
+            Thread.sleep(2000)
+        }
+        logger.info "ready"
+
+        app.post {
+            request.uri.path = '/api/engine/action'
+            request.contentType = 'application/json'
+            request.accept = 'application/json'
+            request.body = """
+{
+    "storyId": "${storyId}",
+    "playerId": "${player1Id}",
+    "statement": "go north",
+    "waitForComplete": true
+}
+
+"""
+        }
+    }
+}
+
+zapSpider.dependsOn zapSetup
+zapAjaxSpider.dependsOn zapSetup
+zapActiveScan.dependsOn zapSetup
+zapStop.mustRunAfter zapSetup
+
+dockerCompose.isRequiredBy(zapSetup)
+dockerCompose.isRequiredBy(zapSpider)
+dockerCompose.isRequiredBy(zapAjaxSpider)
+dockerCompose.isRequiredBy(zapActiveScan)
+
+task zapCheck(dependsOn: [zapSpider, zapAjaxSpider, zapActiveScan, zapReport]) {
+    group = 'verification'
+}

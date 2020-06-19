@@ -10,6 +10,6 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: "stage"
     ports:
-    - 8080
+    - 10222:8080
     volumes:
     - data:/data
