@@ -4,41 +4,13 @@ world {
     author = 'double16';
 }
 
-persona 'warrior' {
-    health = 100;
-    wealth = 50;
-}
-
-persona 'thief' {
-    health = 60;
-    wealth = 100;
-}
-
-persona 'elf' {
-    health = 100;
-    wealth = 100;
-}
-
-persona 'hobbit' {
-    health = 80;
-    wealth = 30;
-}
-
-persona 'wizard' {
-    health = 100;
-    wealth = 30;
-}
-
-persona 'orc' {
-    health = 50;
-    wealth = 0;
-}
+require 'worlds.middle-earth'
 
 player {
     persona = 'hobbit';
     nickname = 'Bilbo';
     fullname = 'Bilbo Baggins';
-    room = 'bag_end_foyer';
+    room = 'bag_end_garden';
 
     memory {
         regions = { 'shire' };
@@ -65,30 +37,6 @@ extra {
     memory {
         regions = 'mordor';
     }
-}
-
-region 'shire' {
-    name = 'The Shire';
-}
-
-region 'bag_end' {
-    name = 'Bag End';
-    inside = 'shire';
-    description = "Baggins' Hobbit Hole";
-}
-
-region 'mordor' {
-    name = 'Mordor';
-}
-
-room 'bag_end_foyer' {
-    description = "Entrance to Bag End";
-    region = 'bag_end';
-}
-
-room 'bag_end_kitchen' {
-    description = "Bag End Kitchen";
-    region = 'bag_end';
 }
 
 room 'blackgate' {

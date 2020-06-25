@@ -26,13 +26,13 @@ class WorldLuaStorageTest extends Specification {
         world.description == 'The Hobbit by J.R.R. Tolkien'
 
         and: 'personas are loaded'
-        world.personas.size() == 6
+        world.personas.size() == 4
 
-        and: 'warrior persona'
-        Persona warrior = world.personas.find { it.name == 'warrior' }
-        warrior.name == 'warrior'
-        warrior.health == 100
-        warrior.wealth == 50
+        and: 'hobbit persona'
+        Persona hobbit = world.personas.find { it.name == 'hobbit' }
+        hobbit.name == 'hobbit'
+        hobbit.health == 80
+        hobbit.wealth == 30
 
         and: 'players'
         world.players.size() == 2

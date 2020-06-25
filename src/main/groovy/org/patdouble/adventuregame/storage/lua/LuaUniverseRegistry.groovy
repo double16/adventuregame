@@ -18,7 +18,7 @@ class LuaUniverseRegistry implements UniverseRegistry {
         List<World> worlds = []
 
         WorldLuaStorage luaStorage = new WorldLuaStorage()
-        worlds.addAll(['/worlds/the-hobbit.lua', '/worlds/trailer-park.lua'].collect { String path ->
+        worlds.addAll(['/worlds/the-hobbit.lua', '/worlds/lotr.lua', '/worlds/trailer-park.lua'].collect { String path ->
             InputStream is = LuaUniverseRegistry.getResourceAsStream(path)
             luaStorage.load(is)
         })
