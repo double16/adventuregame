@@ -3,7 +3,7 @@ package org.patdouble.adventuregame.state
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.sun.istack.NotNull
 import groovy.transform.Canonical
-import groovy.transform.CompileDynamic
+import groovy.transform.CompileStatic
 import groovy.transform.TupleConstructor
 import org.hibernate.Hibernate
 import org.patdouble.adventuregame.i18n.ActionStatement
@@ -26,7 +26,7 @@ import java.security.MessageDigest
 @Canonical(excludes = [Constants.COL_DBID, 'event'], includePackage = false)
 @Entity
 @TupleConstructor
-@CompileDynamic
+@CompileStatic
 class PlayerEvent implements KieMutableProperties, CanSecureHash {
     private static final String[] KIE_MUTABLE_PROPS = []
 

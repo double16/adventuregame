@@ -2,7 +2,9 @@ package org.patdouble.adventuregame.i18n
 
 import groovy.transform.CompileDynamic
 import groovy.util.logging.Slf4j
+import org.patdouble.adventuregame.engine.EngineFacade
 import org.patdouble.adventuregame.model.Action
+import org.patdouble.adventuregame.state.Player
 
 import javax.validation.constraints.NotNull
 import java.util.regex.Matcher
@@ -72,7 +74,9 @@ class ActionStatementParser {
         null
     }
 
-    List<String> getAvailableActions() {
-        actions.keySet().sort()
+    List<String> findAvailableActions(EngineFacade facade, Player player) {
+        actions.findAll { k,v -> v.actionClass.getDeclaredConstructor().newInstance().isValid(facade, player) }
+                .keySet()
+                .sort()
     }
 }

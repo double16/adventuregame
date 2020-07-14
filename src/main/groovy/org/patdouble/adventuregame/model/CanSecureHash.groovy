@@ -1,8 +1,11 @@
 package org.patdouble.adventuregame.model
 
+import groovy.transform.CompileStatic
+
 import java.security.MessageDigest
 
 /** Identifies an object that can contribute to a secure hashing. */
+@CompileStatic
 trait CanSecureHash {
     static final String HASH_ALGORITHM = 'SHA-256'
 

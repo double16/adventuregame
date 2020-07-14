@@ -56,7 +56,7 @@ class EngineCacheTest extends Specification {
         engine.story.id == story.id
         engine.story.chronos.current == 0
         engine.story.requests.size() == 12
-        engine.story.goals.size() == 3
+        engine.story.goals.size() == 4
     }
 
     def "get init story"() {
@@ -75,7 +75,7 @@ class EngineCacheTest extends Specification {
         engine.story.id == story.id
         engine.story.chronos.current == 0
         engine.story.requests.size() == 12
-        engine.story.goals.size() == 3
+        engine.story.goals.size() == 4
     }
 
     def "get started story"() {
@@ -99,7 +99,7 @@ class EngineCacheTest extends Specification {
         engine.story.id == story.id
         engine.story.chronos.current == 1
         engine.story.requests.size() == 12
-        engine.story.goals.size() == 3
+        engine.story.goals.size() == 4
     }
 
     def "get ended story"() {

@@ -147,7 +147,7 @@ class TrailerParkStorageTest extends Specification {
         rTrailer3FromDump.modelId == 'trailer_3'
 
         and: 'Goals are present'
-        world.goals.size() == 3
+        world.goals.size() == 4
         with(world.goals.find { it.name == 'one' }) {
             !required
             !theEnd
@@ -156,13 +156,19 @@ class TrailerParkStorageTest extends Specification {
         }
         with(world.goals.find { it.name == 'two' }) {
             !required
-            theEnd
+            !theEnd
             description == 'Any player reaches trailer 4.'
             rules == [ 'player enters room "trailer_4"' ]
         }
         with(world.goals.find { it.name == 'three' }) {
             required
             !theEnd
+            description == 'Unspecified'
+            rules == []
+        }
+        with(world.goals.find { it.name == 'four' }) {
+            required
+            theEnd
             description == 'Unspecified'
             rules == []
         }

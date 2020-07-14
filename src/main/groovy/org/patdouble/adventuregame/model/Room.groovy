@@ -5,7 +5,6 @@ import groovy.transform.CompileDynamic
 import groovy.transform.ToString
 import org.hibernate.Hibernate
 import org.patdouble.adventuregame.state.KieMutableProperties
-import org.patdouble.adventuregame.storage.jpa.Constants
 
 import javax.persistence.Entity
 import javax.persistence.GeneratedValue
@@ -21,7 +20,7 @@ import java.security.MessageDigest
  * A place of non-deterministic size that can hold objects and players.
  */
 @Entity
-@ToString(excludes = [Constants.COL_ID, Constants.COL_DBID, 'neighbors'], includePackage = false)
+@ToString(includes = ['modelId', 'name'], includePackage = false)
 @CompileDynamic
 class Room implements KieMutableProperties, CanSecureHash {
     private static final String[] KIE_MUTABLE_PROPS = []
@@ -55,7 +54,7 @@ class Room implements KieMutableProperties, CanSecureHash {
     }
 
     @JsonIgnore
-    Set<UUID> getNeighborsId() {
+    Set<UUID> findNeighborsId() {
         Collections.unmodifiableSet(neighbors.values()*.id as Set)
     }
 

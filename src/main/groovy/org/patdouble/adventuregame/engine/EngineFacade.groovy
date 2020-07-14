@@ -1,7 +1,7 @@
 package org.patdouble.adventuregame.engine
 
 import groovy.transform.CompileStatic
-import org.kie.api.runtime.rule.QueryResults
+import org.kie.api.runtime.KieSession
 import org.patdouble.adventuregame.flow.StoryMessage
 import org.patdouble.adventuregame.i18n.ActionStatement
 import org.patdouble.adventuregame.i18n.Bundles
@@ -17,6 +17,7 @@ import java.util.concurrent.CompletableFuture
 @CompileStatic
 class EngineFacade {
     protected final Engine engine
+    protected final ThreadLocal<KieSession> kieSession = new ThreadLocal<>()
 
     EngineFacade(Engine engine) {
         this.engine = engine
@@ -85,5 +86,14 @@ class EngineFacade {
     @SuppressWarnings('Unused')
     CompletableFuture<Collection<Room>> findRoomsKnownToPlayer(Player p) {
         engine.findRoomsKnownToPlayer(p)
+    }
+
+    /**
+     * Update an object in the rule engine. Only to be called while running a rule consequence.
+     * @param object the object, such as Player
+     * @param changed list of changed properties, null to attempt detection, 0 implies immutable so no change is recorded
+     */
+    void updateObject(Object object, Collection<String> changed = null) {
+        engine.addOrReplaceKieObject(kieSession.get(), object, changed as String[])
     }
 }

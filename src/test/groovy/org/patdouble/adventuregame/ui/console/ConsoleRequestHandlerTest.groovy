@@ -15,6 +15,7 @@ class ConsoleRequestHandlerTest extends AbstractConsoleTest {
         main.logLevel = Level.INFO
         main.applyConfiguration()
         main.world = main.registry.worlds.find { it.name == LuaUniverseRegistry.TRAILER_PARK }
+        main.world.goals.find { it.name == 'two' }.theEnd = true
     }
 
     def cleanup() {

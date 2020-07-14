@@ -58,7 +58,7 @@ class AIPlayerGoalTest extends EngineTest {
 
         then:
         engine.story.getExtras(engine.story.world.findRoomById('dump').get())['thug']?.size() == 8
-        engine.story.chronos.current == 5
+        engine.story.chronos.current == 4
     }
 
     def "player explores to find room with partial map"() {
