@@ -33,4 +33,9 @@ class ActionMap implements ActionExecutor {
         }
         true
     }
+
+    @Override
+    boolean isValid(EngineFacade engine, Player player) {
+        true
+    }
 }

@@ -35,7 +35,13 @@ class ActionGo implements ActionExecutor {
         }
 
         player.room = player.room.neighbors.get(candidates.first())
+        engine.updateObject(player, ['room'])
 
         true
+    }
+
+    @Override
+    boolean isValid(EngineFacade engine, Player player) {
+        !player.room.neighbors.empty
     }
 }

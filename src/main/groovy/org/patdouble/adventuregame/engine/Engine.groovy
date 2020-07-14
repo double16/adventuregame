@@ -1,6 +1,7 @@
 package org.patdouble.adventuregame.engine
 
 import groovy.transform.CompileDynamic
+import groovy.transform.PackageScope
 import groovy.transform.ToString
 import groovy.util.logging.Slf4j
 import org.apache.maven.lifecycle.MissingProjectException
@@ -421,36 +422,54 @@ class Engine {
 
                 boolean success = false
                 boolean validAction = false
+                int chronosCost = 0
 
-                Action builtInAction = action?.getVerbAsAction()
-                if (builtInAction) {
-                    ActionExecutor actionInstance = builtInAction.actionClass.getConstructor().newInstance()
-                    try {
-                        success = actionInstance.execute(facade, player, action)
-                        validAction = true
-                    } catch (UnsupportedOperationException e) {
-                        validAction = false
+                if (player.motivator == Motivator.AI_HINT) {
+                    submit(new PlayerNotification(player,
+                            bundles.getActions().getString('action.hint.notification.subject'),
+                            action.text))
+                    player.motivator = Motivator.HUMAN
+                    addOrReplaceKieObject(kieSession, player, ['motivator'] as String[])
+                    validAction = true
+                    success = false
+                } else {
+                    Action builtInAction = action?.getVerbAsAction()
+                    if (builtInAction) {
+                        ActionExecutor actionInstance = builtInAction.actionClass.getConstructor().newInstance()
+                        try {
+                            facade.kieSession.set(kieSession)
+                            success = actionInstance.execute(facade, player, action)
+                            validAction = true
+                            if (success) {
+                                chronosCost = action.chronosCost
+                            }
+                        } catch (UnsupportedOperationException e) {
+                            validAction = false
+                        } finally {
+                            facade.kieSession.set(null)
+                        }
+                    } else if (action?.verb) {
+                        // TODO: custom actions
+                        log.warn('custom actions not yet supported: {}', action.verb)
                     }
-                } else if (action?.verb) {
-                    // TODO: custom actions
-                    log.warn('custom actions not yet supported: {}', action.verb)
                 }
 
                 if (!validAction) {
                     Objects.requireNonNull(player.id)
                     publisher.submit(new PlayerNotification(player,
                             bundles.text.getString('action.invalid.subject'),
-                            bundles.actionInvalidTextTemplate.make([actions: actionStatementParser.availableActions])
-                                    .toString()))
+                            bundles.actionInvalidTextTemplate.make([
+                                    actions: actionStatementParser.findAvailableActions(facade, player)
+                            ]).toString()))
                     if (actionRequest) {
                         Objects.requireNonNull(actionRequest.id)
                         publisher.submit(new RequestCreated(actionRequest))
                     }
-                } else if (success) {
-                    player.chronos += action.chronosCost
-                    addOrReplaceKieObject(kieSession, player)
-                    currentActions.put(player.id, action)
+                } else if (success && chronosCost > 0) {
+                    player.chronos += chronosCost
+                    addOrReplaceKieObject(kieSession, player, ['chronos'] as String[])
                     publisher.submit(new PlayerChanged(player.cloneKeepId(), player.chronos))
+                    currentActions.put(player.id, action)
 
                     if (actionRequest) {
                         story.requests.remove(actionRequest)
@@ -527,7 +546,7 @@ class Engine {
 
         // setup the audit logging
 //        KnowledgeRuntimeLoggerFactory.newConsoleLogger(kieSession)
-//        KnowledgeRuntimeLoggerFactory.newFileLogger(kieSession, '/tmp/kie.log')
+//        KnowledgeRuntimeLoggerFactory.newFileLogger(kieSession, '/tmp/kie')
         if (kieRuntimeLoggerFile) {
             kieRuntimeLogger = KnowledgeRuntimeLoggerFactory.newFileLogger(kieSession,
                     kieRuntimeLoggerFile.absolutePath)
@@ -539,7 +558,11 @@ class Engine {
     }
 
     @SuppressWarnings(['MethodParameterTypeRequired', 'NoDef'])
-    private void addOrReplaceKieObject(KieSession kieSession, object) {
+    @PackageScope
+    void addOrReplaceKieObject(KieSession kieSession, object, String[] changed = null) {
+        if (kieSession == null) {
+            kieSession = this.kieSession
+        }
         Objects.requireNonNull(kieSession, 'KIE session not initialized')
         try {
             UUID id = object.id
@@ -550,10 +573,13 @@ class Engine {
                         String[] props = ((KieMutableProperties) object).kieMutableProperties()
                         if (props.length > 0) { // empty props indicates immutable
                             def existing = kieSession.getObject(handle)
-                            String[] changed = (existing == null || existing.is(object)) ?
-                                    props :
-                                    props.findAll { existing.getProperty(it) != object.getProperty(it) } as String[]
+                            if (changed == null) {
+                                changed = (existing == null || existing.is(object)) ?
+                                        props :
+                                        props.findAll { existing.getProperty(it) != object.getProperty(it) } as String[]
+                            }
                             if (changed.length > 0) {
+                                log.debug 'Object {} changed props are {}', object, changed
                                 kieSession.update(handle, object, changed)
                             }
                         }
@@ -622,7 +648,7 @@ class Engine {
 
     private void populateKieSession(KieSession kieSession) {
         syncStoryState(kieSession)
-        addOrReplaceKieObjects(kieSession, story.world.rooms, story.cast, story.requests, story.goals)
+        addOrReplaceKieObjects(kieSession, story.world.rooms, story.goals, story.cast, story.requests)
         populateKieSessionHistory(kieSession, story.history.events)
     }
 
@@ -770,8 +796,8 @@ class Engine {
             throw new IllegalStateException("Chronos exceeded limit of ${chronosLimit}")
         }
         Event event = recordHistory()
-        story.chronos++
-        kieSession.update(chronosHandle, story.chronos)
+        story.chronos.next()
+        kieSession.update(chronosHandle, story.chronos, 'current')
         populateKieSessionHistory(kieSession, [event])
         publisher.submit(new ChronosChanged(story.chronos.current))
     }
@@ -785,7 +811,7 @@ class Engine {
         request.story = story
         if (!story.requests.contains(request)) {
             log.debug('Creating action request {}', request)
-            request.actions.addAll(actionStatementParser.availableActions)
+            request.actions.addAll(actionStatementParser.findAvailableActions(facade, player))
             request.directions.addAll(player.room.neighbors.keySet().sort())
             story.requests.add(request)
             addOrReplaceKieObject(kieSession, request)

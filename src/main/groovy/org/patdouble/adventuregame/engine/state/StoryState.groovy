@@ -1,11 +1,13 @@
 package org.patdouble.adventuregame.engine.state
 
 import groovy.transform.CompileStatic
+import groovy.transform.ToString
 import org.patdouble.adventuregame.state.Story
 
 /**
  * Holds the state of the story for the purpose of the rule engine.
  */
+@ToString(includePackage = false)
 @CompileStatic
 class StoryState {
     private boolean ended

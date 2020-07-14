@@ -16,4 +16,10 @@ interface ActionExecutor {
      * @return true if the action was applied
      */
     boolean execute(EngineFacade engine, Player player, ActionStatement action)
+
+    /**
+     * Is the action valid for the current state of the player.
+     * @return true if valid
+     */
+    boolean isValid(EngineFacade engine, Player player)
 }

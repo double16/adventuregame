@@ -3,12 +3,19 @@ package org.patdouble.adventuregame.engine
 import org.patdouble.adventuregame.flow.GoalFulfilled
 import org.patdouble.adventuregame.flow.StoryEnded
 import org.patdouble.adventuregame.model.Goal
+import org.patdouble.adventuregame.model.World
 import org.patdouble.adventuregame.state.Motivator
 
 class HumanPlayerGoalTest extends AbstractPlayerTest {
     @Override
     Motivator getDefaultMotivator() {
         Motivator.HUMAN
+    }
+
+    @Override
+    void modify(World world) {
+        super.modify(world)
+        world.goals.find { it.name == 'two' }.theEnd = true
     }
 
     def "fulfilled goal ends story"() {

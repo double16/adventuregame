@@ -14,4 +14,9 @@ class ActionWait implements ActionExecutor {
     boolean execute(EngineFacade engine, Player player, ActionStatement action) {
         true
     }
+
+    @Override
+    boolean isValid(EngineFacade engine, Player player) {
+        true
+    }
 }

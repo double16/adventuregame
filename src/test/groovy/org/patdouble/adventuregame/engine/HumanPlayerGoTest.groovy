@@ -125,7 +125,7 @@ class HumanPlayerGoTest extends AbstractPlayerTest {
         with(story.requests.find { it instanceof ActionRequest && it.player == warrior }) {
             roomSummary.description == 'Trailer 2. Paths go east, south or west.'
             roomSummary.occupants == 'Victor the thief is here with you.'
-            actions == engine.actionStatementParser.availableActions
+            actions == ['escape', 'exit', 'flee', 'go', 'hint', 'leave', 'map', 'move', 'run', 'stay', 'swim', 'wait']
             directions == [ 'east', 'south', 'west' ]
         }
     }

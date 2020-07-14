@@ -3,6 +3,7 @@ package org.patdouble.adventuregame.model
 import groovy.transform.CompileStatic
 import org.patdouble.adventuregame.engine.action.ActionExecutor
 import org.patdouble.adventuregame.engine.action.ActionGo
+import org.patdouble.adventuregame.engine.action.ActionHint
 import org.patdouble.adventuregame.engine.action.ActionNotImplemented
 import org.patdouble.adventuregame.engine.action.ActionMap
 import org.patdouble.adventuregame.engine.action.ActionWait
@@ -34,7 +35,9 @@ enum Action {
     /** Release a player. */
     RELEASE(1, ActionNotImplemented),
     /** Show map from player's knowledge. */
-    MAP(0, ActionMap)
+    MAP(0, ActionMap),
+    /** Give user a hint for the next action. */
+    HINT(0, ActionHint)
 
     /** How many time units does this action take? */
     final long chronosCost

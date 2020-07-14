@@ -7,5 +7,18 @@ import groovy.transform.CompileStatic
  */
 @CompileStatic
 enum Motivator {
-    HUMAN, AI
+    HUMAN(false),
+    AI(true),
+    /** Temporary motivator to determine a hint for a human player. */
+    AI_HINT(true)
+
+    final boolean ai
+
+    Motivator(boolean ai) {
+        this.ai = ai
+    }
+
+    boolean isAi() {
+        ai
+    }
 }

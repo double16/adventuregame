@@ -22,13 +22,13 @@ class HumanPlayerTest extends AbstractPlayerTest {
         with(story.requests.find { it instanceof ActionRequest && it.player == warrior }) {
             roomSummary.description == 'The entrance to the trailer park has a broken gate and a cluster of mail boxes. Paths go north.'
             roomSummary.occupants == 'Victor the thief and 3 thugs are here with you.'
-            actions == engine.actionStatementParser.availableActions
+            actions == ['escape', 'exit', 'flee', 'go', 'hint', 'leave', 'map', 'move', 'run', 'stay', 'swim', 'wait']
             directions == [ 'north' ]
         }
         with(story.requests.find { it instanceof ActionRequest && it.player == thief }) {
             roomSummary.description == 'The entrance to the trailer park has a broken gate and a cluster of mail boxes. Paths go north.'
             roomSummary.occupants == 'Shadowblow the warrior and 3 thugs are here with you.'
-            actions == engine.actionStatementParser.availableActions
+            actions == ['escape', 'exit', 'flee', 'go', 'hint', 'leave', 'map', 'move', 'run', 'stay', 'swim', 'wait']
             directions == [ 'north' ]
         }
     }
@@ -110,7 +110,7 @@ class HumanPlayerTest extends AbstractPlayerTest {
         with(story.requests.find { it instanceof ActionRequest && it.player == thief }) {
             roomSummary.description == 'Trailer 3. Paths go east or west.'
             !roomSummary.occupants
-            actions == engine.actionStatementParser.availableActions
+            actions == ['escape', 'exit', 'flee', 'go', 'hint', 'leave', 'map', 'move', 'run', 'stay', 'swim', 'wait']
             directions == [ 'east', 'west' ]
         }
     }
@@ -148,7 +148,7 @@ class HumanPlayerTest extends AbstractPlayerTest {
         and:
         1 * storySubscriber.onNext(new PlayerNotification(warrior,
                 'I don\'t understand what you want to do',
-                'Things you can do: arrest, attack, buy, capture, drop, escape, exit, fight, flee, go, leave, look, map, move, nap, pay, pick up, put down, release, rest, run, say, see, sleep, speak, stay, swim, take, talk, wait, wake'))
+                'Things you can do: escape, exit, flee, go, hint, leave, map, move, run, stay, swim, wait'))
 
     }
 }

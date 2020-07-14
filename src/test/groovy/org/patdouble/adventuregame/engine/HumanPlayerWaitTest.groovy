@@ -46,7 +46,7 @@ class HumanPlayerWaitTest extends AbstractPlayerTest {
         with(story.requests.find { it instanceof ActionRequest && it.player == warrior }) {
             roomSummary.description == 'The entrance to the trailer park has a broken gate and a cluster of mail boxes. Paths go north.'
             roomSummary.occupants == 'Victor the thief and 3 thugs are here with you.'
-            actions == engine.actionStatementParser.availableActions
+            actions == ['escape', 'exit', 'flee', 'go', 'hint', 'leave', 'map', 'move', 'run', 'stay', 'swim', 'wait']
             directions == [ 'north' ]
         }
     }

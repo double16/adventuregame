@@ -33,7 +33,7 @@ rule "next chronos"
   when
     $c : Chronos()
     exists Player()
-    forall( Player(chronos >= $c.getCurrent()) )
+    forall( Player(chronos >= $c.current) )
     forall( StoryState(ended == false) )
   then
     engine.incrementChronos();
@@ -57,7 +57,7 @@ rule "complete"
     not (exists (GoalStatus(goal.required == true, getFulfilled() == false)))
     not (exists (Player(motivator == Motivator.HUMAN)))
     not (exists (PlayerGoalRuleUnmet(required == true)))
-    forall( Player(chronos >= $c.getCurrent()) )
+    forall( Player(chronos >= $c.current) )
   then
     log.info("No required goals left for AI players, ending the story");
     engine.end();
@@ -72,13 +72,13 @@ rule "complete when stale"
   when
     $c : Chronos(getCurrent() > 0)
     not (exists (Player(motivator == Motivator.HUMAN)))
-    accumulate( $e : Event( when > ($c.getCurrent() - $c.getCurrent() * 0.2) );
+    accumulate( $e : Event( when > ($c.current - $c.current * 0.2) );
             $count : count(),
             $hashes : collectSet( $e.computeSecureHash() );
-            $c.getCurrent() > 40 && $hashes.size() <= Math.max(1, $c.getCurrent() * 0.05)
+            $c.current > 40 && $hashes.size() <= Math.max(1, $c.current * 0.05)
       )
   then
-    log.info("Event hashes at {}, limit {}: {}", $c.getCurrent(), $c.getCurrent() - $c.getCurrent() * 0.2, $hashes);
+    log.info("Event hashes at {}, limit {}: {}", $c.current, $c.current - $c.current * 0.2, $hashes);
     log.info("Story has become stale");
     engine.end();
 end
@@ -87,7 +87,7 @@ rule "human player action request"
   salience 500
   when
     $c : Chronos()
-    $player : Player(motivator == Motivator.HUMAN, chronos < $c.getCurrent())
+    $player : Player(motivator == Motivator.HUMAN, chronos < $c.current)
   then
     //log.debug("human player "+$player.getTitle()+" action needed");
     engine.createActionRequest($player);
@@ -97,7 +97,7 @@ rule "ai player wait"
   salience 200
   when
     $c : Chronos()
-    $player : Player(motivator == Motivator.AI, chronos < $c.getCurrent())
+    $player : Player(motivator.isAi(), chronos < $c.current)
   then
     //log.debug("AI player "+$player.getTitle()+" waits");
     engine.action($player, "wait", null, null);
@@ -107,11 +107,11 @@ rule "ai player room exploring"
   salience 400
   when
     $c            : Chronos()
-    $player       : Player(motivator == Motivator.AI, chronos < $c.getCurrent()) @watch(room)
-    $neighbor     : Map.Entry() from $player.room.neighbors.entrySet()
+    $player       : Player(motivator.isAi(), chronos < $c.current, $playerRoom : room)
+    $neighbor     : Map.Entry() from $playerRoom.neighbors.entrySet()
     $neighborRoom : Room(this == $neighbor.value)
     $direction    : String() from $neighbor.key
-    $obj          : RoomExploreObjective(player == $player.id, startRoom == $player.room.id, nextRoom == $neighborRoom.id)
+    $obj          : RoomExploreObjective(player == $player.id, startRoom == $playerRoom.id, nextRoom == $neighborRoom.id)
   then
     log.debug("AI player room exploring room: {} to the {}", $neighborRoom, $direction);
     engine.action($player, "go", $direction, null);
@@ -121,12 +121,12 @@ rule "ai player room objective"
   salience 300
   when
     $c            : Chronos()
-    $player       : Player(motivator == Motivator.AI, chronos < $c.getCurrent()) @watch(room)
-    accumulate(     $e     : RoomObjective(player == $player.id, room memberOf $player.room.getNeighborsId());
+    $player       : Player(motivator.isAi(), chronos < $c.current, $playerRoom : room)
+    accumulate(     $e     : RoomObjective(player == $player.id, room memberOf $playerRoom.findNeighborsId());
                     $obj   : min( $e ),
                     $count : count();
                     $count > 0)
-    $entry        : Map.Entry( value#Room.id == $obj#RoomObjective.room ) from $player.room.neighbors.entrySet()
+    $entry        : Map.Entry( value#Room.id == $obj#RoomObjective.room ) from $playerRoom.neighbors.entrySet()
     $direction    : String() from $entry.key
   then
     log.debug("AI player {} go {} to meet objective {}", $player.getTitle(), $direction, stringify.call($obj));
@@ -157,10 +157,10 @@ rule "first time visited room from current room"
     salience 10011
     when
         $c      : Chronos()
-        $player : Player() @watch(room)
+        $player : Player($room : room)
     then
-        log.debug("VisitedRoom {}: {} from current location", $player.getTitle(), $player.room.getName());
-        insertLogical(new VisitedRoom($player.id, $player.room.id, $c.current, 1));
+        log.debug("VisitedRoom {}: {} from current location", $player.getTitle(), $room.getName());
+        insertLogical(new VisitedRoom($player.id, $room.id, $c.current, 1));
 end
 
 rule "repeated visited room from current room"
@@ -168,11 +168,11 @@ rule "repeated visited room from current room"
     no-loop true
     when
         $c       : Chronos()
-        $player  : Player() @watch(room)
-        $visited : VisitedRoom(player == $player.id, room == $player.room.id, count > 1)
+        $player  : Player($room : room)
+        $visited : VisitedRoom(player == $player.id, room == $room.id, count > 1)
     then
-        log.debug("VisitedRoom {}: {} from current location, additive", $player.getTitle(), $player.room.getName());
-        insertLogical(new VisitedRoom($player.id, $player.room.id, $c.current, $visited.count + 1));
+        log.debug("VisitedRoom {}: {} from current location, additive", $player.getTitle(), $room.getName());
+        insertLogical(new VisitedRoom($player.id, $room.id, $c.current, $visited.count + 1));
 end
 
 rule "known room from long term memory"
@@ -189,18 +189,17 @@ rule "known rooms from visited rooms"
     salience 10000
     when
         $c       : Chronos()
-        $player  : Player() @watch(memory)
-        // ($c.current - $max) <= KnownRoom.memoryLimitInChronos($player.memory, $count)
-        $visited : VisitedRoom(player == $player.id, when >= $c.current - KnownRoom.memoryLimitInChronos($player.memory, count))
+        $player  : Player($memory : memory)
+        $visited : VisitedRoom(player == $player.id, when >= $c.current - KnownRoom.memoryLimitInChronos($memory, count))
     then
-        log.debug("KnownRoom {}: {}, count = {}, max = {}, chronos = {}, memory = {}", $player.getTitle(), $visited.room, $visited.count, $visited.when, $c.current, $player.memory);
+        log.debug("KnownRoom {}: {}, count = {}, max = {}, chronos = {}, memory = {}", $player.getTitle(), $visited.room, $visited.count, $visited.when, $c.current, $memory);
         insertLogical(new KnownRoom($player.id, $visited.room));
 end
 
 rule "AI player goals"
     salience 2500
     when
-        $player : Player(motivator == Motivator.AI)
+        $player : Player(motivator.isAi())
         $goal   : Goal() from $player.template.goals
     then
         log.debug("PlayerGoal for {}, goal {}", $player.id, $goal.id);
@@ -243,7 +242,7 @@ rule "room objective from goal"
     salience 2350
     when
         $goto : PlayerGoToRoomObjective()
-        Player(id == $goto.player, room.id != $goto.room)
+        Player(id == $goto.player, room.id != $goto.room) @watch(room)
     then
         log.debug("RoomObjective: player {} room {} cost 1 to meet PlayerGoToRoomObjective", $goto.player, $goto.room);
         insertLogical(new RoomObjective($goto.player, $goto.room, 100));
@@ -261,18 +260,20 @@ end
 
 rule "room objective next step back into known room"
     salience 2200
-    no-loop true
     when
         $obj          : RoomObjective()
-        $player       : Player(id == $obj.player) @watch(room)
+        $player       : Player(id == $obj.player, $playerRoom : room)
         $known        : KnownRoom(player == $obj.player, room == $obj.room)
         $room         : Room(id == $obj.room)
         $neighbor     : Map.Entry() from $room.neighbors.entrySet()
-        $neighborRoom : Room(this == $neighbor.value, id != $player.room.id)
+        $neighborRoom : Room(this == $neighbor.value, id != $playerRoom.id)
         $nextRoom     : KnownRoom(player == $obj.player, room == $neighborRoom.id)
-        $direction    : String() from $neighbor.key
+        accumulate(     $e     : RoomObjective(player == $obj.player, room == $nextRoom.room);
+                        $cost  : max( $e.cost ),
+                        $count : count();
+                        $count == 0 || $cost >= ($obj.cost + 100))
     then
-        log.debug("Getting to room {} from {} via {}, cost {} to reach {}", $neighborRoom.modelId, $room.modelId, $direction, $obj.cost + 100, stringify.call($obj));
+        log.debug("Getting to room {} from {} via {}, cost {} to reach {}", $neighborRoom.modelId, $room.modelId, $neighbor.key, $obj.cost + 100, stringify.call($obj));
         insertLogical(new RoomObjective($obj.player, $nextRoom.room, $obj.cost + 100));
 end
 

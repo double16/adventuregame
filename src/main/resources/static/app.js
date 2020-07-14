@@ -59,7 +59,7 @@ Vue.component('player-detail', {
 })
 
 Vue.component('action-request', {
-    props: ['storyId', 'playerId', 'request'],
+    props: ['storyId', 'playerId', 'request', 'notifications'],
     template: `
 <div><h3>{{ request.roomSummary.name }}</h3><p>{{ request.roomSummary.description }}</p><p>{{ request.roomSummary.occupants }}</p>
 <form v-on:submit.prevent="performAction">
@@ -91,6 +91,18 @@ Vue.component('action-request', {
             this.statement = action + ' '
             document.getElementById('statement').focus()
         }
+    },
+    mounted() {
+        this.$watch(function() {
+            let hints = this.notifications.filter((n) => n.subject.match(/hint/i) != null)
+            return (hints.length > 0) ? hints[0] : null
+        },
+        function(newValue, oldValue) {
+            if (newValue) {
+                this.statement = newValue.text
+            }
+        },
+        { immediate: true })
     }
 })
 
@@ -602,6 +614,7 @@ const StoryRun = {
     <action-request v-if="this.$parent.my_player_actionRequest"
       v-bind:storyId="$parent.$route.params.story_id"
       v-bind:playerId="$parent.$route.params.player_id"
+      v-bind:notifications="$parent.notifications"
       v-bind:request="this.$parent.my_player_actionRequest"></action-request>
     <i class="fas fa-clock fa-9x" v-else></i>
 </div>

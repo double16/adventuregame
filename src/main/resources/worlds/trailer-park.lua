@@ -130,7 +130,7 @@ goal 'one' {
 goal 'two' {
     description = 'Any player reaches trailer 4.';
     required = false;
-    the_end = true;
+    the_end = false;
     rule { 'player enters room "trailer_4"' }
 }
 
@@ -138,4 +138,10 @@ goal 'three' {
     description = 'Unspecified';
     required = true;
     the_end = false;
+}
+
+goal 'four' {
+    description = 'Unspecified';
+    required = true;
+    the_end = true;
 }

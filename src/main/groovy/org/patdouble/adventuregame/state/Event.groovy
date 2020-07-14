@@ -1,8 +1,9 @@
 package org.patdouble.adventuregame.state
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import groovy.transform.CompileDynamic
+import groovy.transform.CompileStatic
 import groovy.transform.EqualsAndHashCode
+import groovy.transform.ToString
 import org.hibernate.Hibernate
 import org.patdouble.adventuregame.model.CanSecureHash
 import org.patdouble.adventuregame.storage.jpa.Constants
@@ -21,7 +22,8 @@ import java.security.MessageDigest
  */
 @Entity
 @EqualsAndHashCode(excludes = [Constants.COL_DBID, 'history'])
-@CompileDynamic
+@ToString(excludes = ['history'])
+@CompileStatic
 class Event implements KieMutableProperties, CanSecureHash {
     private static final String[] KIE_MUTABLE_PROPS = []
 

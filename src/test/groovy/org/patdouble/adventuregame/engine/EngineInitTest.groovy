@@ -36,11 +36,12 @@ class EngineInitTest extends EngineTest {
         story.history.events.empty
 
         and :'goal status'
-        story.goals.size() == 3
+        story.goals.size() == 4
         !story.goals.find { it.fulfilled }
         story.goals.find { it.goal.name == 'one' }
         story.goals.find { it.goal.name == 'two' }
         story.goals.find { it.goal.name == 'three' }
+        story.goals.find { it.goal.name == 'four' }
 
         and: 'notifications'
         12 * storySubscriber.onNext({ it instanceof RequestCreated })

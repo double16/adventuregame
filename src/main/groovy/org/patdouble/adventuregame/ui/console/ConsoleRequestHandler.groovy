@@ -94,9 +94,9 @@ class ConsoleRequestHandler implements Flow.Subscriber<StoryMessage>, AutoClosea
     private void handle(PlayerRequest playerRequest) {
         if (skippedPlayerTemplates.contains(playerRequest.template)) {
             if (playerRequest.optional) {
-                engine.addToCast(playerRequest.template.createPlayer(Motivator.AI))
-            } else {
                 engine.ignore(playerRequest)
+            } else {
+                engine.addToCast(playerRequest.template.createPlayer(Motivator.AI))
             }
             return
         }
