@@ -57,3 +57,5 @@ HELP.md
 # Project Specific
 
 lightning-jenkins.properties
+*.dot
+

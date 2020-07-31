@@ -47,9 +47,9 @@ class JpaWorldLoader {
     @Bean
     @SuppressWarnings('Unused')
     CommandLineRunner initDatabase() {
-        LuaUniverseRegistry yamlUniverseRegistry = new LuaUniverseRegistry()
+        LuaUniverseRegistry universeRegistry = new LuaUniverseRegistry()
         return { args ->
-            yamlUniverseRegistry.worlds.each { World world ->
+            universeRegistry.worlds.each { World world ->
                 save(world)
             }
         }

@@ -4,6 +4,7 @@ import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.Logger
 import groovy.transform.CompileDynamic
 import org.fusesource.jansi.Ansi
+import org.patdouble.adventuregame.WorldValidator
 import org.patdouble.adventuregame.engine.Engine
 import org.patdouble.adventuregame.flow.EngineCloseOnStoryEnd
 import org.patdouble.adventuregame.storage.lua.LuaUniverseRegistry
@@ -26,11 +27,19 @@ class Main {
     World world
     Story story
     Engine engine
+    List<String> commands = []
 
     static void main(String[] args) {
         Main main = new Main()
         main.configureViaCommandLine(args)
         main.applyConfiguration()
+
+        if (main.commands.contains('validate-world')) {
+            WorldValidator validator = new WorldValidator(main.console, main.registry)
+            validator.run(main.commands.drop(1))
+            System.exit(0)
+        }
+
         main.chooseWorld()
         main.start()
 
@@ -49,6 +58,9 @@ class Main {
                     break
                 case '--debug':
                     logLevel = Level.DEBUG
+                    break
+                default:
+                    commands << arg
                     break
             }
         }

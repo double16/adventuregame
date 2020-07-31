@@ -4,7 +4,6 @@ import groovy.transform.CompileDynamic
 import groovy.transform.PackageScope
 import groovy.transform.ToString
 import groovy.util.logging.Slf4j
-import org.apache.maven.lifecycle.MissingProjectException
 import org.drools.core.common.InternalAgenda
 import org.kie.api.KieServices
 import org.kie.api.logger.KieRuntimeLogger
@@ -101,6 +100,7 @@ class Engine {
 
     private AtomicBoolean firingLatch = new AtomicBoolean(false)
     private volatile CompletableFuture<Boolean> firingComplete
+    private CompletableFuture<Void> storyEnd = new CompletableFuture<>()
 
     private AtomicBoolean initKieSessionLatch = new AtomicBoolean(false)
     private FactHandle chronosHandle
@@ -119,6 +119,9 @@ class Engine {
         Objects.requireNonNull(story)
         this.facade = new EngineFacade(this)
         this.story = story
+        if (this.story.ended) {
+            storyEnd.complete(null)
+        }
         this.executor = executor ?: DEFAULT_EXECUTOR
         this.publisher = new SubmissionPublisher<>(flowExecutor ?: this.executor, Flow.defaultBufferSize())
         actionStatementParser = new ActionStatementParser(locale)
@@ -252,14 +255,16 @@ class Engine {
                 }
 
                 placePlayers()
-                startRuleEngine()
-
-                FUTURE.complete(null)
+                startRuleEngine(FUTURE)
             } catch (RuntimeException e) {
                 FUTURE.completeExceptionally(e)
             }
         }
-        FUTURE.thenRun { next() }
+        if (autoLifecycle) {
+            FUTURE
+        } else {
+            FUTURE.thenRun { next() }
+        }
     }
 
     /**
@@ -272,16 +277,26 @@ class Engine {
         }
     }
 
+    CompletableFuture<Boolean> getFiringComplete() {
+        this.firingComplete
+    }
+
+    CompletableFuture<Void> getStoryEnd() {
+        this.storyEnd
+    }
+
     /**
      * End the story.
      */
     CompletableFuture<Void> end() {
-        if (kieSession == null) {
+        // It's possible for the Engine to end but rule activation are still scheduled to fire
+        final KieSession KIE_SESSION = kieSession
+        if (KIE_SESSION == null) {
             return CompletableFuture.completedFuture(null)
         }
 
         final CompletableFuture<Void> FUTURE = new CompletableFuture<>()
-        kieSession.submit { KieSession kieSession ->
+        KIE_SESSION.submit { KieSession kieSession ->
             if (!story.ended) {
                 story.ended = true
                 recordHistory()
@@ -291,6 +306,7 @@ class Engine {
                 publisher.submit(new StoryEnded())
             }
             FUTURE.complete(null)
+            storyEnd.complete(null)
         }
         FUTURE
     }
@@ -303,8 +319,8 @@ class Engine {
         log.info 'Closing Engine for story {}', id
         CompletableFuture<Void> future = CompletableFuture.completedFuture(null)
         PENDING_CLOSE.incrementAndGet()
-        if (kieSession) {
-            KieSession kieSession1 = kieSession
+        KieSession kieSession1 = kieSession
+        if (kieSession1) {
             kieSession = null
             future = future.thenRun {
                 log.info 'Halting rule engine {}', id
@@ -370,8 +386,14 @@ class Engine {
      * Mark a goal as fulfilled.
      */
     CompletableFuture<Void> fulfill(GoalStatus goal) {
+        // It's possible for the Engine to end but rule activation are still scheduled to fire
+        final KieSession KIE_SESSION = kieSession
+        if (KIE_SESSION == null) {
+            return CompletableFuture.completedFuture(null)
+        }
+
         final CompletableFuture<Void> FUTURE = new CompletableFuture<>()
-        kieSession.submit { KieSession kieSession ->
+        KIE_SESSION.submit { KieSession kieSession ->
             try {
                 if (!goal.fulfilled) {
                     goal.fulfilled = true
@@ -402,9 +424,15 @@ class Engine {
     CompletableFuture<Boolean> action(Player player, ActionStatement action) {
         log.debug('action for player {} - {}', player, action)
 
+        // It's possible for the Engine to end but rule activation are still scheduled to fire
+        final KieSession KIE_SESSION = kieSession
+        if (KIE_SESSION == null) {
+            return CompletableFuture.completedFuture(false)
+        }
+
         final CompletableFuture<Boolean> FUTURE = new CompletableFuture<>()
 
-        kieSession.submit { KieSession kieSession ->
+        KIE_SESSION.submit { KieSession kieSession ->
             try {
 
                 ActionRequest actionRequest = story.requests.find { it instanceof ActionRequest && it.player == player }
@@ -564,37 +592,32 @@ class Engine {
             kieSession = this.kieSession
         }
         Objects.requireNonNull(kieSession, 'KIE session not initialized')
-        try {
-            UUID id = object.id
-            if (id) {
-                FactHandle handle = handles.get(id)
-                if (handle) {
-                    if (object instanceof KieMutableProperties) {
-                        String[] props = ((KieMutableProperties) object).kieMutableProperties()
-                        if (props.length > 0) { // empty props indicates immutable
-                            def existing = kieSession.getObject(handle)
-                            if (changed == null) {
-                                changed = (existing == null || existing.is(object)) ?
-                                        props :
-                                        props.findAll { existing.getProperty(it) != object.getProperty(it) } as String[]
-                            }
-                            if (changed.length > 0) {
-                                log.debug 'Object {} changed props are {}', object, changed
-                                kieSession.update(handle, object, changed)
-                            }
+        UUID id = object.id
+        if (id) {
+            FactHandle handle = handles.get(id)
+            if (handle) {
+                if (object instanceof KieMutableProperties) {
+                    String[] props = ((KieMutableProperties) object).kieMutableProperties()
+                    if (props.length > 0) { // empty props indicates immutable
+                        def existing = kieSession.getObject(handle)
+                        if (changed == null) {
+                            changed = (existing == null || existing.is(object)) ?
+                                    props :
+                                    props.findAll { existing.getProperty(it) != object.getProperty(it) } as String[]
                         }
-                    } else {
-                        kieSession.update(handle, object)
+                        if (changed.length > 0) {
+                            log.debug 'Object {} changed props are {}', object, changed
+                            kieSession.update(handle, object, changed)
+                        }
                     }
                 } else {
-                    handles.put(id, kieSession.insert(object))
+                    kieSession.update(handle, object)
                 }
             } else {
-                throw new IllegalStateException("Transient object ${object} requested to add to the KIE session")
+                handles.put(id, kieSession.insert(object))
             }
-        } catch (MissingProjectException e) {
-            throw new IllegalStateException(
-                    "Object ${object} requested to add to the KIE session but has no 'id' property", e)
+        } else {
+            throw new IllegalStateException("Transient object ${object} requested to add to the KIE session")
         }
     }
 
@@ -607,23 +630,18 @@ class Engine {
         if (kieSession == null) {
             return
         }
-        try {
-            UUID id = object.id
-            if (id) {
-                FactHandle handle = handles.get(id)
-                if (handle) {
-                    kieSession.delete(handle)
-                    handles.remove(id)
-                } else {
-                    throw new IllegalStateException(
-                            "Object ${object} requested to remove from the KIE session but not FactHandle found")
-                }
+        UUID id = object.id
+        if (id) {
+            FactHandle handle = handles.get(id)
+            if (handle) {
+                kieSession.delete(handle)
+                handles.remove(id)
             } else {
-                throw new IllegalStateException("Transient object ${object} requested to remove from the KIE session")
+                throw new IllegalStateException(
+                        "Object ${object} requested to remove from the KIE session but not FactHandle found")
             }
-        } catch (MissingPropertyException e) {
-            throw new IllegalStateException(
-                    "Object ${object} requested to remove from the KIE session but has no 'id' property", e)
+        } else {
+            throw new IllegalStateException("Transient object ${object} requested to remove from the KIE session")
         }
     }
 
@@ -690,42 +708,48 @@ class Engine {
         publisher.submit(new PlayerChanged(player.cloneKeepId(), 0))
     }
 
-    private void startRuleEngine() {
+    private void startRuleEngine(CompletableFuture<Void> future) {
         initKieSession()
-        if (autoLifecycle) {
-            executor.execute {
-                if (!firingLatch.compareAndSet(false, true)) {
-                    return
-                }
-                firingComplete = new CompletableFuture<>()
-                boolean success = false
-                try {
-                    int quickRestartCount = 0
-                    while (!halting.get() && quickRestartCount < 3) {
-                        log.info 'Rule engine firing until halt'
-                        long start = System.currentTimeMillis()
-                        kieSession.fireUntilHalt()
-                        long end = System.currentTimeMillis()
-                        if (!halting.get()) {
-                            // this can happen if a thread is not done calling .fireAllRules()
-                            log.debug 'Rule engine stopped without call to halt()'
-                        } else {
-                            log.info 'Halted rule engine'
-                        }
-                        if ((end - start) < 10000) {
-                            quickRestartCount++
-                        } else {
-                            quickRestartCount = 0
-                        }
-                    }
+        if (!autoLifecycle) {
+            future.complete(null)
+            return
+        }
+        if (!firingLatch.compareAndSet(false, true)) {
+            // we don't complete the future because the thread that got the latch will do it
+            return
+        }
+        firingComplete = new CompletableFuture<>()
+        executor.execute {
+            boolean success = false
+            try {
+                int quickRestartCount = 0
+                future.complete(null)
+                while (!halting.get() && quickRestartCount < 3) {
+                    log.info 'Rule engine firing until halt'
+                    long start = System.currentTimeMillis()
+                    kieSession.fireUntilHalt()
+                    long end = System.currentTimeMillis()
                     if (!halting.get()) {
-                        log.error 'Rule engine repeatedly stopping without call to halt()'
+                        // this can happen if a thread is not done calling .fireAllRules()
+                        log.debug 'Rule engine stopped without call to halt()'
+                    } else {
+                        log.info 'Halted rule engine'
                     }
-                    success = true
-                } finally {
-                    firingComplete.complete(success)
-                    firingLatch.set(false)
+                    if ((end - start) < 10000) {
+                        quickRestartCount++
+                    } else {
+                        quickRestartCount = 0
+                    }
                 }
+                if (!halting.get()) {
+                    log.error 'Rule engine repeatedly stopping without call to halt()'
+                }
+                success = true
+            } catch (Exception e) {
+                firingComplete.completeExceptionally(e)
+            } finally {
+                firingComplete.complete(success)
+                firingLatch.set(false)
             }
         }
     }

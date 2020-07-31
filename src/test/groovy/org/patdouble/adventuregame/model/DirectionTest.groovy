@@ -12,13 +12,17 @@ class DirectionTest extends Specification {
         Direction.opposite(direction.name().toLowerCase()).get() == opposite
 
         where:
-        direction       | opposite
-        Direction.NORTH | Direction.SOUTH
-        Direction.SOUTH | Direction.NORTH
-        Direction.WEST  | Direction.EAST
-        Direction.EAST  | Direction.WEST
-        Direction.UP    | Direction.DOWN
-        Direction.DOWN  | Direction.UP
+        direction           | opposite
+        Direction.NORTH     | Direction.SOUTH
+        Direction.NORTHEAST | Direction.SOUTHWEST
+        Direction.NORTHWEST | Direction.SOUTHEAST
+        Direction.SOUTH     | Direction.NORTH
+        Direction.SOUTHEAST | Direction.NORTHWEST
+        Direction.SOUTHWEST | Direction.NORTHEAST
+        Direction.WEST      | Direction.EAST
+        Direction.EAST      | Direction.WEST
+        Direction.UP        | Direction.DOWN
+        Direction.DOWN      | Direction.UP
     }
 
     void "opposite for invalid"() {

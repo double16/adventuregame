@@ -31,4 +31,6 @@ class MapMessage extends StoryMessage {
     Player player
     Set<RoomInfo> rooms = new HashSet<>()
     Set<RoomEdgeInfo> edges = new HashSet<>()
+    /** The map in GraphViz 'dot' format */
+    String dot
 }

@@ -116,19 +116,24 @@ Vue.component('world-map', {
 `,
     methods: {
         draw: function(el) {
-            var g = new dagreD3.graphlib.Graph().setGraph({})
-            if (this.map.rooms.length == 0) {
-                g.setNode('?', { label: '?' })
+            var g
+            if (this.map.dot) {
+                g = graphlibDot.read(this.map.dot)
             } else {
-                this.map.rooms.forEach(room => g.setNode(room.id, { label: room.name }))
-                this.map.edges.forEach(edge => g.setEdge(edge.from, edge.to, { label: edge.direction }))
-            }
+                g = new dagreD3.graphlib.Graph().setGraph({})
+                if (this.map.rooms.length == 0) {
+                    g.setNode('?', { label: '?' })
+                } else {
+                    this.map.rooms.forEach(room => g.setNode(room.id, { label: room.name }))
+                    this.map.edges.forEach(edge => g.setEdge(edge.from, edge.to, { label: edge.direction }))
+                }
 
-            // Set some general styles
-            g.nodes().forEach(function(v) {
-              var node = g.node(v);
-              node.rx = node.ry = 5;
-            })
+                // Set some general styles
+                g.nodes().forEach(function(v) {
+                  var node = g.node(v);
+                  node.rx = node.ry = 5;
+                })
+            }
 
             var svg = d3.select(el),
                 inner = svg.select("g")

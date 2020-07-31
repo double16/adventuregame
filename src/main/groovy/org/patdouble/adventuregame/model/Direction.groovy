@@ -9,7 +9,11 @@ import groovy.transform.CompileStatic
 @CompileStatic
 enum Direction {
     NORTH,
+    NORTHEAST,
+    NORTHWEST,
     SOUTH,
+    SOUTHEAST,
+    SOUTHWEST,
     EAST,
     WEST,
     UP,
@@ -23,7 +27,11 @@ enum Direction {
         try {
             switch (valueOf(direction.toUpperCase())) {
                 case NORTH: return Optional.of(SOUTH)
+                case NORTHEAST: return Optional.of(SOUTHWEST)
+                case NORTHWEST: return Optional.of(SOUTHEAST)
                 case SOUTH: return Optional.of(NORTH)
+                case SOUTHEAST: return Optional.of(NORTHWEST)
+                case SOUTHWEST: return Optional.of(NORTHEAST)
                 case EAST: return Optional.of(WEST)
                 case WEST: return Optional.of(EAST)
                 case UP: return Optional.of(DOWN)

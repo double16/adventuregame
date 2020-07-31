@@ -49,6 +49,10 @@ class ConsoleRequestHandler implements Flow.Subscriber<StoryMessage>, AutoClosea
     @Override
     @SuppressWarnings('Instanceof')
     void onNext(StoryMessage item) {
+        if (engine.isClosed()) {
+            return
+        }
+
         if (item instanceof RequestCreated) {
             switch (item['request'].class) {
                 case PlayerRequest:
@@ -71,7 +75,8 @@ class ConsoleRequestHandler implements Flow.Subscriber<StoryMessage>, AutoClosea
     @SuppressWarnings('PrintStackTrace')
     void onError(Throwable throwable) {
         throwable.printStackTrace(console.error)
-        close()
+        subscription.cancel()
+        engine.close().join()
         exitStrategy.call(2)
     }
 
@@ -88,7 +93,13 @@ class ConsoleRequestHandler implements Flow.Subscriber<StoryMessage>, AutoClosea
 
     @Override
     void close() throws Exception {
+        engine.close().join()
+    }
+
+    void close(int exitCode) throws Exception {
         subscription.cancel()
+        close()
+        exitStrategy.call(exitCode)
     }
 
     private void handle(PlayerRequest playerRequest) {
@@ -134,7 +145,7 @@ class ConsoleRequestHandler implements Flow.Subscriber<StoryMessage>, AutoClosea
             }
             engine.addToCast(player)
         } catch (UserInterruptException | EndOfFileException e) {
-            engine.close()
+            close(3)
         }
     }
 
@@ -162,7 +173,7 @@ class ConsoleRequestHandler implements Flow.Subscriber<StoryMessage>, AutoClosea
             }
             engine.action(actionRequest.player, command)
         } catch (UserInterruptException | EndOfFileException e) {
-            engine.close()
+            close(3)
         }
     }
 

@@ -3,7 +3,7 @@
 --
 
 persona 'elf' {
-    health = 1000;
+    health = 900;
     wealth = 500;
 }
 
@@ -25,6 +25,11 @@ persona 'dwarf' {
 persona 'orc' {
     health = 300;
     wealth = 20;
+}
+
+persona 'ranger' {
+    health = 750;
+    wealth = 50;
 }
 
 --
@@ -88,10 +93,31 @@ room 'bag_end_garden' {
     };
 }
 
+room 'hobbiton_east' {
+    region = 'shire';
+}
+
+room 'east_road_1' {
+    region = 'east';
+    neighbor {
+        direction = 'west';
+        room = 'hobbiton_east';
+    };
+    neighbor {
+        direction = 'east';
+        room = 'prancing_pony';
+    };
+}
+
 region 'bree' {
     name = 'Bree';
     inside = 'west';
     description = 'Town of Bree';
+}
+
+room 'prancing_pony' {
+    name = 'Prancing Pony';
+    inside = 'bree';
 }
 
 region 'old_forest' {
@@ -106,6 +132,11 @@ region 'old_forest' {
 
 region 'east' {
     name = 'The East';
+}
+
+region 'moria' {
+    name = 'Moria';
+    inside = 'east';
 }
 
 --
@@ -128,4 +159,3 @@ region 'mordor' {
     name = 'Mordor';
     inside = 'south';
 }
-
