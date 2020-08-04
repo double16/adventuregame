@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Validates a world definition.
@@ -156,14 +157,16 @@ digraph {
         GParsPool.withPool {
             def reporter = Actors.actor {
                 boolean first = true
+                AtomicLong start = new AtomicLong()
                 loop {
                     react {
                         Story story = it[0]
                         int num = it[1]
                         console.print {
                             if (!first) {
-                                cursorUpLine(story.goals.size() + 2)
+                                cursorUpLine(story.goals.size() + 3)
                             } else {
+                                start.set(System.currentTimeMillis())
                                 first = false
                             }
 
@@ -179,6 +182,14 @@ digraph {
                                 render(', %d errors, %d timed out', errors.size(), timeoutCount.get())
                                 fg(Ansi.Color.DEFAULT)
                             }
+                            newline()
+
+                            render('Elapsed:')
+                            cursorToColumn(statColumn)
+                            long millis = System.currentTimeMillis() - start.get()
+                            int minutes = (int) (millis / 60000)
+                            int seconds = (int) ((millis % 60000) / 1000)
+                            render('%d:%02d', minutes, seconds)
                             newline()
 
                             story.goals.each {

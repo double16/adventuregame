@@ -255,6 +255,17 @@ class Engine {
                 }
 
                 placePlayers()
+                initKieSession()
+            } catch (RuntimeException e) {
+                FUTURE.completeExceptionally(e)
+            }
+        }
+        // we need to ensure the previous atomic operation is complete before calling fireUntilHalt()
+        kieSession.submit {
+            if (FUTURE.isCompletedExceptionally()) {
+                return
+            }
+            try {
                 startRuleEngine(FUTURE)
             } catch (RuntimeException e) {
                 FUTURE.completeExceptionally(e)
@@ -709,13 +720,12 @@ class Engine {
     }
 
     private void startRuleEngine(CompletableFuture<Void> future) {
-        initKieSession()
         if (!autoLifecycle) {
             future.complete(null)
             return
         }
         if (!firingLatch.compareAndSet(false, true)) {
-            // we don't complete the future because the thread that got the latch will do it
+            future.complete(null)
             return
         }
         firingComplete = new CompletableFuture<>()
