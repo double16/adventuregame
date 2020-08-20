@@ -1,5 +1,6 @@
 package org.patdouble.adventuregame
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import groovy.transform.Canonical
 import groovy.transform.CompileDynamic
 import groovy.transform.CompileStatic
@@ -17,12 +18,15 @@ import org.patdouble.adventuregame.state.Story
 import org.patdouble.adventuregame.storage.lua.WorldLuaStorage
 import org.patdouble.adventuregame.ui.console.Console
 
+import java.nio.charset.Charset
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 
 /**
  * Validates a world definition.
@@ -40,10 +44,23 @@ class WorldValidator {
             'west': 'e',
     ]
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+
     @CompileStatic
     @Canonical
     static class GoalTrial {
         World world
+    }
+
+    @CompileStatic
+    static class NoCloseOutputStream extends FilterOutputStream {
+        NoCloseOutputStream(OutputStream out) {
+            super(out)
+        }
+        @Override
+        void close() throws IOException {
+            // do nothing
+        }
     }
 
     Console console
@@ -123,31 +140,37 @@ ${indent}  label=${gvQuotedString(region.name)};
         result
     }
 
-    File map(World world) {
-        File f = new File("${world.name}_${world.computeSecureHash()}.dot")
+    void map(World world, ZipOutputStream zip) {
         console.print 'Generating map ... '
-        f.withWriter {
-            it << """
+
+        ZipEntry ze = new ZipEntry("map.dot")
+        ze.setComment("Map in GraphViz DOT format, http://graphviz.org")
+        zip.putNextEntry(ze)
+        OutputStreamWriter writer = new OutputStreamWriter(new NoCloseOutputStream(zip), Charset.forName('UTF-8'))
+        try {
+            writer << """
 digraph {
   label=${gvQuotedString(world.name)};
   concentrate=true;
 """
 
-            mapSubgraph(it, '', world, null)
+            mapSubgraph(writer, '', world, null)
             world.rooms.each { Room from ->
                 from.neighbors.each { String direction, Room to ->
                     String returnDirection = to.neighbors.find { k,v -> v == from }?.key
-                    it << """  ${from.modelId}${directionToNodePort(returnDirection)} -> ${to.modelId}${directionToNodePort(direction)}[label=${gvQuotedString(direction)}];\n"""
+                    writer << """  ${from.modelId}${directionToNodePort(returnDirection)} -> ${to.modelId}${directionToNodePort(direction)}[label=${gvQuotedString(direction)}];\n"""
                 }
             }
-            it << """}
+            writer << """}
 """
+        } finally {
+            writer.close()
         }
-        console.println f.name
-        f
+
+        zip.closeEntry()
     }
 
-    void goalPerformance(World world) {
+    void goalPerformance(World world, ZipOutputStream zip) {
         console.println('Determining goal probability ...')
         List<GoalTrial> trials = [new GoalTrial(world)] * aiRunCount
         AtomicInteger completeCount = new AtomicInteger(0)
@@ -206,6 +229,12 @@ digraph {
                             render('%dM/%dM', (int) (Runtime.runtime.freeMemory()/(1024*1024)), (int) (Runtime.runtime.totalMemory()/(1024*1024)))
                             newline()
 
+                            ZipEntry ze = new ZipEntry("history${num}.json")
+                            ze.setComment("Goals met: ${story.goals.findAll { it.fulfilled}.collect { it.goal.name}}")
+                            zip.putNextEntry(ze)
+                            OBJECT_MAPPER.writeValue(new NoCloseOutputStream(zip), story.history)
+                            zip.closeEntry()
+
                             delegate
                         }
                         if (num == trials.size()) {
@@ -252,21 +281,36 @@ digraph {
                 }
             }
 
-            reporter.join(30, TimeUnit.SECONDS)
+            reporter.join(10*trials.size(), TimeUnit.SECONDS)
             reporter.terminate()
         }
+
+        ZipEntry ze = new ZipEntry('goal_perf.json')
+        ze.setComment('Goal Performance')
+        zip.putNextEntry(ze)
+        OBJECT_MAPPER.writeValue(new NoCloseOutputStream(zip), [trials: trials.size(), goals: goalFulfilledCounts, errors: errors])
+        zip.closeEntry()
 
         errors*.printStackTrace()
     }
 
     boolean validate(World world) {
         console.println "Validating ${world.name}"
-        boolean result = compile(world)
-        summary(world)
-        map(world)
-        // TODO: Report 'islands'
-        goalPerformance(world)
-        printResult(result).println()
+        File zipReportFile = new File("${world.name.replaceAll('\\s+', '_')}_${world.hash}.zip")
+        zipReportFile.delete()
+        ZipOutputStream zip = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(zipReportFile)))
+        zip.setComment("${world.name}, ${world.hash}")
+        try {
+            boolean result = compile(world)
+            summary(world)
+            map(world, zip)
+            // TODO: Report 'islands', https://www.geeksforgeeks.org/strongly-connected-components/
+            goalPerformance(world, zip)
+            printResult(result).println()
+        } finally {
+            zip.close()
+        }
+        console.println zipReportFile
     }
 
     boolean summary(World world) {
@@ -301,6 +345,7 @@ digraph {
 
         worldSpecs.each { String worldSpec ->
             World world = loadWorld(worldSpec)
+            world.prePersist()
             validate(world)
         }
     }
