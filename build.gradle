@@ -36,6 +36,8 @@ ext {
     droolsVersion = '7.39.0.Final'
     groovyVersion = '2.5.+'
 //    groovyVersion = '3.0.+'
+// Clover 4.4.1 does not support Groovy 3.0.x: https://github.com/openclover/clover/issues/121
+// Clover plugin uses AntBuilder, may be related: java.lang.ClassCastException: class groovy.transform.AnnotationCollectorMode cannot be cast to class groovy.transform.AnnotationCollectorMode (groovy.transform.AnnotationCollectorMode is in unnamed module of loader groovy.lang.GroovyClassLoader @4376202; groovy.transform.AnnotationCollectorMode is in unnamed module of loader org.apache.tools.ant.AntClassLoader @2a749510)
 }
 
 dependencies {

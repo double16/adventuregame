@@ -6,3 +6,4 @@ pluginManagement {
 rootProject.name = 'adventuregame'
 
 //includeBuild '../jmeter-gradle-plugin'
+//includeBuild '../gradle-clover-plugin'
