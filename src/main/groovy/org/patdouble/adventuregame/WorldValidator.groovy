@@ -17,6 +17,7 @@ import org.patdouble.adventuregame.state.Motivator
 import org.patdouble.adventuregame.state.Story
 import org.patdouble.adventuregame.storage.lua.WorldLuaStorage
 import org.patdouble.adventuregame.ui.console.Console
+import org.patdouble.adventuregame.validation.IslandFinder
 
 import java.nio.charset.Charset
 import java.util.concurrent.CompletableFuture
@@ -168,6 +169,9 @@ digraph {
         }
 
         zip.closeEntry()
+
+        printResult(true)
+        console.println()
     }
 
     void goalPerformance(World world, ZipOutputStream zip) {
@@ -294,6 +298,28 @@ digraph {
         errors*.printStackTrace()
     }
 
+    void findIslands(World world, ZipOutputStream zip) {
+        Collection<Collection<Room>> islands = new IslandFinder(world).computeIslands()
+        console.print "Island count: ${islands.size()}  "
+        console.print {
+            if (islands.size() == 1) {
+                fg(Ansi.Color.GREEN).a('OK').fg(Ansi.Color.DEFAULT)
+            } else {
+                fg(Ansi.Color.YELLOW).a('WARN').fg(Ansi.Color.DEFAULT)
+            }
+        }
+        console.println()
+
+        if (islands.size() > 1) {
+            ZipEntry ze = new ZipEntry("islands.json")
+            ze.setComment("Independent islands (room sub-graphs)")
+            zip.putNextEntry(ze)
+            def islandOutput = islands.collect { i -> i.collect { r -> r.modelId } }
+            OBJECT_MAPPER.writeValue(new NoCloseOutputStream(zip), islandOutput)
+            zip.closeEntry()
+        }
+    }
+
     boolean validate(World world) {
         console.println "Validating ${world.name}"
         File zipReportFile = new File("${world.name.replaceAll('\\s+', '_')}_${world.hash}.zip")
@@ -303,8 +329,8 @@ digraph {
         try {
             boolean result = compile(world)
             summary(world)
+            findIslands(world, zip)
             map(world, zip)
-            // TODO: Report 'islands', https://www.geeksforgeeks.org/strongly-connected-components/
             goalPerformance(world, zip)
             printResult(result).println()
         } finally {
