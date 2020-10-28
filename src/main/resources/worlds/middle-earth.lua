@@ -105,8 +105,14 @@ room 'east_road_1' {
     };
     neighbor {
         direction = 'east';
-        room = 'prancing_pony';
+        room = 'bree_main_road';
     };
+}
+
+region 'old_forest' {
+    name = 'Old Forest';
+    inside = 'west';
+    description = 'Remnants of the old forest east of the Shire.';
 }
 
 region 'bree' {
@@ -115,15 +121,18 @@ region 'bree' {
     description = 'Town of Bree';
 }
 
+room 'bree_main_road' {
+    name = 'Main Road of Bree';
+    inside = 'bree';
+    neighbor {
+        direction = 'north';
+        room = 'prancing_pony';
+    }
+}
+
 room 'prancing_pony' {
     name = 'Prancing Pony';
     inside = 'bree';
-}
-
-region 'old_forest' {
-    name = 'Old Forest';
-    inside = 'west';
-    description = 'Remnants of the old forest north of the Shire.';
 }
 
 --

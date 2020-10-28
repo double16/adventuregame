@@ -120,12 +120,34 @@ Vue.component('world-map', {
             if (this.map.dot) {
                 g = graphlibDot.read(this.map.dot)
             } else {
-                g = new dagreD3.graphlib.Graph().setGraph({})
-                if (this.map.rooms.length == 0) {
+                g = new dagreD3.graphlib.Graph({compound: true}).setGraph({})
+                if (this.map.rooms.length === 0) {
                     g.setNode('?', { label: '?' })
                 } else {
-                    this.map.rooms.forEach(room => g.setNode(room.id, { label: room.name }))
-                    this.map.edges.forEach(edge => g.setEdge(edge.from, edge.to, { label: edge.direction }))
+                    // https://github.com/dagrejs/dagre-d3/wiki
+                    // https://dagrejs.github.io/project/dagre-d3/latest/demo/style-attrs.html
+                    // https://dagrejs.github.io/project/dagre-d3/latest/demo/clusters.html
+                    this.map.regions.forEach(region => g.setNode(region.id, { label: region.name, clusterLabelPos: 'top' }))
+                    this.map.regions.filter(e => e.parent).forEach(region => g.setParent(region.id, region.parent))
+                    this.map.rooms.forEach(room => {
+                        g.setNode(room.id, {label: room.name})
+                        if (room.region) {
+                            g.setParent(room.id, room.parent)
+                        }
+                    })
+                    this.map.edges.forEach(edge => {
+                        arrowhead = 'normal'
+                        label = edge.direction
+                        if (edge.back) {
+                            arrowhead = 'undirected'
+                            if (edge.direction.localeCompare(edge.back) < 0) {
+                                label += '/' + edge.back
+                            } else {
+                                label = edge.back + '/' + label
+                            }
+                        }
+                        g.setEdge(edge.from, edge.to, { label: label, arrowhead: arrowhead }
+                    )})
                 }
 
                 // Set some general styles

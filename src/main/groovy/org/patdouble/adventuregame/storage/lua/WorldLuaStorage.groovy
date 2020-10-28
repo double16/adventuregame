@@ -2,6 +2,7 @@ package org.patdouble.adventuregame.storage.lua
 
 import groovy.transform.CompileDynamic
 import groovy.transform.CompileStatic
+import org.apache.commons.lang3.tuple.Triple
 import org.luaj.vm2.Globals
 import org.luaj.vm2.LuaClosure
 import org.luaj.vm2.LuaFunction
@@ -18,6 +19,7 @@ import org.patdouble.adventuregame.model.PlayerTemplate
 import org.patdouble.adventuregame.model.Region
 import org.patdouble.adventuregame.model.Room
 import org.patdouble.adventuregame.model.World
+import org.patdouble.adventuregame.validation.IslandFinder
 
 import java.math.RoundingMode
 
@@ -66,6 +68,8 @@ class WorldLuaStorage {
         readPlayers(domain, world)
         readExtras(domain, world)
         readGoals(domain, world.goals)
+
+        sortRooms(world)
 
         return world
     }
@@ -346,7 +350,7 @@ class WorldLuaStorage {
 
         for (LuaValue element : new LuaArrayIterator<LuaTable>(memories)) {
             for (LuaValue data : new LuaArrayIterator<LuaTable>(element.get(KEY_ROOMS))) {
-                String modelId = data.toString()
+                String modelId = data
                 Room room = world.findRoomById(modelId).get()
                 if (!room) {
                     throw new IllegalArgumentException("Cannot find room ${modelId} specified in memory")
@@ -355,7 +359,7 @@ class WorldLuaStorage {
             }
 
             for (LuaValue data : new LuaArrayIterator<LuaTable>(element.get(KEY_REGIONS))) {
-                String modelId = data.toString()
+                String modelId = data
                 Region region = world.findRegionById(modelId).get()
                 if (!region) {
                     throw new IllegalArgumentException("Cannot find region ${modelId} specified in memory")
@@ -365,4 +369,102 @@ class WorldLuaStorage {
         }
     }
 
+    /**
+     * Sort the world's rooms in place, north-south, east-west.
+     */
+    private void sortRooms(World world) {
+        Collection<Collection<Room>> islands = new IslandFinder(world).computeIslands()
+        // Coordinates stored as north-south, east-west, up-down. North, East and Up has lesser values.
+        Map<Room, Triple<Integer, Integer, Integer>> coords = [:]
+        // Set start coords to keep islands from colliding
+        int start = 0
+        islands.each {
+            coords.put(it.first(), Triple.of(start, 0, 0))
+            start += it.size()+1
+        }
+        islands.each { Collection<Room> island ->
+            LinkedList<Room> stack = new LinkedList<>()
+            stack.addAll(island)
+            while (!stack.empty) {
+                Room room = stack.pop()
+                Triple<Integer, Integer, Integer> roomCoord = coords.get(room)
+                if (roomCoord == null) {
+                    throw new IllegalStateException("Room ${room} expected to have existing coordinates")
+                }
+                room.neighbors.each { String direction, Room neighbor ->
+                    if (coords.containsKey(neighbor)) {
+                        return
+                    }
+                    stack.addFirst(neighbor)
+                    int ns = roomCoord.left
+                    int ew = roomCoord.middle
+                    int ud = roomCoord.right
+                    try {
+                        switch (Direction.valueOf(direction.toUpperCase())) {
+                            case Direction.NORTH:
+                                ns--
+                                break
+                            case Direction.NORTHEAST:
+                                ns--
+                                ew--
+                                break
+                            case Direction.NORTHWEST:
+                                ns--
+                                ew++
+                                break
+                            case Direction.EAST:
+                                ew--
+                                break
+                            case Direction.SOUTH:
+                                ns++
+                                break
+                            case Direction.SOUTHEAST:
+                                ns++
+                                ew--
+                                break
+                            case Direction.SOUTHWEST:
+                                ns++
+                                ew++
+                                break
+                            case Direction.WEST:
+                                ew++
+                                break
+                            case Direction.UP:
+                                ud--
+                                break
+                            case Direction.DOWN:
+                                ud++
+                                break
+                        }
+                        coords.put(neighbor, Triple.of(ns, ew, ud))
+                    } catch (IllegalArgumentException e) {
+                        // non-standard direction, ignore
+                    }
+                }
+            }
+        }
+
+        world.rooms.sort { Room a, Room b ->
+            coords.get(a).compareTo(coords.get(b))
+        }
+
+        // sort regions based on contained rooms
+        Map<Region, Triple<Integer, Integer, Integer>> regionCoords = [:]
+        world.rooms.each { Room room ->
+            Triple<Integer, Integer, Integer> roomCoord = coords.get(room)
+            Region region = room.region
+            while (region != null) {
+                Triple<Integer, Integer, Integer> regionCoord = regionCoords.get(region)
+                if (regionCoord == null || roomCoord.compareTo(regionCoord) < 0) {
+                    regionCoords.put(region, roomCoord)
+                }
+                region = region.parent
+            }
+        }
+
+        Triple<Integer, Integer, Integer> defaultCoord = Triple.of(0, 0, 0)
+        world.regions.sort { Region a, Region b ->
+            regionCoords.getOrDefault(a, defaultCoord).compareTo(regionCoords.getOrDefault(b, defaultCoord))
+        }
+    }
 }

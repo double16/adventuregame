@@ -75,12 +75,12 @@ class RoomMemoryTest extends AbstractPlayerTest {
         then:
         mapSuccess
         1 * storySubscriber.onNext(new MapMessage(player: warrior, rooms: [
-                new MapMessage.RoomInfo('entrance', 'Entrance'),
-                new MapMessage.RoomInfo('trailer_2', 'Trailer 2'),
+                new MapMessage.RoomInfo('entrance', 'Entrance', null),
+                new MapMessage.RoomInfo('trailer_2', 'Trailer 2', null),
             ],
             edges: [
-                    new MapMessage.RoomEdgeInfo('entrance', 'trailer_2', 'north'),
-                    new MapMessage.RoomEdgeInfo('trailer_2', 'entrance', 'south'),
+                    new MapMessage.RoomEdgeInfo('entrance', 'trailer_2', 'north', 'south'),
+                    new MapMessage.RoomEdgeInfo('trailer_2', 'entrance', 'south', 'north'),
             ]
         ))
         and: 'chronos did not move'

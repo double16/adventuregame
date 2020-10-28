@@ -39,15 +39,15 @@ class DroolsConfiguration {
      */
     KieContainer kieContainer(World world) {
         KieContainer container = CACHE.compute(world.hash ?: world.computeSecureHash(),
-                { String key, SoftReference<KieContainer> value ->
-                    if (value?.get()) {
-                        return value
-                    }
-                    if (value != null) {
-                        log.info 'Rebuilding gc\'d KIE container'
-                    }
-                    new SoftReference<>(buildContainer(world))
-                }).get()
+        { String key, SoftReference<KieContainer> value ->
+            if (value?.get()) {
+                return value
+            }
+            if (value != null) {
+                log.info 'Rebuilding gc\'d KIE container'
+            }
+            new SoftReference<>(buildContainer(world))
+        }).get()
         Objects.requireNonNull(container)
         container
     }

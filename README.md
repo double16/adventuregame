@@ -12,6 +12,57 @@ Worlds are defined using a language based on Lua 5.1. For help with Lua see:
 
 TODO ...
 
+### Validation
+
+A world can be validated using the `validate-world` command. Supply the names of worlds to validate after the command.
+
+Validation provides:
+* Summary of the size of the world
+* Map that can be visualized using the [GraphViz](https://www.graphviz.org) tool.
+* Full AI runs with goal probabilities.
+* Island detection. More than 1 island indicates there are places on the map that can't be reached.
+* A ZIP file containing all of this information in JSON including full history of each run.
+ 
+```shell
+$ java -jar adventuregame.jar validate-world "Trailer Park"
+Validating Trailer Park
+Compiling... OK
+0 regions, 7 rooms, 3 personas, 3 players
+Island count: 2  WARN
+Generating map ... OK
+Determining goal probability ...
+Progress:   100/100
+Elapsed:    1:43
+Goal one:   100/100
+Goal two:   100/100
+Goal three: 0/100
+Goal four:  0/100
+Memory:     464M/512M
+OK
+Trailer_Park_b30b43b3fcd36785b28e5c69804a9880ac03c0d617f3a6490b198ee67d4a3334.zip 
+```
+
+The number of runs can be specified using the `--runs` parameter.
+
+```shell
+$ java -jar adventuregame.jar validate-world --runs 1000 "Trailer Park"
+Validating Trailer Park
+Compiling... OK
+0 regions, 7 rooms, 3 personas, 3 players
+Island count: 2  WARN
+Generating map ... OK
+Determining goal probability ...
+Progress:   100/1000
+Elapsed:    1:43
+Goal one:   100/1000
+Goal two:   100/1000
+Goal three: 0/1000
+Goal four:  0/1000
+Memory:     464M/512M
+OK
+Trailer_Park_b30b43b3fcd36785b28e5c69804a9880ac03c0d617f3a6490b198ee67d4a3334.zip 
+```
+
 ## Play
 
 Visiting the home page will present a list of available worlds. Select one to create a story. Once the story is created a URL will be displayed that can be sent to people to invite to the story.

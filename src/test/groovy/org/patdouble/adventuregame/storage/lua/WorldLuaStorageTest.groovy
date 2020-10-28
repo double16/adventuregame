@@ -3,6 +3,7 @@ package org.patdouble.adventuregame.storage.lua
 import org.patdouble.adventuregame.model.Persona
 import org.patdouble.adventuregame.model.PlayerTemplate
 import org.patdouble.adventuregame.model.World
+import spock.lang.PendingFeature
 import spock.lang.Specification
 
 class WorldLuaStorageTest extends Specification {
@@ -124,5 +125,10 @@ class WorldLuaStorageTest extends Specification {
         w4.goals[0].rules[0] = w4.goals[0].rules[0] + '2'
         then:
         w4.computeSecureHash() != originalHash
+    }
+
+    @PendingFeature
+    def "rooms and regions are sorted"() {
+
     }
 }

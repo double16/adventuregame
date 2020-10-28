@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory
  * Console UI for story engine.
  */
 @CompileDynamic
+@SuppressWarnings('SystemExit')
 class Main {
     /** Used to stop the main thread because this is a reactive application. */
     private static final Object WAIT_LOCK = new Object()

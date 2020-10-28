@@ -13,6 +13,7 @@ import javax.persistence.GenerationType
 import javax.persistence.Id
 import javax.persistence.Lob
 import javax.persistence.OneToMany
+import javax.persistence.OrderColumn
 import javax.persistence.PrePersist
 import java.security.MessageDigest
 
@@ -57,9 +58,11 @@ class World implements CanSecureHash {
     List<PlayerTemplate> extras = []
 
     @OneToMany(cascade = CascadeType.ALL)
+    @OrderColumn // important for maps
     List<Region> regions = []
 
     @OneToMany(cascade = CascadeType.ALL)
+    @OrderColumn // important for maps
     List<Room> rooms = []
 
     @OneToMany(cascade = CascadeType.ALL)

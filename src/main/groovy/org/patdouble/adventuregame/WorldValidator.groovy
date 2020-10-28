@@ -5,7 +5,10 @@ import groovy.transform.Canonical
 import groovy.transform.CompileDynamic
 import groovy.transform.CompileStatic
 import groovyx.gpars.GParsPool
+import groovyx.gpars.actor.Actor
 import groovyx.gpars.actor.Actors
+import org.apache.commons.io.output.CloseShieldOutputStream
+import org.apache.commons.io.output.TeeOutputStream
 import org.fusesource.jansi.Ansi
 import org.patdouble.adventuregame.engine.DroolsConfiguration
 import org.patdouble.adventuregame.engine.Engine
@@ -18,6 +21,7 @@ import org.patdouble.adventuregame.state.Story
 import org.patdouble.adventuregame.storage.lua.WorldLuaStorage
 import org.patdouble.adventuregame.ui.console.Console
 import org.patdouble.adventuregame.validation.IslandFinder
+import org.springframework.util.StreamUtils
 
 import java.nio.charset.Charset
 import java.util.concurrent.CompletableFuture
@@ -33,6 +37,7 @@ import java.util.zip.ZipOutputStream
  * Validates a world definition.
  */
 @CompileDynamic
+@SuppressWarnings('SystemExit')
 class WorldValidator {
     private static final DIRECTION_TO_NODEPORT = [
             'north': 's',
@@ -51,17 +56,6 @@ class WorldValidator {
     @Canonical
     static class GoalTrial {
         World world
-    }
-
-    @CompileStatic
-    static class NoCloseOutputStream extends FilterOutputStream {
-        NoCloseOutputStream(OutputStream out) {
-            super(out)
-        }
-        @Override
-        void close() throws IOException {
-            // do nothing
-        }
     }
 
     Console console
@@ -144,10 +138,16 @@ ${indent}  label=${gvQuotedString(region.name)};
     void map(World world, ZipOutputStream zip) {
         console.print 'Generating map ... '
 
-        ZipEntry ze = new ZipEntry("map.dot")
-        ze.setComment("Map in GraphViz DOT format, http://graphviz.org")
+        File dotFile = File.createTempFile('map', '.dot')
+        File svgFile = File.createTempFile('map', '.svg')
+
+        ZipEntry ze = new ZipEntry('map.dot')
+        ze.comment = 'Map in GraphViz DOT format, http://graphviz.org'
         zip.putNextEntry(ze)
-        OutputStreamWriter writer = new OutputStreamWriter(new NoCloseOutputStream(zip), Charset.forName('UTF-8'))
+        OutputStreamWriter writer = new OutputStreamWriter(new TeeOutputStream(
+                new CloseShieldOutputStream(zip),
+                new FileOutputStream(dotFile)),
+            Charset.forName('UTF-8'))
         try {
             writer << """
 digraph {
@@ -156,24 +156,63 @@ digraph {
 """
 
             mapSubgraph(writer, '', world, null)
+            Set<String> skipEdges = [] as Set
             world.rooms.each { Room from ->
                 from.neighbors.each { String direction, Room to ->
                     String returnDirection = to.neighbors.find { k,v -> v == from }?.key
-                    writer << """  ${from.modelId}${directionToNodePort(returnDirection)} -> ${to.modelId}${directionToNodePort(direction)}[label=${gvQuotedString(direction)}];\n"""
+                    if (!returnDirection ||
+                            !skipEdges.contains("${from.modelId}${returnDirection}:${to.modelId}${direction}" as String)) {
+
+                        String label = direction
+                        if (returnDirection) {
+                            if (returnDirection < direction) {
+                                label = "${returnDirection}/${direction}"
+                            } else {
+                                label = "${direction}/${returnDirection}"
+                            }
+                        }
+                        writer << """  ${from.modelId}${directionToNodePort(returnDirection)} -> ${to.modelId}${directionToNodePort(direction)}[label=${gvQuotedString(label)}"""
+                        if (returnDirection) {
+                            writer << ",dir=none"
+                        }
+                        writer << "];\n"
+
+                        if (returnDirection) {
+                            skipEdges << ("${to.modelId}${direction}:${from.modelId}${returnDirection}" as String)
+                        }
+                    }
                 }
             }
-            writer << """}
-"""
+            writer << '''}
+'''
         } finally {
             writer.close()
         }
 
         zip.closeEntry()
+        console.print 'DOT '
+
+        // Generate SVG
+        if (new ProcessBuilder().command('dot', '-Tsvg', "-o${svgFile.absolutePath}", dotFile.absolutePath)
+                .start().waitFor() == 0 && svgFile.length() > 0) {
+            ze = new ZipEntry('map.svg')
+            ze.comment = 'Map in SVG format (most web browsers support SVG)'
+            zip.putNextEntry(ze)
+            svgFile.withInputStream {
+                StreamUtils.copy(it, new CloseShieldOutputStream(zip))
+            }
+            zip.closeEntry()
+            console.print 'SVG '
+        }
+
+        dotFile.delete()
+        svgFile.delete()
 
         printResult(true)
         console.println()
     }
 
+    @SuppressWarnings('NestedBlockDepth')
     void goalPerformance(World world, ZipOutputStream zip) {
         console.println('Determining goal probability ...')
         List<GoalTrial> trials = [new GoalTrial(world)] * aiRunCount
@@ -182,7 +221,7 @@ digraph {
         List<Exception> errors = [].asSynchronized()
         ConcurrentHashMap<String, AtomicInteger> goalFulfilledCounts = new ConcurrentHashMap<>()
         GParsPool.withPool {
-            def reporter = Actors.actor {
+            Actor reporter = Actors.actor {
                 boolean first = true
                 AtomicLong start = new AtomicLong()
                 loop {
@@ -230,13 +269,15 @@ digraph {
                             eraseLine()
                             render('Memory:')
                             cursorToColumn(statColumn)
-                            render('%dM/%dM', (int) (Runtime.runtime.freeMemory()/(1024*1024)), (int) (Runtime.runtime.totalMemory()/(1024*1024)))
+                            render('%dM/%dM',
+                                    (int) (Runtime.runtime.freeMemory() / (1024 * 1024)),
+                                    (int) (Runtime.runtime.totalMemory() / (1024 * 1024)))
                             newline()
 
                             ZipEntry ze = new ZipEntry("history${num}.json")
-                            ze.setComment("Goals met: ${story.goals.findAll { it.fulfilled}.collect { it.goal.name}}")
+                            ze.comment = "Goals met: ${story.goals.findAll { it.fulfilled}.collect { it.goal.name}}"
                             zip.putNextEntry(ze)
-                            OBJECT_MAPPER.writeValue(new NoCloseOutputStream(zip), story.history)
+                            OBJECT_MAPPER.writeValue(new CloseShieldOutputStream(zip), story.history)
                             zip.closeEntry()
 
                             delegate
@@ -248,11 +289,11 @@ digraph {
                 }
             }
 
-            trials.eachParallel {
+            trials.eachParallel { GoalTrial trial ->
                 Story story = null
                 Engine engine = null
                 try {
-                    story = new Story(world)
+                    story = new Story(trial.world)
                     engine = new Engine(story)
                     engine.autoLifecycle = true
                     engine.init().join()
@@ -290,9 +331,9 @@ digraph {
         }
 
         ZipEntry ze = new ZipEntry('goal_perf.json')
-        ze.setComment('Goal Performance')
+        ze.comment = 'Goal Performance'
         zip.putNextEntry(ze)
-        OBJECT_MAPPER.writeValue(new NoCloseOutputStream(zip), [trials: trials.size(), goals: goalFulfilledCounts, errors: errors])
+        OBJECT_MAPPER.writeValue(new CloseShieldOutputStream(zip), [trials: trials.size(), goals: goalFulfilledCounts, errors: errors])
         zip.closeEntry()
 
         errors*.printStackTrace()
@@ -311,11 +352,11 @@ digraph {
         console.println()
 
         if (islands.size() > 1) {
-            ZipEntry ze = new ZipEntry("islands.json")
-            ze.setComment("Independent islands (room sub-graphs)")
+            ZipEntry ze = new ZipEntry('islands.json')
+            ze.comment = 'Independent islands (room sub-graphs)'
             zip.putNextEntry(ze)
-            def islandOutput = islands.collect { i -> i.collect { r -> r.modelId } }
-            OBJECT_MAPPER.writeValue(new NoCloseOutputStream(zip), islandOutput)
+            Collection<List<String>> islandOutput = islands*.collect { r -> r.modelId }
+            OBJECT_MAPPER.writeValue(new CloseShieldOutputStream(zip), islandOutput)
             zip.closeEntry()
         }
     }
@@ -325,9 +366,10 @@ digraph {
         File zipReportFile = new File("${world.name.replaceAll('\\s+', '_')}_${world.hash}.zip")
         zipReportFile.delete()
         ZipOutputStream zip = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(zipReportFile)))
-        zip.setComment("${world.name}, ${world.hash}")
+        zip.comment = "${world.name}, ${world.hash}"
+        boolean result = false
         try {
-            boolean result = compile(world)
+            result = compile(world)
             summary(world)
             findIslands(world, zip)
             map(world, zip)
@@ -337,6 +379,7 @@ digraph {
             zip.close()
         }
         console.println zipReportFile
+        result
     }
 
     boolean summary(World world) {

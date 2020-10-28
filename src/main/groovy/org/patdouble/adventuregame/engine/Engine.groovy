@@ -68,6 +68,7 @@ import java.util.concurrent.atomic.AtomicInteger
 @ToString(includes = ['story', 'locale', 'autoLifecycle'])
 @Slf4j
 @CompileDynamic
+@SuppressWarnings('CatchRuntimeException')
 class Engine {
     @Lazy
     private static final Executor DEFAULT_EXECUTOR = { Executors.newCachedThreadPool() } ()
@@ -94,15 +95,15 @@ class Engine {
     private final DroolsConfiguration droolsConfiguration
     private KieContainer kContainer
     private KieSession kieSession
-    private AtomicBoolean halting = new AtomicBoolean(false)
+    private final AtomicBoolean halting = new AtomicBoolean(false)
     private KieRuntimeLogger kieRuntimeLogger
     File kieRuntimeLoggerFile
 
-    private AtomicBoolean firingLatch = new AtomicBoolean(false)
+    private final AtomicBoolean firingLatch = new AtomicBoolean(false)
     private volatile CompletableFuture<Boolean> firingComplete
-    private CompletableFuture<Void> storyEnd = new CompletableFuture<>()
+    private final CompletableFuture<Void> storyEnd = new CompletableFuture<>()
 
-    private AtomicBoolean initKieSessionLatch = new AtomicBoolean(false)
+    private final AtomicBoolean initKieSessionLatch = new AtomicBoolean(false)
     private FactHandle chronosHandle
     private FactHandle storyStateHandle
     private final Map<UUID, FactHandle> handles = [:]

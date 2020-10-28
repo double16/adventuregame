@@ -291,9 +291,9 @@ class EngineCache {
         log.info('Starting sweep with {} engines, {} pending close, memory total/max/free {}M/{}M/{}M',
                 map.size(),
                 Engine.PENDING_CLOSE.get(),
-                Math.floor(RT.totalMemory()/B_PER_MB),
-                Math.floor(RT.maxMemory()/B_PER_MB),
-                Math.floor(RT.freeMemory()/B_PER_MB))
+                Math.floor(RT.totalMemory() / B_PER_MB),
+                Math.floor(RT.maxMemory() / B_PER_MB),
+                Math.floor(RT.freeMemory() / B_PER_MB))
 
         expire()
         sweep()
@@ -301,8 +301,8 @@ class EngineCache {
         log.info('Finished sweep with {} engines, {} pending close, memory total/max/free {}M/{}M/{}M',
                 map.size(),
                 Engine.PENDING_CLOSE.get(),
-                Math.floor(RT.totalMemory()/B_PER_MB),
-                Math.floor(RT.maxMemory()/B_PER_MB),
-                Math.floor(RT.freeMemory()/B_PER_MB))
+                Math.floor(RT.totalMemory() / B_PER_MB),
+                Math.floor(RT.maxMemory() / B_PER_MB),
+                Math.floor(RT.freeMemory() / B_PER_MB))
     }
 }
