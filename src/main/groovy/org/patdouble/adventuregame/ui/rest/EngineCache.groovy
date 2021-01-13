@@ -43,7 +43,7 @@ import java.util.zip.GZIPOutputStream
 @Slf4j
 @CompileDynamic
 class EngineCache {
-    private static final long B_PER_MB = 1024*1024
+    private static final long B_PER_MB = 1024 * 1024
     private static final Runtime RT = Runtime.runtime
 
     @CompileStatic
@@ -122,7 +122,7 @@ class EngineCache {
     }
 
     CompletableFuture<Void> clear() {
-        remove({true})
+        remove { true }
     }
 
     /**
@@ -130,7 +130,7 @@ class EngineCache {
      */
     @Transactional
     CompletableFuture<Void> expire(long timeInMillis = System.currentTimeMillis()) {
-        remove({ v -> v.expires.get() < timeInMillis || v.engine.story.ended })
+        remove { v -> v.expires.get() < timeInMillis || v.engine.story.ended }
     }
 
     @Transactional

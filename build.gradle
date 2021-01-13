@@ -1,22 +1,22 @@
 plugins {
-    id 'org.springframework.boot' version '2.3.4.RELEASE'
+    id 'org.springframework.boot' version '2.3.6.RELEASE'
     id 'java'
     id 'groovy'
     id 'idea'
-    id 'com.github.ben-manes.versions' version '0.33.0'
-    id 'ru.vyarus.quality' version '4.1.0'
+    id 'com.github.ben-manes.versions' version '0.36.0'
+    id 'ru.vyarus.quality' version '4.4.0'
     id 'com.bmuschko.clover' version '3.0.1'
-    id 'org.owasp.dependencycheck' version '6.0.1'
+    id 'org.owasp.dependencycheck' version '6.0.5'
     id 'com.patdouble.cucumber-jvm' version '0.19'
     id 'org.sonarqube' version '3.0'
-    id 'com.github.johnrengelman.shadow' version '6.0.0'
-    id 'com.bmuschko.docker-spring-boot-application' version '6.6.1'
+    id 'com.github.johnrengelman.shadow' version '6.1.0'
+    id 'com.bmuschko.docker-spring-boot-application' version '6.7.0'
     id 'info.solidsoft.pitest' version '1.5.2'
     id 'de.undercouch.download' version '4.1.1'
     id 'com.patdouble.jmeter-gradle-plugin' version '1.2.0-5.3'
     id 'uk.co.automatictester.lightning' version '2.0.1'
     id 'com.patdouble.zap' version '2.10.0'
-    id 'com.avast.gradle.docker-compose' version '0.13.3'
+    id 'com.avast.gradle.docker-compose' version '0.13.4'
 }
 
 apply plugin: 'io.spring.dependency-management'
@@ -33,7 +33,7 @@ repositories {
 }
 
 ext {
-    droolsVersion = '7.43.1.Final'
+    droolsVersion = '7.47.0.Final'
     groovyVersion = '2.5.+'
 //    groovyVersion = '3.0.+'
 }
@@ -61,15 +61,15 @@ dependencies {
     implementation 'org.webjars.npm:dagre-d3:0.6.+'
     implementation 'org.webjars.npm:graphlib-dot:0.6.+'
     implementation 'org.webjars.npm:axios:0.19.+'
-    implementation 'org.webjars:font-awesome:5.14.+'
+    implementation 'org.webjars:font-awesome:5.15.+'
     implementation 'org.webjars.npm:github-com-stomp-js-stompjs:5.4.+'
     implementation "org.kie:kie-spring:${droolsVersion}"
     // Supports hot reloading of rules from a Maven repo: implementation "org.kie:kie-ci:${droolsVersion}"
     implementation "org.drools:drools-core:${droolsVersion}"
     implementation "org.drools:drools-compiler:${droolsVersion}"
     implementation 'org.luaj:luaj-jse:3.0.1' // github.com/luaj/luaj
-    implementation 'org.fusesource.jansi:jansi:1.18'
-    implementation 'org.jline:jline:3.16.+'
+    implementation 'org.fusesource.jansi:jansi:2.1.1'
+    implementation 'org.jline:jline:3.18.+'
     implementation 'org.codehaus.gpars:gpars:1.2.+'
     implementation 'commons-io:commons-io:2.8.+'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
@@ -79,7 +79,7 @@ dependencies {
     testImplementation 'io.projectreactor:reactor-test'
 //    testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'org.codehaus.gpars:gpars:1.2.1'
-    testImplementation 'io.github.java-diff-utils:java-diff-utils:4.7'
+    testImplementation 'io.github.java-diff-utils:java-diff-utils:4.9'
 
     // Spock
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -218,6 +218,6 @@ afterEvaluate {
 
 pitest {
     // https://github.com/hcoles/pitest
-    pitestVersion = '1.5.2'
+    pitestVersion = '1.6.2'
     timestampedReports = false
 }

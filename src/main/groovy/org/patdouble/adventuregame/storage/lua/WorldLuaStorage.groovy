@@ -207,15 +207,19 @@ class WorldLuaStorage {
         }
         Range<Integer> quantity
         String[] split = quantityStr.split(/-/)
-        if (split.length == 0) {
-            quantity = 1..1
-        } else if (split.length == 1) {
-            quantity = (split[0] as Integer)..(split[0] as Integer)
-        } else if (split.length == 2) {
-            quantity = (split[0] as Integer)..(split[1] as Integer)
-        } else {
-            throw new IllegalArgumentException(
-                    "Quantity expected to be a single value or range: 2, 1-10, got '${quantityStr}'")
+        switch (split.length) {
+            case 0:
+                quantity = 1..1
+                break
+            case 1:
+                quantity = (split[0] as Integer)..(split[0] as Integer)
+                break
+            case 2:
+                quantity = (split[0] as Integer)..(split[1] as Integer)
+                break
+            default:
+                throw new IllegalArgumentException(
+                        "Quantity expected to be a single value or range: 2, 1-10, got '${quantityStr}'")
         }
         quantity
     }
@@ -225,7 +229,7 @@ class WorldLuaStorage {
         if (regions.isnil() || regions.length() == 0) {
             return
         }
-        
+
         // first pass, create the regions
         for (LuaTable data : new LuaArrayIterator<LuaTable>(regions)) {
             String regionId = nullSafeToString(data.get(KEY_ID))
@@ -380,7 +384,7 @@ class WorldLuaStorage {
         int start = 0
         islands.each {
             coords.put(it.first(), Triple.of(start, 0, 0))
-            start += it.size()+1
+            start += it.size() + 1
         }
         islands.each { Collection<Room> island ->
             LinkedList<Room> stack = new LinkedList<>()
@@ -445,7 +449,7 @@ class WorldLuaStorage {
         }
 
         world.rooms.sort { Room a, Room b ->
-            coords.get(a).compareTo(coords.get(b))
+            coords.get(a) <=> coords.get(b)
         }
 
         // sort regions based on contained rooms
@@ -464,7 +468,7 @@ class WorldLuaStorage {
 
         Triple<Integer, Integer, Integer> defaultCoord = Triple.of(0, 0, 0)
         world.regions.sort { Region a, Region b ->
-            regionCoords.getOrDefault(a, defaultCoord).compareTo(regionCoords.getOrDefault(b, defaultCoord))
+            regionCoords.getOrDefault(a, defaultCoord) <=> regionCoords.getOrDefault(b, defaultCoord)
         }
     }
 }
