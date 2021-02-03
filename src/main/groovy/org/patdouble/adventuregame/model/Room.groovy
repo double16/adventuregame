@@ -109,10 +109,10 @@ class Room implements KieMutableProperties, CanSecureHash {
 
     @Override
     void update(MessageDigest md) {
-        md.update((modelId ?: "").bytes)
-        md.update((name ?: "").bytes)
-        md.update((description ?: "").bytes)
-        md.update((region?.modelId ?: "").bytes)
+        md.update((modelId ?: '').bytes)
+        md.update((name ?: '').bytes)
+        md.update((description ?: '').bytes)
+        md.update((region?.modelId ?: '').bytes)
         neighbors.each { String direction, Room room ->
             md.update(direction.bytes)
             md.update(room.modelId.bytes)

@@ -17,7 +17,7 @@ import java.util.concurrent.CompletableFuture
  */
 @CompileStatic
 class EngineFacade {
-    protected static final ThreadLocal<KieSession> kieSession = new ThreadLocal<>()
+    protected static final ThreadLocal<KieSession> KIE_SESSION_HOLDER = new ThreadLocal<>()
     protected final Engine engine
 
     EngineFacade(Engine engine) {
@@ -62,7 +62,6 @@ class EngineFacade {
 
     /**
      * Publish a message.
-     * @param storyMessage
      * @return the estimated maximum lag among subscribers
      */
     int submit(StoryMessage item) {
@@ -96,7 +95,7 @@ class EngineFacade {
      *   0 implies immutable so no change is recorded
      */
     void updateObject(Object object, Collection<String> changed = null) {
-        engine.addOrReplaceKieObject(kieSession.get(), object, changed as String[])
+        engine.addOrReplaceKieObject(KIE_SESSION_HOLDER.get(), object, changed as String[])
     }
 
     World getWorld() {

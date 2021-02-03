@@ -26,6 +26,7 @@ import org.springframework.util.StreamUtils
 import java.nio.charset.Charset
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicInteger
@@ -37,18 +38,25 @@ import java.util.zip.ZipOutputStream
  * Validates a world definition.
  */
 @CompileDynamic
-@SuppressWarnings('SystemExit')
+@SuppressWarnings(['SystemExit', 'FileCreateTempFile'])
 class WorldValidator {
-    private static final DIRECTION_TO_NODEPORT = [
-            'north': 's',
+    static final String MAP_FILE_NAME = 'map'
+    static final String GRAPHVIZ_FILE_EXT = '.dot'
+    static final String SVG_FILE_EXT = '.svg'
+    static final String RESULT_TEXT_SUCCESS = 'OK'
+    static final String RESULT_TEXT_FAIL = 'FAIL'
+    static final String RESULT_TEXT_WARN = 'WARN'
+
+    private static final Map<String, String> DIRECTION_TO_NODEPORT = [
+            'north'    : 's',
             'northeast': 'sw',
             'northwest': 'se',
-            'south': 'n',
+            'south'    : 'n',
             'southeast': 'nw',
             'southwest': 'ne',
-            'east': 'w',
-            'west': 'e',
-    ]
+            'east'     : 'w',
+            'west'     : 'e',
+    ].asImmutable()
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
 
@@ -72,9 +80,9 @@ class WorldValidator {
     private Console printResult(boolean result) {
         console.print {
             if (result) {
-                fg(Ansi.Color.GREEN).a('OK').fg(Ansi.Color.DEFAULT)
+                fg(Ansi.Color.GREEN).a(RESULT_TEXT_SUCCESS).fg(Ansi.Color.DEFAULT)
             } else {
-                fg(Ansi.Color.RED).a('FAIL').fg(Ansi.Color.DEFAULT)
+                fg(Ansi.Color.RED).a(RESULT_TEXT_FAIL).fg(Ansi.Color.DEFAULT)
             }
         }
     }
@@ -94,12 +102,12 @@ class WorldValidator {
 ${indent}  label=${gvQuotedString(region.name)};
 """
         }
-        world.regions.findAll { it.parent == region }.each { mapSubgraph(out, indent+'  ', world, it) }
+        world.regions.findAll { it.parent == region }.each { mapSubgraph(out, indent + '  ', world, it) }
 
         world.rooms
-            .findAll { it.region == region }
-            .each { out << "${indent}  ${it.modelId}[label=${gvQuotedString(it.name)}];\n" }
-            .join(';')
+                .findAll { it.region == region }
+                .each { out << "${indent}  ${it.modelId}[label=${gvQuotedString(it.name)}];\n" }
+                .join(';')
 
         if (region != null) {
             out << "${indent}}\n"
@@ -107,7 +115,7 @@ ${indent}  label=${gvQuotedString(region.name)};
     }
 
     void help() {
-        console.println "${WorldValidator.class.simpleName} [-r|--runs n] <world_name|world_uuid|file_location>"
+        console.println "${WorldValidator.simpleName} [-r|--runs n] <world_name|world_uuid|file_location>"
         System.exit(1)
     }
 
@@ -138,31 +146,29 @@ ${indent}  label=${gvQuotedString(region.name)};
     void map(World world, ZipOutputStream zip) {
         console.print 'Generating map ... '
 
-        File dotFile = File.createTempFile('map', '.dot')
-        File svgFile = File.createTempFile('map', '.svg')
+        File dotFile = File.createTempFile(MAP_FILE_NAME, GRAPHVIZ_FILE_EXT)
+        File svgFile = File.createTempFile(MAP_FILE_NAME, SVG_FILE_EXT)
 
-        ZipEntry ze = new ZipEntry('map.dot')
+        ZipEntry ze = new ZipEntry("${MAP_FILE_NAME}${GRAPHVIZ_FILE_EXT}")
         ze.comment = 'Map in GraphViz DOT format, http://graphviz.org'
         zip.putNextEntry(ze)
         OutputStreamWriter writer = new OutputStreamWriter(new TeeOutputStream(
                 new CloseShieldOutputStream(zip),
                 new FileOutputStream(dotFile)),
-            Charset.forName('UTF-8'))
+                Charset.forName('UTF-8'))
         try {
             writer << """
 digraph {
   label=${gvQuotedString(world.name)};
   concentrate=true;
 """
-
             mapSubgraph(writer, '', world, null)
             Set<String> skipEdges = [] as Set
             world.rooms.each { Room from ->
                 from.neighbors.each { String direction, Room to ->
-                    String returnDirection = to.neighbors.find { k,v -> v == from }?.key
+                    String returnDirection = to.neighbors.find { k, v -> v == from }?.key
                     if (!returnDirection ||
                             !skipEdges.contains("${from.modelId}${returnDirection}:${to.modelId}${direction}" as String)) {
-
                         String label = direction
                         if (returnDirection) {
                             if (returnDirection < direction) {
@@ -173,9 +179,9 @@ digraph {
                         }
                         writer << """  ${from.modelId}${directionToNodePort(returnDirection)} -> ${to.modelId}${directionToNodePort(direction)}[label=${gvQuotedString(label)}"""
                         if (returnDirection) {
-                            writer << ",dir=none"
+                            writer << ',dir=none'
                         }
-                        writer << "];\n"
+                        writer << '];\n'
 
                         if (returnDirection) {
                             skipEdges << ("${to.modelId}${direction}:${from.modelId}${returnDirection}" as String)
@@ -195,7 +201,7 @@ digraph {
         // Generate SVG
         if (new ProcessBuilder().command('dot', '-Tsvg', "-o${svgFile.absolutePath}", dotFile.absolutePath)
                 .start().waitFor() == 0 && svgFile.length() > 0) {
-            ze = new ZipEntry('map.svg')
+            ze = new ZipEntry("${MAP_FILE_NAME}${SVG_FILE_EXT}")
             ze.comment = 'Map in SVG format (most web browsers support SVG)'
             zip.putNextEntry(ze)
             svgFile.withInputStream {
@@ -219,7 +225,7 @@ digraph {
         AtomicInteger completeCount = new AtomicInteger(0)
         AtomicInteger timeoutCount = new AtomicInteger(0)
         List<Exception> errors = [].asSynchronized()
-        ConcurrentHashMap<String, AtomicInteger> goalFulfilledCounts = new ConcurrentHashMap<>()
+        ConcurrentMap<String, AtomicInteger> goalFulfilledCounts = new ConcurrentHashMap<>()
         GParsPool.withPool {
             Actor reporter = Actors.actor {
                 boolean first = true
@@ -229,14 +235,14 @@ digraph {
                         Story story = it[0]
                         int num = it[1]
                         console.print {
-                            if (!first) {
-                                cursorUpLine(story.goals.size() + 3)
-                            } else {
+                            if (first) {
                                 start.set(System.currentTimeMillis())
                                 first = false
+                            } else {
+                                cursorUpLine(story.goals.size() + 3)
                             }
 
-                            int statColumn = Math.max(10, story.goals.collect { 8+it.goal.name.length() }.max() ?: 0)
+                            int statColumn = Math.max(10, story.goals.collect { 8 + it.goal.name.length() }.max() ?: 0)
 
                             eraseLine()
                             render('Progress:')
@@ -275,7 +281,7 @@ digraph {
                             newline()
 
                             ZipEntry ze = new ZipEntry("history${num}.json")
-                            ze.comment = "Goals met: ${story.goals.findAll { it.fulfilled}.collect { it.goal.name}}"
+                            ze.comment = "Goals met: ${story.goals.findAll { it.fulfilled }.collect { it.goal.name }}"
                             zip.putNextEntry(ze)
                             OBJECT_MAPPER.writeValue(new CloseShieldOutputStream(zip), story.history)
                             zip.closeEntry()
@@ -317,7 +323,7 @@ digraph {
                 int num = completeCount.incrementAndGet()
                 if (story != null) {
                     story.goals.each {
-                        AtomicInteger count = goalFulfilledCounts.computeIfAbsent(it.goal.name, { new AtomicInteger(0) })
+                        AtomicInteger count = goalFulfilledCounts.computeIfAbsent(it.goal.name) { new AtomicInteger(0) }
                         if (it.fulfilled) {
                             count.incrementAndGet()
                         }
@@ -326,7 +332,7 @@ digraph {
                 }
             }
 
-            reporter.join(10*trials.size(), TimeUnit.SECONDS)
+            reporter.join(10 * trials.size(), TimeUnit.SECONDS)
             reporter.terminate()
         }
 
@@ -344,9 +350,9 @@ digraph {
         console.print "Island count: ${islands.size()}  "
         console.print {
             if (islands.size() == 1) {
-                fg(Ansi.Color.GREEN).a('OK').fg(Ansi.Color.DEFAULT)
+                fg(Ansi.Color.GREEN).a(RESULT_TEXT_SUCCESS).fg(Ansi.Color.DEFAULT)
             } else {
-                fg(Ansi.Color.YELLOW).a('WARN').fg(Ansi.Color.DEFAULT)
+                fg(Ansi.Color.YELLOW).a(RESULT_TEXT_WARN).fg(Ansi.Color.DEFAULT)
             }
         }
         console.println()
@@ -355,7 +361,7 @@ digraph {
             ZipEntry ze = new ZipEntry('islands.json')
             ze.comment = 'Independent islands (room sub-graphs)'
             zip.putNextEntry(ze)
-            Collection<List<String>> islandOutput = islands*.collect { r -> r.modelId }
+            Collection<List<String>> islandOutput = islands*.modelId
             OBJECT_MAPPER.writeValue(new CloseShieldOutputStream(zip), islandOutput)
             zip.closeEntry()
         }

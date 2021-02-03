@@ -40,8 +40,8 @@ class Goal implements CanSecureHash {
 
     @Override
     void update(MessageDigest md) {
-        md.update((name ?: "").bytes)
-        md.update((description ?: "").bytes)
+        md.update((name ?: '').bytes)
+        md.update((description ?: '').bytes)
         md.update(required ? (byte) 0x1 : (byte) 0x0)
         md.update(theEnd ? (byte) 0x1 : (byte) 0x0)
         rules.each { md.update(it.bytes) }

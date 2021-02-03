@@ -102,9 +102,9 @@ class World implements CanSecureHash {
 
     @Override
     void update(MessageDigest md) {
-        md.update((name ?: "").bytes)
-        md.update((author ?: "").bytes)
-        md.update((description ?: "").bytes)
+        md.update((name ?: '').bytes)
+        md.update((author ?: '').bytes)
+        md.update((description ?: '').bytes)
         personas*.update(md)
         players*.update(md)
         extras*.update(md)

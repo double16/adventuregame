@@ -19,9 +19,9 @@ class TaskExecutorConfiguration {
     @SuppressWarnings('Unused')
     SchedulingTaskExecutor getSchedulingTaskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor()
-        executor.setCorePoolSize(10)
+        executor.corePoolSize = 10
         // Don't queue up requests, we have some long running threads
-        executor.setQueueCapacity(0)
+        executor.queueCapacity = 0
         executor
     }
 }

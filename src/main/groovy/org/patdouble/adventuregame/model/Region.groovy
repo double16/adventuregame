@@ -67,9 +67,9 @@ class Region implements KieMutableProperties, CanSecureHash {
 
     @Override
     void update(MessageDigest md) {
-        md.update((modelId ?: "").bytes)
-        md.update((name ?: "").bytes)
-        md.update((description ?: "").bytes)
+        md.update((modelId ?: '').bytes)
+        md.update((name ?: '').bytes)
+        md.update((description ?: '').bytes)
         if (parent) {
             md.update(parent.name.bytes)
         }

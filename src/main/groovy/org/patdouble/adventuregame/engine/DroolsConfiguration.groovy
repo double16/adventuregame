@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory
 
 import java.lang.ref.SoftReference
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentMap
 
 /**
  * Configures the rule engine.
@@ -30,7 +31,7 @@ class DroolsConfiguration {
             'org/patdouble/adventuregame/state/default.drl',
     ]
 
-    private static final ConcurrentHashMap<String, SoftReference<KieContainer>> CACHE = new ConcurrentHashMap<>()
+    private static final ConcurrentMap<String, SoftReference<KieContainer>> CACHE = new ConcurrentHashMap<>()
 
     /**
      * Create a new KIE container with custom rules generated from the World.
@@ -56,10 +57,10 @@ class DroolsConfiguration {
     private KieContainer buildContainer(World world) {
         log.info 'Building KIE container for {} - {} #{}', world.id, world.name, world.edition
 
-        final int INITIAL_BUFFER_SIZE = 16384
+        final int initialBufferSize = 16384
         WorldRuleGenerator worldRuleGenerator = new WorldRuleGenerator(world)
-        StringWriter worldRulesDrl = new StringWriter(INITIAL_BUFFER_SIZE)
-        StringWriter worldRulesDslr = new StringWriter(INITIAL_BUFFER_SIZE)
+        StringWriter worldRulesDrl = new StringWriter(initialBufferSize)
+        StringWriter worldRulesDslr = new StringWriter(initialBufferSize)
         worldRuleGenerator.generate(worldRulesDrl, worldRulesDslr)
 
         KieServices kieServices = KieServices.Factory.get()

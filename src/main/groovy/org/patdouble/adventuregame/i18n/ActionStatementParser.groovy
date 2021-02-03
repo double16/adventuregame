@@ -75,7 +75,7 @@ class ActionStatementParser {
     }
 
     List<String> findAvailableActions(EngineFacade facade, Player player) {
-        actions.findAll { k,v -> v.actionClass.getDeclaredConstructor().newInstance().isValid(facade, player) }
+        actions.findAll { k, v -> v.actionClass.getDeclaredConstructor().newInstance().isValid(facade, player) }
                 .keySet()
                 .sort()
     }

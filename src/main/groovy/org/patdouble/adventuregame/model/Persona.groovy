@@ -36,7 +36,8 @@ class Persona implements KieMutableProperties, CanSecureHash {
     private static final int ATTR_MIN_LEVEL = 0
     private static final int ATTR_MID_LEVEL = 500
 
-    @Id @GeneratedValue(strategy = GenerationType.AUTO)
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @JsonIgnore
     UUID dbId
     /** 'business' id */
@@ -75,15 +76,17 @@ class Persona implements KieMutableProperties, CanSecureHash {
     @Override
     void update(MessageDigest md) {
         ByteBuffer intb = ByteBuffer.allocate(4)
-        md.update(name.bytes)
-        md.update(intb.putInt(health).array())
-        md.update(wealth.unscaledValue().toByteArray())
-        md.update(intb.rewind().putInt(virtue).array())
-        md.update(intb.rewind().putInt(bravery).array())
-        md.update(intb.rewind().putInt(leadership).array())
-        md.update(intb.rewind().putInt(experience).array())
-        md.update(intb.rewind().putInt(agility).array())
-        md.update(intb.rewind().putInt(speed).array())
-        md.update(intb.rewind().putInt(memory).array())
+        md.with {
+            update(name.bytes)
+            update(intb.putInt(health).array())
+            update(wealth.unscaledValue().toByteArray())
+            update(intb.rewind().putInt(virtue).array())
+            update(intb.rewind().putInt(bravery).array())
+            update(intb.rewind().putInt(leadership).array())
+            update(intb.rewind().putInt(experience).array())
+            update(intb.rewind().putInt(agility).array())
+            update(intb.rewind().putInt(speed).array())
+            update(intb.rewind().putInt(memory).array())
+        }
     }
 }

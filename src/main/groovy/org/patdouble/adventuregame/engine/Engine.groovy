@@ -138,19 +138,19 @@ class Engine {
     CompletableFuture<Void> init() {
         assert story.world
 
-        final CompletableFuture<Void> FUTURE = new CompletableFuture<>()
+        final CompletableFuture<Void> future = new CompletableFuture<>()
         kieSession.submit { KieSession kieSession ->
             if (story.chronos == null) {
                 story.chronos = new Chronos()
                 story.history = new History(story.world)
                 createPlayerRequests()
                 createGoalStatus()
-                checkInitComplete(FUTURE)
+                checkInitComplete(future)
             } else {
-                FUTURE.complete(null)
+                future.complete(null)
             }
         }
-        FUTURE
+        future
     }
 
     /**
@@ -162,25 +162,25 @@ class Engine {
         if (kieSession == null ) { // ended
             return CompletableFuture.completedFuture(story)
         }
-        final CompletableFuture<Story> FUTURE = new CompletableFuture<>()
+        final CompletableFuture<Story> future = new CompletableFuture<>()
         kieSession.submit { KieSession kieSession ->
             Story story = storyProducer.call()
             if (story == null) {
-                FUTURE.complete(story)
+                future.complete(story)
                 return
             }
             if (story.is(this.story)) {
-                FUTURE.complete(story)
+                future.complete(story)
             } else {
                 this.story = story
                 if (storyStateHandle != null) {
                     populateKieSession(kieSession)
                     syncStoryState(kieSession)
                 }
-                FUTURE.complete(story)
+                future.complete(story)
             }
         }
-        FUTURE
+        future
     }
 
     /**
@@ -189,16 +189,16 @@ class Engine {
      */
     @SuppressWarnings('Instanceof')
     CompletableFuture<Void> addToCast(Player player) {
-        final CompletableFuture<Void> FUTURE = new CompletableFuture<>()
+        final CompletableFuture<Void> future = new CompletableFuture<>()
         kieSession.submit { KieSession kieSession ->
             try {
                 doAddToCast(player)
-                checkInitComplete(FUTURE)
+                checkInitComplete(future)
             } catch (RuntimeException e) {
-                FUTURE.completeExceptionally(e)
+                future.completeExceptionally(e)
             }
         }
-        FUTURE
+        future
     }
 
     /**
@@ -206,21 +206,21 @@ class Engine {
      * @throws IllegalArgumentException if the request isn't optional
      */
     CompletableFuture<Void> ignore(PlayerRequest request) {
-        final CompletableFuture<Void> FUTURE = new CompletableFuture<>()
-        if (!request.optional) {
-            FUTURE.completeExceptionally(new IllegalArgumentException(
-                    "Can not ignore required player ${request.template}"))
-        } else {
+        final CompletableFuture<Void> future = new CompletableFuture<>()
+        if (request.optional) {
             kieSession.submit { KieSession kieSession ->
                 try {
                     doIgnore(request)
-                    checkInitComplete(FUTURE)
+                    checkInitComplete(future)
                 } catch (RuntimeException e) {
-                    FUTURE.completeExceptionally(e)
+                    future.completeExceptionally(e)
                 }
             }
+        } else {
+            future.completeExceptionally(new IllegalArgumentException(
+                    "Can not ignore required player ${request.template}"))
         }
-        FUTURE
+        future
     }
 
     /**
@@ -231,7 +231,7 @@ class Engine {
      */
     @SuppressWarnings('Instanceof')
     CompletableFuture<Void> start(final Motivator forceMotivator = null) {
-        final CompletableFuture<Void> FUTURE = new CompletableFuture<>()
+        final CompletableFuture<Void> future = new CompletableFuture<>()
         kieSession.submit { KieSession kieSession ->
             try {
                 if (forceMotivator == null) {
@@ -258,24 +258,24 @@ class Engine {
                 placePlayers()
                 initKieSession()
             } catch (RuntimeException e) {
-                FUTURE.completeExceptionally(e)
+                future.completeExceptionally(e)
             }
         }
         // we need to ensure the previous atomic operation is complete before calling fireUntilHalt()
         kieSession.submit {
-            if (FUTURE.isCompletedExceptionally()) {
+            if (future.isCompletedExceptionally()) {
                 return
             }
             try {
-                startRuleEngine(FUTURE)
+                startRuleEngine(future)
             } catch (RuntimeException e) {
-                FUTURE.completeExceptionally(e)
+                future.completeExceptionally(e)
             }
         }
         if (autoLifecycle) {
-            FUTURE
+            future
         } else {
-            FUTURE.thenRun { next() }
+            future.thenRun { next() }
         }
     }
 
@@ -302,13 +302,13 @@ class Engine {
      */
     CompletableFuture<Void> end() {
         // It's possible for the Engine to end but rule activation are still scheduled to fire
-        final KieSession KIE_SESSION = kieSession
-        if (KIE_SESSION == null) {
+        final KieSession kieSessionHolder = kieSession
+        if (kieSessionHolder == null) {
             return CompletableFuture.completedFuture(null)
         }
 
-        final CompletableFuture<Void> FUTURE = new CompletableFuture<>()
-        KIE_SESSION.submit { KieSession kieSession ->
+        final CompletableFuture<Void> future = new CompletableFuture<>()
+        kieSessionHolder.submit { KieSession kieSession ->
             if (!story.ended) {
                 story.ended = true
                 recordHistory()
@@ -317,10 +317,10 @@ class Engine {
                 story.requests.clear()
                 publisher.submit(new StoryEnded())
             }
-            FUTURE.complete(null)
+            future.complete(null)
             storyEnd.complete(null)
         }
-        FUTURE
+        future
     }
 
     /**
@@ -399,25 +399,25 @@ class Engine {
      */
     CompletableFuture<Void> fulfill(GoalStatus goal) {
         // It's possible for the Engine to end but rule activation are still scheduled to fire
-        final KieSession KIE_SESSION = kieSession
-        if (KIE_SESSION == null) {
+        final KieSession kieSessionHolder = kieSession
+        if (kieSessionHolder == null) {
             return CompletableFuture.completedFuture(null)
         }
 
-        final CompletableFuture<Void> FUTURE = new CompletableFuture<>()
-        KIE_SESSION.submit { KieSession kieSession ->
+        final CompletableFuture<Void> future = new CompletableFuture<>()
+        kieSessionHolder.submit { KieSession kieSession ->
             try {
                 if (!goal.fulfilled) {
                     goal.fulfilled = true
                     kieSession.update(handles.get(goal.id), goal, 'fulfilled')
                     publisher.submit(new GoalFulfilled(goal.goal))
                 }
-                FUTURE.complete(null)
+                future.complete(null)
             } catch (Exception e) {
-                FUTURE.completeExceptionally(e)
+                future.completeExceptionally(e)
             }
         }
-        FUTURE
+        future
     }
 
     /**
@@ -437,14 +437,14 @@ class Engine {
         log.debug('action for player {} - {}', player, action)
 
         // It's possible for the Engine to end but rule activation are still scheduled to fire
-        final KieSession KIE_SESSION = kieSession
-        if (KIE_SESSION == null) {
+        final KieSession kieSessionHolder = kieSession
+        if (kieSessionHolder == null) {
             return CompletableFuture.completedFuture(false)
         }
 
-        final CompletableFuture<Boolean> FUTURE = new CompletableFuture<>()
+        final CompletableFuture<Boolean> future = new CompletableFuture<>()
 
-        KIE_SESSION.submit { KieSession kieSession ->
+        kieSessionHolder.submit { KieSession kieSession ->
             try {
 
                 ActionRequest actionRequest = story.requests.find { it instanceof ActionRequest && it.player == player }
@@ -455,7 +455,7 @@ class Engine {
                         publisher.submit(new PlayerNotification(player,
                                 bundles.text.getString('action.norequest.subject'),
                                 bundles.text.getString('action.norequest.text')))
-                        FUTURE.complete(false)
+                        future.complete(false)
                         return
                     }
                 }
@@ -477,7 +477,7 @@ class Engine {
                     if (builtInAction) {
                         ActionExecutor actionInstance = builtInAction.actionClass.getConstructor().newInstance()
                         try {
-                            facade.kieSession.set(kieSession)
+                            facade.KIE_SESSION_HOLDER.set(kieSession)
                             success = actionInstance.execute(facade, player, action)
                             validAction = true
                             if (success) {
@@ -486,7 +486,7 @@ class Engine {
                         } catch (UnsupportedOperationException e) {
                             validAction = false
                         } finally {
-                            facade.kieSession.set(null)
+                            facade.KIE_SESSION_HOLDER.set(null)
                         }
                     } else if (action?.verb) {
                         // TODO: custom actions
@@ -524,13 +524,13 @@ class Engine {
                     }
                 }
 
-                FUTURE.complete(success)
+                future.complete(success)
             } catch (RuntimeException e) {
-                FUTURE.completeExceptionally(e)
+                future.completeExceptionally(e)
             }
         }
 
-        FUTURE.thenApply { s ->
+        future.thenApply { s ->
             // result of actions may have ended the story
             next()
             return s
@@ -541,18 +541,18 @@ class Engine {
      * Get a list of rooms known to the player.
      */
     CompletableFuture<Collection<Room>> findRoomsKnownToPlayer(Player p) {
-        final CompletableFuture<Collection<Room>> FUTURE = new CompletableFuture<>()
+        final CompletableFuture<Collection<Room>> future = new CompletableFuture<>()
         executor.execute {
             try {
                 QueryResults results = queryRuleEngine('knownRoomsToPlayer', p)
                 Collection<Room> rooms = results.collect { QueryResultsRow row -> ((Room) row.get('$room')) }
-                FUTURE.complete(rooms)
+                future.complete(rooms)
             } catch (RuntimeException e) {
                 log.error 'findRoomsKnownToPlayer({})', p, e
-                FUTURE.completeExceptionally(e)
+                future.completeExceptionally(e)
             }
         }
-        FUTURE
+        future
     }
 
     void setKieRuntimeLoggerFile(File file) {
@@ -740,11 +740,11 @@ class Engine {
                     long start = System.currentTimeMillis()
                     kieSession.fireUntilHalt()
                     long end = System.currentTimeMillis()
-                    if (!halting.get()) {
+                    if (halting.get()) {
+                        log.info 'Halted rule engine'
+                    } else {
                         // this can happen if a thread is not done calling .fireAllRules()
                         log.debug 'Rule engine stopped without call to halt()'
-                    } else {
-                        log.info 'Halted rule engine'
                     }
                     if ((end - start) < 10000) {
                         quickRestartCount++

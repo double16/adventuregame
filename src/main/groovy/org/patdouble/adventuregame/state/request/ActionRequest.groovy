@@ -10,7 +10,6 @@ import org.patdouble.adventuregame.state.Player
 
 import javax.persistence.CascadeType
 import javax.persistence.Column
-import javax.persistence.ElementCollection
 import javax.persistence.Embedded
 import javax.persistence.Entity
 import javax.persistence.ManyToOne

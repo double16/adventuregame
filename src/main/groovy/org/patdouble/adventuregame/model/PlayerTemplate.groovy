@@ -61,7 +61,7 @@ class PlayerTemplate implements CanSecureHash {
     List<Room> knownRooms = []
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderColumn(name="INDEX")
+    @OrderColumn(name= 'INDEX')
     List<Goal> goals = []
 
     /** The allowed quantity of this type of player. */
@@ -123,9 +123,9 @@ class PlayerTemplate implements CanSecureHash {
     @Override
     void update(MessageDigest md) {
         persona.update(md)
-        md.update((nickName ?: "").bytes)
-        md.update((fullName ?: "").bytes)
-        md.update((room?.modelId ?: "").bytes)
+        md.update((nickName ?: '').bytes)
+        md.update((fullName ?: '').bytes)
+        md.update((room?.modelId ?: '').bytes)
         knownRooms.each { md.update(it.modelId.bytes) }
         goals*.update(md)
 
