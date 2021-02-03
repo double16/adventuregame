@@ -1,7 +1,6 @@
 package org.patdouble.adventuregame.storage.lua
 
 import org.patdouble.adventuregame.model.Persona
-import org.patdouble.adventuregame.model.PlayerTemplate
 import org.patdouble.adventuregame.model.World
 import spock.lang.PendingFeature
 import spock.lang.Specification
@@ -27,24 +26,24 @@ class WorldLuaStorageTest extends Specification {
         world.description == 'The Hobbit by J.R.R. Tolkien'
 
         and: 'personas are loaded'
-        world.personas.size() == 4
+        world.personas.size() == 6
 
         and: 'hobbit persona'
         Persona hobbit = world.personas.find { it.name == 'hobbit' }
         hobbit.name == 'hobbit'
-        hobbit.health == 80
-        hobbit.wealth == 30
+        hobbit.health == 800
+        hobbit.wealth == 300
 
         and: 'players'
         world.players.size() == 2
 
         and: 'regions'
-        world.regions.size() == 3
-        world.regions*.modelId.sort() == [ 'bag_end', 'mordor', 'shire' ]
+        world.regions.size() == 11
+        world.regions*.modelId.sort() == ['bag_end', 'bree', 'east', 'hobbiton', 'mordor', 'moria', 'north', 'old_forest', 'shire', 'south', 'west']
         with(world.findRegionById('bag_end').get()) {
             name == 'Bag End'
             description == 'Baggins\' Hobbit Hole'
-            parent.modelId == 'shire'
+            parent.modelId == 'hobbiton'
         }
         with(world.findRegionById('shire').get()) {
             name == 'The Shire'
@@ -56,7 +55,7 @@ class WorldLuaStorageTest extends Specification {
         }
 
         and: 'rooms'
-        world.rooms*.modelId.size() == 3
+        world.rooms*.modelId.size() == 9
         with(world.findRoomById('bag_end_foyer').get()) {
             name == 'Bag End Foyer'
             description == 'Entrance to Bag End'
@@ -67,14 +66,14 @@ class WorldLuaStorageTest extends Specification {
         with(world.players.find { it.nickName == 'Bilbo' }) {
             fullName == 'Bilbo Baggins'
             persona.name == 'hobbit'
-            knownRooms*.modelId.sort() == [ 'bag_end_foyer', 'bag_end_kitchen' ]
+            knownRooms*.modelId.sort() == ['bag_end_foyer', 'bag_end_garden', 'bag_end_kitchen', 'bag_end_parlor', 'hobbiton_east']
         }
 
         and: 'Gandalf'
         with (world.players.find { it.nickName == 'Gandalf' }) {
             fullName == 'Gandalf the Grey'
             persona.name == 'wizard'
-            knownRooms*.modelId.sort() == [ 'bag_end_foyer', 'bag_end_kitchen', 'blackgate' ]
+            knownRooms*.modelId.sort() == ['bag_end_foyer', 'bag_end_garden', 'bag_end_kitchen', 'bag_end_parlor', 'blackgate', 'hobbiton_east']
         }
 
         and: 'orcs'
