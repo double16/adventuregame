@@ -2,7 +2,7 @@ import groovyx.net.http.HttpBuilder
 
 buildscript {
     repositories {
-        jcenter()
+        mavenCentral()
     }
     dependencies {
         classpath 'org.apache.httpcomponents:httpclient:4.5.12'
@@ -16,6 +16,8 @@ zapConfig {
         def port = dockerCompose.servicesInfos.app.firstContainer.ports[8080]
         "http://${host}:${port}"
     }
+    activeScanTimeout = '600'
+//    version = '2.10.0'
 }
 
 task zapSetup(dependsOn: zapStart) {

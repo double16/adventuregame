@@ -7,11 +7,11 @@ services:
   app:
     restart: on-failure
     image: pdouble16/adventuregame:latest
-    healthcheck:
-      test: "curl -s -O /dev/null http://localhost:8080/actuator/health || exit 1"
+#    healthcheck:
+#      test: "curl -s -O /dev/null http://localhost:8080/actuator/health || exit 1"
     environment:
       SPRING_PROFILES_ACTIVE: "stage"
     ports:
     - 8080
     volumes:
-    - data:/data
+    - data:/home/cnb
