@@ -1,7 +1,7 @@
 Vue.component('story-create-item', {
     props: ['name', 'description', 'worldId'],
     template:  `
-<div class="card">
+<div class="card story-create-item">
 <div class="card-body">
 <h5 class="card-title">{{ name }}</h5>
 <p class="card-text">{{ description }}</p>
@@ -24,33 +24,33 @@ Vue.component('story-create-item', {
 Vue.component('player-detail', {
     props: ['player'],
     template: `
-<div class="card">
+<div class="card player-detail">
 <div class="card-body">
-    <h2 class="card-title">{{ player.fullName }}</h2>
-    <h3 class="card-subtitle mb-2 text-muted">{{ player.name }}</h3>
-    <p class="card-text">\${{ player.wealth }}</p>
-    <div class="progress">
+    <h2 class="card-title full-name">{{ player.fullName }}</h2>
+    <h3 class="card-subtitle mb-2 text-muted nick-name">{{ player.name }}</h3>
+    <p class="card-text wealth">\${{ player.wealth }}</p>
+    <div class="progress health">
       health:&nbsp;<div class="progress-bar" role="progressbar" v-bind:style="{ width: (player.health/10)+'%' }" :aria-valuenow="player.health" aria-valuemin="0" aria-valuemax="1000"></div>
     </div>
-    <div class="progress">
+    <div class="progress virtue">
       virtue:&nbsp;<div class="progress-bar" role="progressbar" v-bind:style="{ width: (player.virtue/10)+'%' }" :aria-valuenow="player.virtue" aria-valuemin="0" aria-valuemax="1000"></div>
     </div>
-    <div class="progress">
+    <div class="progress memory">
       memory:&nbsp;<div class="progress-bar" role="progressbar" v-bind:style="{ width: (player.memory/10)+'%' }" :aria-valuenow="player.memory" aria-valuemin="0" aria-valuemax="1000"></div>
     </div>
-    <div class="progress">
+    <div class="progress bravery">
       bravery:&nbsp;<div class="progress-bar" role="progressbar" v-bind:style="{ width: (player.bravery/10)+'%' }" :aria-valuenow="player.bravery" aria-valuemin="0" aria-valuemax="1000"></div>
     </div>
-    <div class="progress">
+    <div class="progress leadership">
       leadership:&nbsp;<div class="progress-bar" role="progressbar" v-bind:style="{ width: (player.leadership/10)+'%' }" :aria-valuenow="player.leadership" aria-valuemin="0" aria-valuemax="1000"></div>
     </div>
-    <div class="progress">
+    <div class="progress experience">
      experience:&nbsp;<div class="progress-bar" role="progressbar" v-bind:style="{ width: (player.experience/10)+'%' }" :aria-valuenow="player.experience" aria-valuemin="0" aria-valuemax="1000"></div>
     </div>
-    <div class="progress">
+    <div class="progress agility">
       agility:&nbsp;<div class="progress-bar" role="progressbar" v-bind:style="{ width: (player.agility/10)+'%' }" :aria-valuenow="player.agility" aria-valuemin="0" aria-valuemax="1000"></div>
     </div>
-    <div class="progress">
+    <div class="progress speed">
       speed:&nbsp;<div class="progress-bar" role="progressbar" v-bind:style="{ width: (player.speed/10)+'%' }" :aria-valuenow="player.speed" aria-valuemin="0" aria-valuemax="1000"></div>
     </div>
 </div>
@@ -61,15 +61,18 @@ Vue.component('player-detail', {
 Vue.component('action-request', {
     props: ['storyId', 'playerId', 'request', 'notifications'],
     template: `
-<div><h3>{{ request.roomSummary.name }}</h3><p>{{ request.roomSummary.description }}</p><p>{{ request.roomSummary.occupants }}</p>
-<form v-on:submit.prevent="performAction">
-<input id="statement" size="40" v-model="statement" v-focus type="text" placeholder="What do you want to do?"/>
-<button class="btn btn-primary" type="submit">Submit</button>
-<button class="btn btn-light" type="button" data-toggle="collapse" :data-target="\'#actions\'+request.id" v-if="request.actions"><span class="fas fa-question-circle"></span></button>
-<p class="collapse" :id="\'actions\'+request.id">
-<button type="button" v-for="action in request.actions" class="btn btn-outline-secondary btn-sm" v-on:click="populateAction(action)">{{ action }}</button>
-</p>
-</form>
+<div class="action-request">
+    <h3 class="room-name">{{ request.roomSummary.name }}</h3>
+    <p class="room-description">{{ request.roomSummary.description }}</p>
+    <p class="room-occupants">{{ request.roomSummary.occupants }}</p>
+    <form v-on:submit.prevent="performAction" class="action-request">
+        <input id="statement" class="statement" size="40" v-model="statement" v-focus type="text" placeholder="What do you want to do?"/>
+        <button class="btn btn-primary" type="submit">Submit</button>
+        <button class="btn btn-light action-help" type="button" data-toggle="collapse" :data-target="\'#actions\'+request.id" v-if="request.actions"><span class="fas fa-question-circle"></span></button>
+        <p class="collapse action-help-close" :id="\'actions\'+request.id">
+        <button type="button" v-for="action in request.actions" class="btn btn-outline-secondary btn-sm action" v-on:click="populateAction(action)">{{ action }}</button>
+        </p>
+    </form>
 </div>
 `,
     data() {
@@ -195,11 +198,11 @@ Vue.directive('focus', {
 
 const StoryCreate = {
     template: `
-<div class="container">
+<div class="container story-create">
 <div class="row">
 <h1>Create a New Story</h1>
 </div>
-    <div class="row">
+    <div class="row worlds">
         <div class="col" v-for="w in worlds">
             <story-create-item v-bind:key="w.ref" v-bind:name="w.name" v-bind:description="w.description" v-bind:worldId="w.ref"></story-create-item>
         </div>
@@ -231,7 +234,7 @@ const StoryCreate = {
 const Story = {
     template: `
 <div>
-<div class="container">
+<div class="container story">
 <div class="row" v-if="world">
 <h1>{{ world.name }}</h1>
 <button class="btn btn-light" type="button" data-toggle="collapse" data-target="#story_description" v-if="world.description"><span class="fas fa-question-circle"></span></button>
@@ -521,29 +524,29 @@ const Story = {
 
 const StoryInit = {
     template: `
-<div class="container">
-<div class="row">Invite others with this link: {{ this.$parent.story_url }}</div>
-<div class="row" v-if="this.$parent.my_player_url">Continue with this link (or bookmark this page): {{ this.$parent.my_player_url }}</div>
+<div class="container story-init">
+<div class="row">Invite others with this link: <span class="link-invite">{{ this.$parent.story_url }}</span></div>
+<div class="row" v-if="this.$parent.my_player_url">Continue with this link (or bookmark this page): <span class="link-continue">{{ this.$parent.my_player_url }}</span></div>
 <div class="row">
-<button type="button" class="btn btn-sm btn-primary" v-on:click="startStory" v-if="this.$parent.my_player_url">Start Story</button>
+<button type="button" class="btn btn-sm btn-primary start-story" v-on:click="startStory" v-if="this.$parent.my_player_url">Start Story</button>
 </div>
 <div class="row" v-if="!$parent.my_player_path">
 <div class="col">
-<div class="card" v-for="r in this.$parent.playerRequests" :key="r.id">
+<div class="card player-choice" v-for="r in this.$parent.playerRequests" :key="r.id">
     <div class="card-body">
         <h5 class="card-title">{{ r.template | templateDisplayName }}</h5>
-        <button type="button" class="btn btn-sm btn-primary" v-on:click="selectPlayer(r)">Select</button>
+        <button type="button" class="btn btn-sm btn-primary player-choose" v-on:click="selectPlayer(r)">Select</button>
     </div></div>
 </div>
 <div class="col">
-<form>
+<form class="player-choice">
   <div class="form-group">
     <label for="fullName">Full Name</label>
-    <input type="text" class="form-control" v-model="fullName" placeholder="Enter player full name">
+    <input type="text" class="form-control full-name" v-model="fullName" placeholder="Enter player full name">
   </div>
   <div class="form-group">
     <label for="nickName">Nick Name</label>
-    <input type="text" class="form-control" v-model="nickName" placeholder="Enter player nick name">
+    <input type="text" class="form-control nick-name" v-model="nickName" placeholder="Enter player nick name">
   </div>
   <button type="button" class="btn btn-primary" v-on:click="createPlayer">Submit</button>
   <player-detail v-if="request && request.template" v-bind:player="request.template"></player-detail>
@@ -622,11 +625,11 @@ const StoryInit = {
 
 const StoryRun = {
     template: `
-<div class="container">
-<div class="row">Continue with this link (or bookmark this page): {{ this.$parent.my_player_url }}</div>
+<div class="container story-run">
+<div class="row">Continue with this link (or bookmark this page): <span class="link-continue">{{ this.$parent.my_player_url }}</span></div>
 <div class="row">
-    <div class="alert alert-warning alert-dismissible fade show" role="alert" v-for="n in this.$parent.notifications" :key="n.id">
-        {{ n.text }}
+    <div class="alert alert-warning alert-dismissible fade show notification" role="alert" v-for="n in this.$parent.notifications" :key="n.id">
+        <span>{{ n.text }}</span>
         <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
     </div>
 </div>
@@ -645,14 +648,14 @@ const StoryRun = {
       v-bind:request="this.$parent.my_player_actionRequest"></action-request>
     <i class="fas fa-clock fa-9x" v-else></i>
 </div>
-<div class="col-4">
+<div class="col-4 other-players">
     <h3>Players</h3>
-    <div class="card" v-for="r in this.$parent.players" :key="r.id">
+    <div class="card other-player" v-for="r in this.$parent.players" :key="r.id">
         <div class="card-body">
-            <h5 class="card-title">{{ r.nickName }}&nbsp;<i class="fas fa-clock" title="Waiting for player to move" v-if="$parent.waiting(r.id)"></i></h5>
-            <h6 class="card-subtitle mb-2 text-muted">{{ r.room.name }}</h6>
-            <p class="card-text">\${{ r.wealth }}</p>
-            <div class="progress">
+            <h5 class="card-title nick-name">{{ r.nickName }}&nbsp;<i class="fas fa-clock" title="Waiting for player to move" v-if="$parent.waiting(r.id)"></i></h5>
+            <h6 class="card-subtitle mb-2 text-muted room-name">{{ r.room.name }}</h6>
+            <p class="card-text wealth">\${{ r.wealth }}</p>
+            <div class="progress health">
               health:&nbsp;<div class="progress-bar" role="progressbar" v-bind:style="{ width: (r.health/10)+'%' }" :aria-valuenow="r.health" aria-valuemin="0" aria-valuemax="1000"></div>
             </div>
         </div>
@@ -679,22 +682,22 @@ const StoryRun = {
 
 const StoryEnd = {
     template: `
-<div class="container">
+<div class="container story-end">
     <div class="row">
         <div class="alert alert-success">
             Story has ended.
         </div>
     </div>
-    <div class="row" v-if="name">
+    <div class="row name" v-if="name">
         <h1>{{ name }}</h1>
     </div>
-    <div class="row" v-if="description">
+    <div class="row description" v-if="description">
         <p>{{ description }}</p>
     </div>
-    <div class="row" v-if="goals.length > 0">
+    <div class="row goals" v-if="goals.length > 0">
         <h3>Goals met:</h3>
         <ul>
-            <li v-for="g in goals">{{ g }}</li>
+            <li class="goal" v-for="g in goals">{{ g }}</li>
         </ul>
     </div>
 </div>
@@ -739,7 +742,7 @@ const StoryEnd = {
 
 const StoryNotPlaying = {
     template: `
-<div class="container">
+<div class="container story-not-playing">
     <div class="row">
         <div class="alert alert-danger">
             Story started without you <i class="fas fa-sad-tear"></i>

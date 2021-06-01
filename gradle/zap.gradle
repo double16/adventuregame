@@ -16,8 +16,8 @@ zapConfig {
         def port = dockerCompose.servicesInfos.app.firstContainer.ports[8080]
         "http://${host}:${port}"
     }
-    activeScanTimeout = '600'
-//    version = '2.10.0'
+    activeScanTimeout = '3600'
+    version = '2.10.0'
 }
 
 task zapSetup(dependsOn: zapStart) {
