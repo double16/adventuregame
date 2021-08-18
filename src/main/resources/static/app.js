@@ -629,7 +629,7 @@ const StoryRun = {
 <div class="row">Continue with this link (or bookmark this page): <span class="link-continue">{{ this.$parent.my_player_url }}</span></div>
 <div class="row">
     <div class="alert alert-warning alert-dismissible fade show notification" role="alert" v-for="n in this.$parent.notifications" :key="n.id">
-        <span>{{ n.text }}</span>
+        <span class="message">{{ n.text }}</span>
         <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
     </div>
 </div>
@@ -640,7 +640,7 @@ const StoryRun = {
 </div>
 <div class="row">
 <div class="col-6">
-    <div v-if="this.$parent.my_player_obj"><h2>{{ this.$parent.my_player_obj.fullName }}</h2></div>
+    <div v-if="this.$parent.my_player_obj"><h2 class="current-player-fullname">{{ this.$parent.my_player_obj.fullName }}</h2></div>
     <action-request v-if="this.$parent.my_player_actionRequest"
       v-bind:storyId="$parent.$route.params.story_id"
       v-bind:playerId="$parent.$route.params.player_id"

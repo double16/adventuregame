@@ -79,7 +79,6 @@ def postProcessDriver = { WebDriver driver, Map caps = augmentBrowserCaps(collec
 WebDriverManager.chromedriver().setup()
 driver = {
     try {
-        cacheDriver = true
         WebDriverManager.chromedriver().setup()
         ChromeOptions opts = new ChromeOptions()
         opts.addArguments('headless')

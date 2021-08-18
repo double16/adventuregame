@@ -6,11 +6,11 @@ plugins {
     id 'com.github.ben-manes.versions' version '0.39.0'
     id 'ru.vyarus.quality' version '4.6.0'
     id 'com.bmuschko.clover' version '3.0.1'
-    id 'org.owasp.dependencycheck' version '6.1.6'
+    id 'org.owasp.dependencycheck' version '6.2.2'
     id 'com.patdouble.cucumber-jvm' version '0.20'
     id 'com.github.johnrengelman.shadow' version '6.1.0'
     id 'info.solidsoft.pitest' version '1.6.0'
-    id 'de.undercouch.download' version '4.1.1'
+    id 'de.undercouch.download' version '4.1.2'
     id 'com.patdouble.jmeter-gradle-plugin' version '1.3.0-5.4.1'
     id 'uk.co.automatictester.lightning' version '2.0.1'
     id 'com.patdouble.zap' version '2.10.0'
@@ -32,7 +32,7 @@ repositories {
 }
 
 ext {
-    droolsVersion = '7.54.0.Final'
+    droolsVersion = '7.55.0.Final'
     groovyVersion = '2.5.+'
 //    groovyVersion = '3.0.+'
 }
@@ -51,7 +51,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     developmentOnly 'org.springframework.data:spring-data-rest-hal-explorer'
 //    implementation 'com.github.yingzhuo:carnival-spring-boot-starter-gravatar:1.4.+'
-    implementation 'org.yaml:snakeyaml:1.28'
+    implementation 'org.yaml:snakeyaml:1.29'
     implementation 'org.webjars:webjars-locator-core'
     implementation 'org.webjars:bootstrap:4.5.+'
     implementation 'org.webjars.npm:vue:2.6.+'
@@ -84,8 +84,8 @@ dependencies {
     // Spock
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     if (project.groovyVersion.startsWith('3')) {
-        testImplementation 'org.spockframework:spock-core:2.0-M3-groovy-3.0'
-        testImplementation 'org.spockframework:spock-spring:2.0-M3-groovy-3.0'
+        testImplementation 'org.spockframework:spock-core:2.0-groovy-3.0'
+        testImplementation 'org.spockframework:spock-spring:2.0-groovy-3.0'
     } else {
         testImplementation 'org.spockframework:spock-core:1.3-groovy-2.5'
         testImplementation 'org.spockframework:spock-spring:1.3-groovy-2.5'

@@ -56,6 +56,8 @@ class MyBindingUpdater extends BindingUpdater {
 
 Before() { Scenario scenario ->
     try {
+        scenario.log('[INFO] Creating the browser')
+
         Browser browser = new Browser()
         bindingUpdater = new MyBindingUpdater(binding, browser)
         bindingUpdater.initialize()
@@ -85,11 +87,14 @@ After() { Scenario scenario ->
     }
 
     if (binding.hasVariable('browser')) {
-        scenario.log('[INFO] Quitting the browser')
-        browser.quit()
+//        scenario.log('[INFO] Quitting the browser')
+//        browser.quit()
+        scenario.log('[INFO] Clearing cookies')
+        browser.clearCookiesQuietly()
     }
 
     if (binding.hasVariable('bindingUpdater')) {
+        scenario.log('[INFO] Removing Geb binding')
         bindingUpdater.remove()
     }
 }
