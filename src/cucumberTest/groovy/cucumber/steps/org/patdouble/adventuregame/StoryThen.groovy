@@ -45,5 +45,7 @@ Then(~/^Notification has "([^"]+)"$/) { String message ->
 
 Then(~/^Room is "([^"]+)"$/) { String roomName ->
     at StoryRunPage
-    page.actionRequest.roomName == roomName
+    waitFor('slow') {
+        page.actionRequest.roomName == roomName
+    }
 }
