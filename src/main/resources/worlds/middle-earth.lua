@@ -32,6 +32,11 @@ persona 'ranger' {
     wealth = 50;
 }
 
+persona 'troll' {
+    health = 400;
+    wealth = 20;
+}
+
 --
 -- The West
 --

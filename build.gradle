@@ -1,20 +1,20 @@
 plugins {
-    id 'org.springframework.boot' version '2.5.4'
+    id 'org.springframework.boot' version '2.6.2'
     id 'java'
     id 'groovy'
     id 'idea'
     id 'com.github.ben-manes.versions' version '0.39.0'
-    id 'ru.vyarus.quality' version '4.6.0'
-    id 'com.bmuschko.clover' version '3.0.1'
-    id 'org.owasp.dependencycheck' version '6.2.2'
+    id 'ru.vyarus.quality' version '4.7.0'
+    id 'com.bmuschko.clover' version '3.0.2'
+    id 'org.owasp.dependencycheck' version '6.5.0.1'
     id 'com.patdouble.cucumber-jvm' version '0.20'
     id 'com.github.johnrengelman.shadow' version '6.1.0'
-    id 'info.solidsoft.pitest' version '1.6.0'
+    id 'info.solidsoft.pitest' version '1.7.0'
     id 'de.undercouch.download' version '4.1.2'
     id 'com.patdouble.jmeter-gradle-plugin' version '1.3.0-5.4.1'
     id 'uk.co.automatictester.lightning' version '2.0.1'
-    id 'com.patdouble.zap' version '2.10.0'
-    id 'com.avast.gradle.docker-compose' version '0.14.9'
+    id 'com.patdouble.zap' version '2.11.0'
+    id 'com.avast.gradle.docker-compose' version '0.14.11'
 }
 
 apply plugin: 'io.spring.dependency-management'
@@ -28,11 +28,10 @@ sourceCompatibility = '11'
 
 repositories {
     mavenCentral()
-    jcenter()
 }
 
 ext {
-    droolsVersion = '7.58.0.Final'
+    droolsVersion = '7.63.0.Final'
     groovyVersion = '2.5.+'
 //    groovyVersion = '3.0.+'
 }
@@ -51,7 +50,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     developmentOnly 'org.springframework.data:spring-data-rest-hal-explorer'
 //    implementation 'com.github.yingzhuo:carnival-spring-boot-starter-gravatar:1.4.+'
-    implementation 'org.yaml:snakeyaml:1.29'
+    implementation 'org.yaml:snakeyaml:1.30'
     implementation 'org.webjars:webjars-locator-core'
     implementation 'org.webjars:bootstrap:4.5.+'
     implementation 'org.webjars.npm:vue:2.6.+'
@@ -61,16 +60,16 @@ dependencies {
     implementation 'org.webjars.npm:graphlib-dot:0.6.+'
     implementation 'org.webjars.npm:axios:0.21.+'
     implementation 'org.webjars:font-awesome:5.15.+'
-    implementation 'org.webjars.npm:github-com-stomp-js-stompjs:5.4.+'
+    implementation 'org.webjars.npm:stomp__stompjs:5.4.+'
     implementation "org.kie:kie-spring:${droolsVersion}"
     // Supports hot reloading of rules from a Maven repo: implementation "org.kie:kie-ci:${droolsVersion}"
     implementation "org.drools:drools-core:${droolsVersion}"
     implementation "org.drools:drools-compiler:${droolsVersion}"
     implementation 'org.luaj:luaj-jse:3.0.1' // github.com/luaj/luaj
-    implementation 'org.fusesource.jansi:jansi:2.3.+'
-    implementation 'org.jline:jline:3.20.+'
+    implementation 'org.fusesource.jansi:jansi:2.4.+'
+    implementation 'org.jline:jline:3.21.+'
     implementation 'org.codehaus.gpars:gpars:1.2.+'
-    implementation 'commons-io:commons-io:2.8.+'
+    implementation 'commons-io:commons-io:2.11.+'
     implementation 'org.apache.commons:commons-lang3:3.12.+'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     runtimeOnly 'org.postgresql:postgresql'
@@ -79,7 +78,7 @@ dependencies {
     testImplementation 'io.projectreactor:reactor-test'
 //    testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'org.codehaus.gpars:gpars:1.2.1'
-    testImplementation 'io.github.java-diff-utils:java-diff-utils:4.10'
+    testImplementation 'io.github.java-diff-utils:java-diff-utils:4.11'
 
     // Spock
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -207,6 +206,6 @@ afterEvaluate {
 
 pitest {
     // https://github.com/hcoles/pitest
-    pitestVersion = '1.6.4'
+    pitestVersion = '1.7.2'
     timestampedReports = false
 }
