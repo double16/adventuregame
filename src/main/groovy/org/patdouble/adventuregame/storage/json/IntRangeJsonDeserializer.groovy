@@ -23,7 +23,7 @@ class IntRangeJsonDeserializer extends StdDeserializer<Range<Integer>> {
         this(Range)
     }
 
-    IntRangeJsonDeserializer(Class<?> vc) {
+    IntRangeJsonDeserializer(Class<Range<Integer>> vc) {
         super(vc)
     }
 
