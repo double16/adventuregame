@@ -15,7 +15,7 @@ class IntRangeJsonSerializer extends StdSerializer<Range<Integer>> {
         this(Range)
     }
 
-    IntRangeJsonSerializer(Class<?> vc) {
+    IntRangeJsonSerializer(Class<Range<Integer>> vc) {
         super(vc)
     }
 
