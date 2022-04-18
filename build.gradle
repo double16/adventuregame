@@ -182,7 +182,7 @@ bootRun {
 bootBuildImage {
     imageName = project.imageName
     tags = project.imageTags.split('[,; \r\n]+')
-    targetJavaVersion = JavaVersion.VERSION_15
+    targetJavaVersion = JavaVersion.VERSION_11
 //    instruction 'HEALTHCHECK CMD curl -s -O /dev/null http://localhost:8080/actuator/health || exit 1'
 }
 
