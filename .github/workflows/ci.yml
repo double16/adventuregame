@@ -197,7 +197,7 @@ jobs:
 
       - name: Build Image
         run: |
-          ./gradlew "-PimageName=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" "-PimageTags=${{ steps.meta.outputs.tags }}" bootBuildImage
+          ./gradlew "-PimageName=${{ steps.meta.outputs.tags }}" "-PimageTags=${{ steps.meta.outputs.tags }}" bootBuildImage
 
       - name: Push Docker image
         run: |
