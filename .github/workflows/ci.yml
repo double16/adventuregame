@@ -201,6 +201,8 @@ jobs:
 
       - name: Push Docker image
         run: |
-          for TAG in ${{ steps.meta.outputs.tags }}; do
+          while read TAG; do
             docker push ${TAG}
-          done
+          done << EOF
+          ${{ steps.meta.outputs.tags }}
+          EOF
