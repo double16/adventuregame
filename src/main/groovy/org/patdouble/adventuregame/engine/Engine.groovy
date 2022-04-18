@@ -738,7 +738,11 @@ class Engine {
                 while (!halting.get() && quickRestartCount < 3) {
                     log.info 'Rule engine firing until halt'
                     long start = System.currentTimeMillis()
-                    kieSession.fireUntilHalt()
+                    final KieSession kieSession1 = kieSession
+                    if (kieSession1 == null) {
+                        break
+                    }
+                    kieSession1.fireUntilHalt()
                     long end = System.currentTimeMillis()
                     if (halting.get()) {
                         log.info 'Halted rule engine'

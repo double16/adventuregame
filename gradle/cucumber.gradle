@@ -34,17 +34,17 @@ cucumberTest {
 }
 
 dependencies {
-    cucumberTestCompile 'io.cucumber:cucumber-java:6.10.+'
+    cucumberTestImplementation 'io.cucumber:cucumber-java:6.10.+'
     // To use JUnit assertions in the step definitions:
-    cucumberTestCompile 'junit:junit:4.13.2'
-    cucumberTestCompile "org.gebish:geb-core:${gebVersion}"
-    cucumberTestCompile "org.seleniumhq.selenium:selenium-support:${seleniumVersion}"
-    cucumberTestCompile "org.seleniumhq.selenium:selenium-firefox-driver:${seleniumVersion}"
-    cucumberTestCompile "org.seleniumhq.selenium:selenium-chrome-driver:${seleniumVersion}"
-    cucumberTestCompile "io.github.bonigarcia:webdrivermanager:4.+"
-    cucumberTestCompile 'org.awaitility:awaitility-groovy:4.0.+'
-    cucumberTestCompile "org.gebish:geb-spock:${gebVersion}"
-    cucumberTestCompile "org.gebish:geb-junit4:${gebVersion}"
-    cucumberTestCompile 'io.cucumber:cucumber-groovy:6.1.+'
-    cucumberTestCompile 'org.apache.commons:commons-text:1.9'
+    cucumberTestImplementation 'junit:junit:4.13.2'
+    cucumberTestImplementation "org.gebish:geb-core:${gebVersion}"
+    cucumberTestImplementation "org.seleniumhq.selenium:selenium-support:${seleniumVersion}"
+    cucumberTestImplementation "org.seleniumhq.selenium:selenium-firefox-driver:${seleniumVersion}"
+    cucumberTestImplementation "org.seleniumhq.selenium:selenium-chrome-driver:${seleniumVersion}"
+    cucumberTestImplementation "io.github.bonigarcia:webdrivermanager:4.+"
+    cucumberTestImplementation 'org.awaitility:awaitility-groovy:4.2.+'
+    cucumberTestImplementation "org.gebish:geb-spock:${gebVersion}"
+    cucumberTestImplementation "org.gebish:geb-junit4:${gebVersion}"
+    cucumberTestImplementation 'io.cucumber:cucumber-groovy:6.1.+'
+    cucumberTestImplementation 'org.apache.commons:commons-text:1.9'
 }
