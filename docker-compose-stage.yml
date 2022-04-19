@@ -6,7 +6,7 @@ volumes:
 services:
   app:
     restart: on-failure
-    image: pdouble16/adventuregame:latest
+    image: ${IMAGE:-double16/adventuregame:latest}
 #    healthcheck:
 #      test: "curl -s -O /dev/null http://localhost:8080/actuator/health || exit 1"
     environment:

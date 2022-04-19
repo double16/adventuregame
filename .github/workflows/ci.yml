@@ -168,9 +168,18 @@ jobs:
           key: ${{ runner.os }}-gradle-zap-${{ hashFiles('**/*.gradle') }}
           restore-keys: |
             ${{ runner.os }}-gradle-zap-
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: |
+            latest=true
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       - name: Execute all tests
+        env:
+          IMAGE: ${{ steps.meta.outputs.tags[0] }}
         run: ./gradlew zapActiveScan --stacktrace
       - name: Archive check reports
         uses: actions/upload-artifact@v3
